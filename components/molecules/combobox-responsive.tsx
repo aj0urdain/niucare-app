@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Filter } from "lucide-react";
+import { Check, ChevronsDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
@@ -21,11 +21,16 @@ import {
 } from "@/components/ui/popover";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type Option = {
+  id: string;
   value: string;
   label: string;
+  displayLabel?: React.ReactNode;
   icon?: React.ReactNode;
+  searchValue?: string;
+  code?: string;
 };
 
 interface ComboBoxResponsiveProps {
@@ -57,6 +62,10 @@ export function ComboBoxResponsive({
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const selectedOption = options.find((option) => option.value === value);
 
+  React.useEffect(() => {
+    console.log("Selected Option:", selectedOption);
+  }, [selectedOption]);
+
   const OptionList = React.useCallback(
     function OptionList() {
       return (
@@ -64,26 +73,30 @@ export function ComboBoxResponsive({
           <CommandInput placeholder={searchPlaceholder} />
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
-            <CommandGroup>
-              {options.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  value={option.value}
-                  onSelect={(selectedValue) => {
-                    onValueChange(selectedValue === "all" ? "" : selectedValue);
-                    setOpen(false);
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    {option.icon}
-                    {option.label}
+            <ScrollArea className="h-[200px]">
+              <CommandGroup key="options-group">
+                {options.map((option) => (
+                  <CommandItem
+                    key={option.id + option.value}
+                    value={option.searchValue || option.value}
+                    onSelect={() => {
+                      onValueChange(option.value);
+                      setOpen(false);
+                    }}
+                  >
+                    {option.displayLabel || (
+                      <div className="flex items-center gap-2">
+                        {option.label}
+                        {option.label}
+                      </div>
+                    )}
                     {option.value === value && (
                       <Check className="ml-auto h-4 w-4" />
                     )}
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </ScrollArea>
           </CommandList>
         </Command>
       );
@@ -92,20 +105,31 @@ export function ComboBoxResponsive({
   );
 
   const trigger = (
-    <Button variant="outline" className={cn("justify-start", triggerClassName)}>
+    <Button
+      variant="outline"
+      className={cn("justify-between", "group/trigger", triggerClassName)}
+    >
       {selectedOption ? (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {selectedOption.icon}
-          {selectedOption.label}
+          <div className="flex gap-1">
+            <span className="group-hover/trigger:opacity-100 flex mt-0.5 items-center font-semibold text-foreground text-[0.7rem] transition-opacity duration-200">
+              {selectedOption.label}
+            </span>
+            <span className="group-hover/trigger:opacity-100 flex items-center text-foreground transition-opacity duration-200">
+              ({selectedOption.value})
+            </span>
+          </div>
         </div>
       ) : (
         placeholder
       )}
+      <ChevronsDown className="ml-2 h-3 w-3 shrink-0 opacity-50 group-hover/trigger:opacity-100 transition-opacity duration-200" />
     </Button>
   );
 
   const content = (
-    <div className="grid w-fit min-w-40 gap-1.5">
+    <div className="grid w-fit max-w-full min-w-40 gap-1.5">
       {label && (
         <Label
           htmlFor={id}
@@ -119,7 +143,7 @@ export function ComboBoxResponsive({
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>{trigger}</PopoverTrigger>
           <PopoverContent
-            className={className}
+            className={cn("p-0", className)}
             align="start"
             style={{
               width: "var(--radix-popover-trigger-width)",
