@@ -2,25 +2,20 @@
 
 import * as React from "react";
 import {
-  AudioWaveform,
-  Command,
+  FileHeart,
+  FilePen,
   FileText,
-  Frame,
-  GalleryVerticalEnd,
+  FileUp,
   HeartPulse,
-  HelpCircle,
   Hospital,
   Info,
   LayoutDashboard,
   LifeBuoy,
   Mail,
-  Map,
-  PieChart,
   Smile,
 } from "lucide-react";
 
 import { NavMain } from "@/components/molecules/nav-main";
-import { NavInfo } from "@/components/molecules/nav-info";
 import { NavUser } from "@/components/molecules/nav-user";
 import { TeamSwitcher } from "@/components/molecules/team-switcher";
 import {
@@ -33,7 +28,6 @@ import {
 import { Separator } from "../ui/separator";
 import Image from "next/image";
 
-// This is sample data.
 const data = {
   user: {
     name: "Test User",
@@ -57,7 +51,34 @@ const data = {
       plan: "Dental",
     },
   ],
-  navMain: [
+  navAdmin: [
+    {
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: LayoutDashboard,
+    },
+    {
+      title: "Registrations",
+      url: "/admin/registrations",
+      icon: FilePen,
+    },
+    {
+      title: "Claims",
+      url: "/admin/claims",
+      icon: FileHeart,
+    },
+    {
+      title: "Update Policy Holders",
+      url: "/admin/update-policy-holders",
+      icon: FileUp,
+    },
+  ],
+  navServiceProvider: [
+    {
+      title: "Registration",
+      url: "/registration",
+      icon: FilePen,
+    },
     {
       title: "Dashboard",
       url: "/dashboard",
@@ -95,7 +116,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props} className="bg-[#810101]">
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-4 py-4">
+        <div className="flex items-center gap-2 px-4 py-4 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0">
           <Image
             src="/images/psna-logo.avif"
             alt="Logo"
@@ -103,8 +124,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             height={100}
             className="w-14 h-auto"
           />
-          <h1 className="text-white text-sm font-bold mt-1.5">
-            Public Service Niucare Association
+          <h1 className="text-white text-5xl hidden md:block font-bold mt-1.5 group-data-[collapsible=icon]:hidden">
+            PSNA
           </h1>
         </div>
         <Separator className="bg-[#dc5555] my-2 mx-auto w-5/6" />
@@ -112,7 +133,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain title="Platform" items={data.navMain} />
+        <NavMain title="Admin" items={data.navAdmin} />
+        <NavMain title="Service Provider" items={data.navServiceProvider} />
         <NavMain title="Support" items={data.navInfo} />
       </SidebarContent>
       <SidebarFooter>

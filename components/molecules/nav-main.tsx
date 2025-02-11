@@ -1,6 +1,7 @@
 "use client";
 
 import { type LucideIcon } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 import {
   SidebarGroup,
@@ -15,7 +16,6 @@ export function NavMain({
   title,
 }: {
   title: string;
-  disabled?: boolean;
   items: {
     title: string;
     url: string;
@@ -24,6 +24,8 @@ export function NavMain({
     disabled?: boolean;
   }[];
 }) {
+  const pathname = usePathname();
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>{title}</SidebarGroupLabel>
@@ -31,10 +33,10 @@ export function NavMain({
         {items.map((item) => (
           <SidebarMenuItem key={item.title}>
             <SidebarMenuButton
-              disabled
+              disabled={item.disabled}
               asChild
-              isActive={item.isActive}
-              className="hover:text-black hover:font-bold transition-all duration-150"
+              isActive={pathname === item.url}
+              className="transition-all anim duration-150 hover:text-[#810101] data-[active=true]:text-[#810101] data-[active=true]:font-bold"
             >
               <a href={item.url}>
                 <item.icon />
