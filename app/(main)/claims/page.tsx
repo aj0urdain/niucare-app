@@ -1,6 +1,5 @@
 import { Claim, columns } from "@/components/atoms/columns-data";
 import { DataTable } from "@/components/organisms/data-table";
-import { NewClaimModal } from "@/components/organisms/new-claim-modal";
 import { Separator } from "@/components/ui/separator";
 
 import React from "react";
@@ -51,7 +50,7 @@ const Claims = async () => {
         {/* <NewClaimModal /> */}
       </div>
       <Separator />
-      <DataTable columns={columns} data={data} />
+      <DataTable columns={columns} data={data} newClaimButton={true} />
     </div>
   );
 };

@@ -45,11 +45,13 @@ import { Claim } from "@/components/atoms/columns-data";
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  newClaimButton?: boolean;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
+  newClaimButton = false,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -84,7 +86,7 @@ export function DataTable<TData, TValue>({
     <div>
       <div className="flex items-end justify-between py-4 gap-4">
         <div className="flex items-end justify-end h-full">
-          <NewClaimModal />
+          {newClaimButton && <NewClaimModal />}
         </div>
         <div className="flex items-end justify-end gap-4">
           <ComboBoxResponsive
