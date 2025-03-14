@@ -10,7 +10,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-
+import Link from "next/link";
 export function NavMain({
   items,
   title,
@@ -36,12 +36,12 @@ export function NavMain({
               disabled={item.disabled}
               asChild
               isActive={pathname === item.url}
-              className="transition-all anim duration-150 hover:text-[#810101] data-[active=true]:text-[#810101] data-[active=true]:font-bold"
+              className="transition-all duration-150 hover:text-[#810101] data-[active=true]:text-[#810101] data-[active=true]:font-bold"
             >
-              <a href={item.url}>
+              <Link href={item.url}>
                 <item.icon />
                 <span>{item.title}</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         ))}

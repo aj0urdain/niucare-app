@@ -8,6 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import * as React from "react";
 
 interface PasswordInputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -16,17 +17,16 @@ interface PasswordInputProps
   onVisibilityChange: () => void;
 }
 
-export function PasswordInput({
-  className,
-  showPassword,
-  onVisibilityChange,
-  ...props
-}: PasswordInputProps) {
+export const PasswordInput = React.forwardRef<
+  HTMLInputElement,
+  PasswordInputProps
+>(({ className, showPassword, onVisibilityChange, ...props }, ref) => {
   return (
     <div className="relative">
       <Input
         type={showPassword ? "text" : "password"}
         className={cn("pr-10", className)}
+        ref={ref}
         {...props}
       />
       <TooltipProvider>
@@ -56,4 +56,6 @@ export function PasswordInput({
       </TooltipProvider>
     </div>
   );
-}
+});
+
+PasswordInput.displayName = "PasswordInput";

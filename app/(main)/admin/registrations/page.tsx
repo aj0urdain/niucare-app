@@ -1,109 +1,150 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Provider } from "@/components/atoms/admin-columns";
+import { columns } from "@/components/atoms/admin-registration-columns";
+import { DataTable } from "@/components/organisms/data-table";
+import { useQuery } from "@apollo/client";
+import { GET_REGISTRATIONS } from "@/lib/graphql/queries";
+import { getCurrentUser } from "aws-amplify/auth";
 import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
-import { Building2, Hospital } from "lucide-react";
-import { RegistrationDetails } from "@/components/molecules/registration-details";
+  CirclePlus,
+  CircleCheckBig,
+  CircleDashed,
+  CircleX,
+} from "lucide-react";
 
-async function getData(): Promise<Provider[]> {
-  // Fetch data from your API here.
-  return [
-    {
-      id: "1",
-      registrationId: "PRV-2024-001",
-      email: "medical@example.com",
-      firstName: "John",
-      lastName: "Doe",
-      practiceName: "City Medical Center",
-      province: "Central",
-      type: "private",
-    },
-    {
-      id: "2",
-      registrationId: "PUB-2024-001",
-      email: "hospital@gov.pg",
-      firstName: "Jane",
-      lastName: "Smith",
-      practiceName: "Port Moresby General Hospital",
-      province: "National Capital District",
-      type: "public",
-    },
-    {
-      id: "3",
-      registrationId: "PRV-2024-002",
-      email: "dental@example.com",
-      firstName: "Robert",
-      lastName: "Johnson",
-      practiceName: "Smile Dental Clinic",
-      province: "Morobe",
-      type: "private",
-    },
-  ];
+interface FilterValues {
+  status: string;
+  province: string;
+  type: string;
 }
 
-const AdminRegistrationsPage = () => {
-  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(
-    null
-  );
-  const [data, setData] = useState<Provider[]>([]);
+interface Registration {
+  id: string;
+  userId: string;
+  luhnRegistrationNumber: string;
+  public_officer_firstname: string;
+  public_officer_lastname: string;
+  email: string;
+  practice_Name: string;
+  practice_Province: string;
+  ptype: string;
+  status: string;
+}
 
-  // Fetch data on component mount
+export default function AdminRegistrationsPage() {
+  const [userId, setUserId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<FilterValues>({
+    status: "",
+    province: "",
+    type: "",
+  });
+
   useEffect(() => {
-    getData().then(setData);
+    const getUserId = async () => {
+      try {
+        const { userId } = await getCurrentUser();
+        setUserId(userId);
+      } catch (error) {
+        console.error("Error getting user ID:", error);
+      }
+    };
+    getUserId();
   }, []);
 
-  return (
-    <div className="flex gap-6 h-[calc(100vh-12rem)]">
-      {/* Left side - Scrollable list */}
-      <div className="w-1/4 animate-slide-left-fade-in">
-        <ScrollArea className="h-full pr-4">
-          <div className="flex flex-col gap-3">
-            {data.map((provider) => (
-              <Card
-                key={provider.id}
-                className={cn(
-                  "cursor-pointer hover:bg-muted/50 transition-colors",
-                  selectedProvider?.id === provider.id && "bg-muted"
-                )}
-                onClick={() => setSelectedProvider(provider)}
-              >
-                <CardHeader className="p-4">
-                  <div className="flex items-center gap-3">
-                    {provider.type === "private" ? (
-                      <Building2 className="h-8 w-8 text-muted-foreground" />
-                    ) : (
-                      <Hospital className="h-8 w-8 text-muted-foreground" />
-                    )}
-                    <div>
-                      <CardTitle className="text-sm">
-                        {provider.practiceName}
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        {provider.registrationId}
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-        </ScrollArea>
-      </div>
+  const { loading, error, data } = useQuery(GET_REGISTRATIONS, {
+    variables: {
+      province: filters.province,
+      type: filters.type,
+      status: filters.status,
+    },
+  });
 
-      {/* Right side - Preview */}
-      <div className="w-3/4 animate-slide-right-fade-in">
-        <RegistrationDetails provider={selectedProvider} />
-      </div>
+  const transformedData =
+    data?.registrations?.map((registration: Registration) => ({
+      id: registration.id,
+      registrationId: registration.luhnRegistrationNumber,
+      email: registration.email,
+      firstName: registration.public_officer_firstname,
+      lastName: registration.public_officer_lastname,
+      practiceName: registration.practice_Name,
+      province: registration.practice_Province,
+      type: registration.ptype,
+      status:
+        registration.status.toLowerCase() === "approved"
+          ? "approved"
+          : registration.status.toLowerCase() === "rejected"
+          ? "rejected"
+          : "pending",
+    })) || [];
+
+  const filterConfig = [
+    {
+      id: "status",
+      label: "Status",
+      type: "combobox",
+      placeholder: "Filter by Status",
+      options: [
+        {
+          id: "all",
+          value: "",
+          label: "All Status",
+          icon: <CirclePlus className="h-3 w-3 text-muted-foreground/75" />,
+        },
+        {
+          id: "pending",
+          value: "Pending",
+          label: "Pending",
+          icon: <CircleDashed className="h-3 w-3 text-yellow-500" />,
+        },
+        {
+          id: "approved",
+          value: "Approved",
+          label: "Approved",
+          icon: <CircleCheckBig className="h-3 w-3 text-green-500" />,
+        },
+        {
+          id: "rejected",
+          value: "Rejected",
+          label: "Rejected",
+          icon: <CircleX className="h-3 w-3 text-red-500" />,
+        },
+      ],
+    },
+    {
+      id: "type",
+      label: "Type",
+      type: "combobox",
+      placeholder: "Filter by Type",
+      options: [
+        { id: "all", value: "", label: "All Types" },
+        { id: "private", value: "private", label: "Private" },
+        { id: "public", value: "public", label: "Public" },
+      ],
+    },
+    {
+      id: "province",
+      label: "Province",
+      type: "combobox",
+      placeholder: "Filter by Province",
+      options: [
+        { id: "all", value: "", label: "All Provinces" },
+        // Add your provinces here
+      ],
+    },
+  ];
+
+  return (
+    <div className="flex flex-col gap-6">
+      <DataTable
+        columns={columns}
+        data={transformedData}
+        loading={loading}
+        error={error}
+        filters={filters}
+        onFilterChange={setFilters}
+        filterConfig={filterConfig}
+      />
     </div>
   );
-};
-
-export default AdminRegistrationsPage;
+}

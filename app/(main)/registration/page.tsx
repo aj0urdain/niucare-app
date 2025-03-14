@@ -97,6 +97,15 @@ export default function RegistrationPage() {
                     </p>
                   </div>
                 </div>
+                <div className="flex items-start gap-2">
+                  <FileSignature className="w-4 h-4 text-muted-foreground mt-0.5" />
+                  <div>
+                    <p className="font-medium">Signature</p>
+                    <p className="text-muted-foreground text-xs">
+                      Draw on screen or upload signature file
+                    </p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

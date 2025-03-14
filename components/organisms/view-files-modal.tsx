@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { FileDown } from "lucide-react";
+import { useFileViewer } from "@/contexts/file-viewer-context";
 
 interface ViewFilesModalProps {
   files?: string[];
@@ -17,10 +18,17 @@ interface ViewFilesModalProps {
 }
 
 export function ViewFilesModal({ files = [], claimId }: ViewFilesModalProps) {
+  const { isOpen, setIsOpen, openFileViewer } = useFileViewer();
+
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" className="h-8 w-8 p-0" data-view-files="true">
+        <Button
+          variant="ghost"
+          className="h-8 w-8 p-0"
+          data-view-files="true"
+          onClick={() => openFileViewer(files, claimId)}
+        >
           <span className="sr-only">View files</span>
           <FileDown className="h-4 w-4" />
         </Button>

@@ -24,34 +24,41 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import {
-  CircleCheckBig,
-  CircleDashed,
-  CirclePlus,
-  CircleX,
-  Filter,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { DataTablePagination } from "@/components/molecules/data-table-pagination";
-import { DataTableViewOptions } from "@/components/molecules/data-table-column-toggle";
 
-import { InputWithLabel } from "@/components/atoms/input-with-label";
-import { ComboBoxResponsive } from "@/components/molecules/combobox-responsive";
-import { NewClaimModal } from "./new-claim-modal";
+import { NewClaimModal } from "./new-claim/new-claim-modal";
 
 import { ViewClaimModal } from "./view-claim-modal";
 import { Claim } from "@/components/atoms/columns-data";
+import { DataTableFilters } from "@/components/molecules/data-table-filters";
+
+interface FilterValues {
+  status: string;
+  claimId: string;
+  employeeNumber: string;
+  claimType: string;
+}
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   newClaimButton?: boolean;
+  loading?: boolean;
+  error?: Error;
+  filters: FilterValues;
+  onFilterChange: (filters: FilterValues) => void;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   newClaimButton = false,
+  loading = false,
+  error = null,
+  filters,
+  onFilterChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -88,115 +95,11 @@ export function DataTable<TData, TValue>({
         <div className="flex items-end justify-end h-full">
           {newClaimButton && <NewClaimModal />}
         </div>
-        <div className="flex items-end justify-end gap-4">
-          <ComboBoxResponsive
-            id="status"
-            label="Status"
-            icon={<Filter className="h-3 w-3" />}
-            options={[
-              {
-                value: "all",
-                label: "All Status",
-                icon: (
-                  <CirclePlus className="h-3 w-3 text-muted-foreground/75" />
-                ),
-              },
-              {
-                value: "pending",
-                label: "Pending",
-                icon: <CircleDashed className="h-3 w-3 text-yellow-500" />,
-              },
-              {
-                value: "approved",
-                label: "Approved",
-                icon: <CircleCheckBig className="h-3 w-3 text-green-500" />,
-              },
-              {
-                value: "rejected",
-                label: "Rejected",
-                icon: <CircleX className="h-3 w-3 text-red-500" />,
-              },
-            ]}
-            value={
-              (table.getColumn("status")?.getFilterValue() as string) ?? "all"
-            }
-            onValueChange={(value) =>
-              table
-                .getColumn("status")
-                ?.setFilterValue(value === "all" ? "" : value)
-            }
-            placeholder="Filter by Status"
-            className="p-0"
-            triggerClassName="max-w-xs"
-          />
-          <InputWithLabel
-            id="claimId"
-            label="Claim ID"
-            placeholder="Claim ID..."
-            value={
-              (table.getColumn("claimId")?.getFilterValue() as string) ?? ""
-            }
-            onChange={(event) =>
-              table.getColumn("claimId")?.setFilterValue(event.target.value)
-            }
-            className="max-w-40"
-            icon={<Filter className="h-3 w-3" />}
-          />
-          <InputWithLabel
-            id="employeeNumber"
-            label="Employee Number"
-            placeholder="Employee Number..."
-            value={
-              (table.getColumn("employeeNumber")?.getFilterValue() as string) ??
-              ""
-            }
-            onChange={(event) =>
-              table
-                .getColumn("employeeNumber")
-                ?.setFilterValue(event.target.value)
-            }
-            className="max-w-40"
-            icon={<Filter className="h-3 w-3" />}
-          />
-          <ComboBoxResponsive
-            id="claimType"
-            label="Claim Type"
-            icon={<Filter className="h-3 w-3" />}
-            options={[
-              { value: "all", label: "All" },
-              { value: "In-Patient Treatment", label: "In-Patient Treatment" },
-              { value: "Pre-Hospitalization", label: "Pre-Hospitalization" },
-              { value: "Post-Hospitalization", label: "Post-Hospitalization" },
-              { value: "Dental Services", label: "Dental Services" },
-              { value: "Optical", label: "Optical" },
-              {
-                value: "General Practitioner Consultation",
-                label: "General Practitioner Consultation",
-              },
-              {
-                value: "Specialist Consultation on Referral",
-                label: "Specialist Consultation on Referral",
-              },
-              { value: "Pregnancy Pre-natal", label: "Pregnancy Pre-natal" },
-              { value: "Pregnancy Childbirth", label: "Pregnancy Childbirth" },
-              { value: "Pregnancy Post Natal", label: "Pregnancy Post Natal" },
-            ]}
-            value={
-              (table.getColumn("claimType")?.getFilterValue() as string) ??
-              "all"
-            }
-            onValueChange={(value) =>
-              table
-                .getColumn("claimType")
-                ?.setFilterValue(value === "all" ? "" : value)
-            }
-            placeholder="Filter by Claim Type"
-            className="w-[200px] p-0"
-            triggerClassName="max-w-xs"
-          />
-
-          <DataTableViewOptions table={table} />
-        </div>
+        <DataTableFilters
+          table={table}
+          currentFilters={filters}
+          onFilterChange={onFilterChange}
+        />
       </div>
       <div className="rounded-md border">
         <Table>
@@ -219,14 +122,25 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {loading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Loading claims...</span>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className="cursor-pointer dark:hover:bg-muted/50 hover:bg-muted"
+                  className="cursor-pointer dark:hover:bg-muted/50 hover:bg-muted animate-slide-down-fade-in"
                   onClick={(e) => {
-                    // Check if the click target is within a button or the ViewFiles modal
                     const isViewFilesClick = (e.target as HTMLElement).closest(
                       '[data-view-files="true"]'
                     );
@@ -252,7 +166,7 @@ export function DataTable<TData, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  No results found.
                 </TableCell>
               </TableRow>
             )}

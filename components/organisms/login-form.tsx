@@ -6,13 +6,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { redirect, useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ComboBoxResponsive } from "@/components/molecules/combobox-responsive";
+import { ComboBoxResponsive } from "@/components/molecules/combobox-responsive-phone";
 
 import ReactCountryFlag from "react-country-flag";
 import {
@@ -27,6 +27,10 @@ import { COUNTRIES } from "@/lib/constants/countries";
 
 import { useEffect, useState } from "react";
 import { PasswordInput } from "@/components/atoms/password-input";
+
+import { toast } from "sonner";
+import { signIn, getCurrentUser } from "aws-amplify/auth";
+import { useQueryClient } from "@tanstack/react-query";
 
 const signUpSchema = z
   .object({
@@ -64,7 +68,7 @@ export function LoginForm({
   const router = useRouter();
   const searchParams = useSearchParams();
   const isSignUp = searchParams.get("mode") === "sign-up";
-
+  const queryClient = useQueryClient();
   const form = useForm({
     resolver: zodResolver(isSignUp ? signUpSchema : signInSchema),
     defaultValues: {
@@ -101,8 +105,64 @@ export function LoginForm({
   const onSubmit = async (
     data: z.infer<typeof signUpSchema | typeof signInSchema>
   ) => {
-    console.log(data);
-    // Handle form submission
+    try {
+      if (isSignUp) {
+        const { email, password, givenName, familyName, phone, phoneCode } =
+          data;
+        await Auth.signUp({
+          username: email,
+          password,
+          attributes: {
+            given_name: givenName,
+            family_name: familyName,
+            phone_number: `${phoneCode}${phone}`,
+          },
+        });
+        toast.success("Account created successfully", {
+          description: "Please check your email for verification instructions",
+        });
+        router.push("/auth?mode=sign-in");
+      } else {
+        const { isSignedIn, nextStep } = await signIn({
+          username: data.email,
+          password: data.password,
+        });
+
+        console.log("isSignedIn", isSignedIn);
+        console.log("nextStep", nextStep);
+
+        if (!isSignedIn && nextStep.signInStep !== "DONE") {
+          throw new Error(`Sign in failed: ${nextStep.signInStep}`);
+        }
+
+        // Add explicit redirect after successful sign in
+        if (isSignedIn) {
+          toast.success("Signed in successfully");
+          router.push("/claims");
+          router.refresh();
+        }
+      }
+    } catch (error: any) {
+      console.error("Authentication error:", error);
+
+      try {
+        const { username, userId, signInDetails } = await getCurrentUser();
+        console.log("Current user:", {
+          username,
+          userId,
+          signInDetails,
+        });
+        toast.info("You are already signed in");
+        queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+        router.push("/claims");
+        return;
+      } catch (getUserError) {
+        console.error("Error getting current user:", getUserError);
+        toast.error("Error verifying current user");
+      }
+
+      toast.error(error.message);
+    }
   };
 
   return (

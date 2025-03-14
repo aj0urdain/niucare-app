@@ -8,16 +8,13 @@ import {
   FileUp,
   HeartPulse,
   Hospital,
-  Info,
   LayoutDashboard,
   LifeBuoy,
-  Mail,
   Smile,
 } from "lucide-react";
 
 import { NavMain } from "@/components/molecules/nav-main";
 import { NavUser } from "@/components/molecules/nav-user";
-import { TeamSwitcher } from "@/components/molecules/team-switcher";
 import {
   Sidebar,
   SidebarContent,
@@ -26,14 +23,11 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { Separator } from "../ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
+import { useUserProfile } from "@/providers/user-profile-manager";
 
 const data = {
-  user: {
-    name: "Test User",
-    email: "test@test.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   teams: [
     {
       name: "Pacific International",
@@ -92,18 +86,6 @@ const data = {
   ],
   navInfo: [
     {
-      title: "About",
-      url: "/about",
-      icon: Info,
-      disabled: true,
-    },
-    {
-      title: "Contact",
-      url: "/contact",
-      icon: Mail,
-      disabled: true,
-    },
-    {
       title: "Support",
       url: "/support",
       icon: LifeBuoy,
@@ -112,7 +94,46 @@ const data = {
   ],
 };
 
+const NavSkeleton = () => {
+  return (
+    <div className="space-y-6">
+      {/* Title skeleton */}
+      <Skeleton className="h-5 w-24 mb-4" />
+
+      {/* Nav items skeletons */}
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex items-center gap-3">
+            <Skeleton className="h-4 w-4" /> {/* Icon */}
+            <Skeleton className="h-4 w-32" /> {/* Text */}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user, isLoading } = useUserProfile();
+
+  // Filter service provider nav items based on registration status
+  const getServiceProviderNav = () => {
+    // If registration is approved or acknowledged, show dashboard and claims, hide registration
+    if (
+      user?.registration.details?.status === "Acknowledged" ||
+      user?.registration.details?.status === "Approved"
+    ) {
+      return data.navServiceProvider.filter(
+        (item) => item.title !== "Registration"
+      );
+    }
+
+    // If not registered or registration is pending/rejected, only show registration
+    return data.navServiceProvider.filter(
+      (item) => item.title === "Registration"
+    );
+  };
+
   return (
     <Sidebar collapsible="icon" {...props} className="bg-[#810101]">
       <SidebarHeader>
@@ -129,16 +150,31 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </h1>
         </div>
         <Separator className="bg-[#dc5555] my-2 mx-auto w-5/6" />
-
-        <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain title="Admin" items={data.navAdmin} />
-        <NavMain title="Service Provider" items={data.navServiceProvider} />
-        <NavMain title="Support" items={data.navInfo} />
+        {isLoading ? (
+          <>
+            <NavSkeleton />
+            <div className="mt-6">
+              <NavSkeleton />
+            </div>
+          </>
+        ) : (
+          <>
+            {user?.permissions.canApproveRegistration ? (
+              <NavMain title="Admin" items={data.navAdmin} />
+            ) : (
+              <NavMain
+                title="Service Provider"
+                items={getServiceProviderNav()}
+              />
+            )}
+            <NavMain title="Support" items={data.navInfo} />
+          </>
+        )}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

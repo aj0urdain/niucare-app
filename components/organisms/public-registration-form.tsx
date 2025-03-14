@@ -6,14 +6,13 @@ import { Input } from "@/components/ui/input";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
 
 import {
   Form,
   FormControl,
   FormField,
-  FormItem as FormItemUI,
-  FormLabel as FormLabelUI,
+  FormItem,
+  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { useState, useRef } from "react";
@@ -45,11 +44,23 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "../ui/separator";
 
 const registrationSchema = z.object({
-  // Public Officer Details
+  // Step 1: Public Officer & Medical Practitioner Details
   officerFirstName: z
     .string()
     .min(2, "First name must be at least 2 characters"),
   officerLastName: z.string().min(2, "Last name must be at least 2 characters"),
+  practitionerFirstName: z
+    .string()
+    .min(2, "First name must be at least 2 characters"),
+  practitionerLastName: z
+    .string()
+    .min(2, "Last name must be at least 2 characters"),
+  termsInPractice: z.number().min(0, "Must be a positive number"),
+  medicalBoardRegNumber: z.string().min(2, "Registration number is required"),
+  regExpiryDate: z
+    .date()
+    .min(new Date(), "Date must be in the future")
+    .nullable(),
   poBoxName: z.string().min(2, "P.O Box name is required"),
   poBoxNumber: z.string().min(1, "P.O Box number is required"),
   poBoxBranch: z.string().min(2, "P.O Box branch is required"),
@@ -77,8 +88,7 @@ const registrationSchema = z.object({
     "Hela",
     "Jiwaka",
   ]),
-  // We'll add a registrationId field
-  registrationId: z.string().optional(),
+  officerPhone: z.string().regex(/^\d+$/, "Must be a valid number"),
 
   // Step 2: Business Details
   serviceName: z.string().min(2, "Service provider name is required"),
@@ -373,22 +383,23 @@ const calculateTotalProgress = (
   return Math.round((completedFields / totalFields) * 100);
 };
 
-export function PrivateRegistrationForm() {
+export function PublicRegistrationForm() {
   const [step, setStep] = useState(1);
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const form = useForm<z.infer<typeof registrationSchema>>({
     resolver: zodResolver(registrationSchema),
     defaultValues: {
-      // Public Officer Details
       officerFirstName: "",
       officerLastName: "",
+      practitionerFirstName: "",
+      practitionerLastName: "",
+      termsInPractice: 0,
+      medicalBoardRegNumber: "",
+      regExpiryDate: null,
       poBoxName: "",
       poBoxNumber: "",
       poBoxBranch: "",
       poBoxProvince: undefined,
-      registrationId: undefined,
-
-      // Step 2: Business Details
+      officerPhone: "",
       serviceName: "",
       businessEmail: "",
       businessPhone: "",
@@ -425,35 +436,8 @@ export function PrivateRegistrationForm() {
   const signaturePadRef = useRef<SignaturePad | null>(null);
 
   const onSubmit = async (data: z.infer<typeof registrationSchema>) => {
-    try {
-      // Generate a registration ID (you might want to get this from your backend)
-      const registrationId = `REG-${Math.random()
-        .toString(36)
-        .substr(2, 6)
-        .toUpperCase()}`;
-
-      // Update the form data with the registration ID
-      form.setValue("registrationId", registrationId);
-
-      // Log the complete form data
-      console.log({ ...data, registrationId });
-
-      // Set submitted state to true
-      setIsSubmitted(true);
-
-      // Show success message with registration ID using Sonner
-      toast.success("Registration submitted successfully!", {
-        description: `Your Registration Number: ${registrationId}`,
-        duration: 5000,
-      });
-
-      // You would typically make an API call here to save the data
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to submit registration", {
-        description: "Please try again later",
-      });
-    }
+    console.log(data);
+    // Handle form submission
   };
 
   const nextStep = () => {
@@ -462,18 +446,6 @@ export function PrivateRegistrationForm() {
 
   const prevStep = () => {
     setStep((prev) => Math.max(prev - 1, 1));
-  };
-
-  const FormLabel = ({ children }: { children: React.ReactNode }) => {
-    return (
-      <FormLabelUI className="text-xs font-medium text-gray-700 ml-2">
-        {children}
-      </FormLabelUI>
-    );
-  };
-
-  const FormItem = ({ children }: { children: React.ReactNode }) => {
-    return <FormItemUI className="space-y-1">{children}</FormItemUI>;
   };
 
   const renderStep = () => {
@@ -1289,32 +1261,6 @@ export function PrivateRegistrationForm() {
         return (
           <div className="grid gap-6">
             <h2 className="text-lg font-semibold">Verify Your Information</h2>
-            {isSubmitted && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                <div className="flex items-center gap-2">
-                  <Check className="h-5 w-5 text-green-500" />
-                  <h3 className="font-medium text-green-900">
-                    Registration Successful
-                  </h3>
-                </div>
-                <p className="mt-2 text-green-700">
-                  Registration Number: {form.getValues("registrationId")}
-                </p>
-              </div>
-            )}
-            {isSubmitted && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                <div className="flex items-center gap-2">
-                  <Check className="h-5 w-5 text-green-500" />
-                  <h3 className="font-medium text-green-900">
-                    Registration Successful
-                  </h3>
-                </div>
-                <p className="mt-2 text-green-700">
-                  Registration Number: {form.getValues("registrationId")}
-                </p>
-              </div>
-            )}
 
             <section className="grid gap-4">
               <h3 className="font-medium">Public Officer Details</h3>
@@ -1337,6 +1283,7 @@ export function PrivateRegistrationForm() {
               <div className="grid grid-cols-3 gap-x-4 gap-y-2 text-sm">
                 <div>
                   <span className="text-muted-foreground">Name:</span>
+
                   <p>{`${form.getValues(
                     "practitionerFirstName"
                   )} ${form.getValues("practitionerLastName")}`}</p>
@@ -1494,7 +1441,7 @@ export function PrivateRegistrationForm() {
                   <ChevronsRight className="w-3 h-3 text-muted-foreground" />
                   <Building2 className="w-3 h-3 text-muted-foreground" />
                   <h4 className="text-sm font-medium">
-                    Private Service Provider
+                    Provincial Health Authorities
                   </h4>
                 </div>
               </div>

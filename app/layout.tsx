@@ -1,25 +1,33 @@
-import "./globals.css";
+"use client";
 
+import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "sonner";
-import type { Metadata } from "next";
 import { ThemeProvider } from "@/components/atoms/theme-provider";
+import "@aws-amplify/ui-react/styles.css";
+import { ApolloWrapper } from "@/providers/apollo-provider";
+import { configureAmplify } from "@/config/amplify-config";
+import { QueryProvider } from "@/providers/query-provider";
+import { UserProfileProvider } from "@/providers/user-profile-manager";
 
-const defaultUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : "http://localhost:3000";
+// Configure Amplify for client-side
+configureAmplify();
 
-export const metadata: Metadata = {
-  metadataBase: new URL(defaultUrl),
-  title: {
-    template: "%s › Niucare",
-    default: "Niucare",
-  },
-  description: "Niucare internal platform for healthcare operations.",
-  keywords: ["Niucare", "healthcare", "internal platform"],
-  authors: [{ name: "Aaron J. Girton" }],
-  creator: "Aaron J. Girton",
-};
+// const defaultUrl = process.env.VERCEL_URL
+//   ? `https://${process.env.VERCEL_URL}`
+//   : "http://localhost:3000";
+
+// export const metadata: Metadata = {
+//   metadataBase: new URL(defaultUrl),
+//   title: {
+//     template: "%s › Niucare",
+//     default: "Niucare",
+//   },
+//   description: "Niucare internal platform for healthcare operations.",
+//   keywords: ["Niucare", "healthcare", "internal platform"],
+//   authors: [{ name: "Aaron J. Girton" }],
+//   creator: "Aaron J. Girton",
+// };
 
 export default function RootLayout({
   children,
@@ -35,9 +43,15 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <Toaster />
-          <Sonner />
+          <QueryProvider>
+            <ApolloWrapper>
+              <UserProfileProvider>
+                {children}
+                <Toaster />
+                <Sonner />
+              </UserProfileProvider>
+            </ApolloWrapper>
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>

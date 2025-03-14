@@ -1,49 +1,117 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Claim, columns } from "@/components/atoms/columns-data";
+import { columns } from "@/components/atoms/admin-claims-columns";
 import { DataTable } from "@/components/organisms/data-table";
-import { Separator } from "@/components/ui/separator";
+import { useQuery } from "@apollo/client";
+import { GET_POLICYHOLDERCLAIMS } from "@/lib/graphql/queries";
+import { getCurrentUser } from "aws-amplify/auth";
+import {
+  CirclePlus,
+  CircleCheckBig,
+  CircleDashed,
+  CircleX,
+} from "lucide-react";
 
-async function getData(): Promise<Claim[]> {
-  // Fetch data from your API here.
-  return [
-    {
-      id: "1",
-      providerId: "REG-283877",
-      claimId: "81",
-      amount: 1222,
-      status: "pending",
-      claimType: "Post-Hospitalization",
-      employeeNumber: "10300804",
-      description: "Went to private clinic",
-      viewFiles: "https://example.com/files/1234567890",
-    },
-    {
-      id: "2",
-      providerId: "REG-283984",
-      claimId: "80",
-      amount: 150,
-      status: "rejected",
-      claimType: "Optical",
-      employeeNumber: "10022495",
-      description: "eye test",
-      viewFiles: "https://example.com/files/1234567890",
-    },
-    // Add more sample data following the pattern from the image
-  ];
+interface FilterValues {
+  status: string;
+  claimId: string;
+  employeeNumber: string;
+  claimType: string;
 }
 
 export default function AdminClaimsPage() {
-  const [data, setData] = useState<Claim[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<FilterValues>({
+    status: "",
+    claimId: "",
+    employeeNumber: "",
+    claimType: "",
+  });
 
   useEffect(() => {
-    getData().then(setData);
+    const getUserId = async () => {
+      try {
+        const { userId } = await getCurrentUser();
+        setUserId(userId);
+      } catch (error) {
+        console.error("Error getting user ID:", error);
+      }
+    };
+    getUserId();
   }, []);
+
+  const { loading, error, data } = useQuery(GET_POLICYHOLDERCLAIMS, {
+    variables: {
+      userId: "",
+      providerRegNumber: "",
+      claimId: filters.claimId,
+      employeeNo: filters.employeeNumber,
+      claimCode: filters.claimType,
+      status: filters.status,
+    },
+  });
+
+  const transformedData =
+    data?.policyHolderClaims?.map((claim: any) => ({
+      id: claim.id.toString(),
+      providerRegNumber: claim.providerRegNumber,
+      claimId: claim.id.toString(),
+      employeeNumber: claim.employeeNo,
+      claimType: claim.label,
+      amount: claim.amount,
+      description: claim.description,
+      status: claim.status.toLowerCase(),
+      documents: claim.documents,
+      reason: claim.reason,
+    })) || [];
+
+  const filterConfig = [
+    {
+      id: "status",
+      label: "Status",
+      type: "combobox",
+      placeholder: "Filter by Status",
+      options: [
+        {
+          id: "all",
+          value: "",
+          label: "All Status",
+          icon: <CirclePlus className="h-3 w-3 text-muted-foreground/75" />,
+        },
+        {
+          id: "pending",
+          value: "Pending",
+          label: "Pending",
+          icon: <CircleDashed className="h-3 w-3 text-yellow-500" />,
+        },
+        {
+          id: "approved",
+          value: "Approved",
+          label: "Approved",
+          icon: <CircleCheckBig className="h-3 w-3 text-green-500" />,
+        },
+        {
+          id: "rejected",
+          value: "Rejected",
+          label: "Rejected",
+          icon: <CircleX className="h-3 w-3 text-red-500" />,
+        },
+      ],
+    },
+  ];
 
   return (
     <div className="flex flex-col gap-6">
-      <DataTable columns={columns} data={data} newClaimButton={false} />
+      <DataTable
+        columns={columns}
+        data={transformedData}
+        loading={loading}
+        error={error}
+        filters={filters}
+        onFilterChange={setFilters}
+        filterConfig={filterConfig}
+      />
     </div>
   );
 }

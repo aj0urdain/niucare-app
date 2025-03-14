@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { redirect } from "next/navigation";
+// import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 
 export default function AdminPage() {
   // redirect to admin/registrations
-  redirect("/admin/registrations");
+  // redirect("/admin/registrations");
 }

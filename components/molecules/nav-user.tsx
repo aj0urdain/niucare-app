@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  BadgeCheck,
-  Bell,
-  ChevronsUpDown,
-  CreditCard,
-  LogOut,
-  Sparkles,
-} from "lucide-react";
+import { BadgeCheck, ChevronsUpDown, LogOut } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -25,17 +18,31 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { signOut } from "aws-amplify/auth";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useUserProfile } from "@/providers/user-profile-manager";
+import { useQueryClient } from "@tanstack/react-query";
 
-export function NavUser({
-  user,
-}: {
-  user: {
-    name: string;
-    email: string;
-    avatar: string;
-  };
-}) {
+export function NavUser() {
+  const { user } = useUserProfile();
   const { isMobile } = useSidebar();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      // invalidate user profile
+      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+      router.push("/auth");
+      router.refresh(); // Force a refresh of the router
+      toast.success("Signed out successfully");
+    } catch (error: any) {
+      toast.error("Error signing out", {
+        description: error.message,
+      });
+    }
+  };
 
   return (
     <SidebarMenu>
@@ -47,16 +54,20 @@ export function NavUser({
               className="data-[state=open]:bg-sidebar-accent transition-all duration-150 hover:text-black data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarImage
+                  src={user?.avatar ?? ""}
+                  alt={user?.given_name ?? ""}
+                />
                 <AvatarFallback className="rounded-lg text-black">
-                  AG
+                  {user?.given_name?.charAt(0) ?? ""}
+                  {user?.family_name?.charAt(0) ?? ""}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold hover:text-black">
-                  {user.name}
+                  {user?.given_name} {user?.family_name}
                 </span>
-                <span className="truncate text-xs">{user.email}</span>
+                <span className="truncate text-xs">{user?.email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -70,41 +81,34 @@ export function NavUser({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">AG</AvatarFallback>
+                  <AvatarImage
+                    src={user?.avatar ?? ""}
+                    alt={user?.given_name ?? ""}
+                  />
+                  <AvatarFallback className="rounded-lg">
+                    {user?.given_name?.charAt(0) ?? ""}
+                    {user?.family_name?.charAt(0) ?? ""}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{user.name}</span>
+                  <span className="truncate font-semibold">
+                    {user?.given_name} {user?.family_name}
+                  </span>
                   <span className="truncate text-xs text-muted-foreground">
-                    {user.email}
+                    {user?.email}
                   </span>
                 </div>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {/* <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles />
-                Upgrade to Pro
-              </DropdownMenuItem>
-            </DropdownMenuGroup> */}
-            <DropdownMenuSeparator />
+
             <DropdownMenuGroup>
               <DropdownMenuItem>
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                Notifications
-              </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleSignOut}>
               <LogOut />
               Log out
             </DropdownMenuItem>

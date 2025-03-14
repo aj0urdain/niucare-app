@@ -31,7 +31,6 @@ type Option = {
   icon?: React.ReactNode;
   searchValue?: string;
   code?: string;
-  className?: string;
 };
 
 interface ComboBoxResponsiveProps {
@@ -63,6 +62,10 @@ export function ComboBoxResponsive({
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const selectedOption = options.find((option) => option.value === value);
 
+  React.useEffect(() => {
+    console.log("Selected Option:", selectedOption);
+  }, [selectedOption]);
+
   const OptionList = React.useCallback(
     function OptionList() {
       return (
@@ -75,15 +78,15 @@ export function ComboBoxResponsive({
                 {options.map((option) => (
                   <CommandItem
                     key={option.id + option.value}
-                    value={option.searchValue || option.value || option.label}
+                    value={option.searchValue || option.value}
                     onSelect={() => {
                       onValueChange(option.value);
                       setOpen(false);
                     }}
                   >
-                    {option.icon}
                     {option.displayLabel || (
                       <div className="flex items-center gap-2">
+                        {option.label}
                         {option.label}
                       </div>
                     )}
@@ -104,19 +107,17 @@ export function ComboBoxResponsive({
   const trigger = (
     <Button
       variant="outline"
-      className={cn(
-        "justify-between",
-        "group/trigger",
-        selectedOption?.className,
-        triggerClassName
-      )}
+      className={cn("justify-between", "group/trigger", triggerClassName)}
     >
       {selectedOption ? (
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           {selectedOption.icon}
           <div className="flex gap-1">
-            <span className="group-hover/trigger:opacity-100 flex items-center text-foreground text-sm transition-opacity duration-200 font-semibold">
+            <span className="group-hover/trigger:opacity-100 flex mt-0.5 items-center font-semibold text-foreground text-[0.7rem] transition-opacity duration-200">
               {selectedOption.label}
+            </span>
+            <span className="group-hover/trigger:opacity-100 flex items-center text-foreground transition-opacity duration-200">
+              ({selectedOption.value})
             </span>
           </div>
         </div>

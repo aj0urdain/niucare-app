@@ -3,14 +3,10 @@
 import { ColumnDef } from "@tanstack/react-table";
 import {
   MoreHorizontal,
-  FileIcon,
-  BadgeCheck,
-  Clock,
   XCircle,
   Filter,
   CircleCheckBig,
   CircleDashed,
-  FileDown,
   Trash,
 } from "lucide-react";
 
@@ -38,6 +34,9 @@ export type Claim = {
   status: "pending" | "approved" | "rejected" | "all";
   claimId: string;
   employeeNumber: string;
+  employeeName: string;
+  employeeGender: string;
+  employeeDob: string;
   claimType: string;
   amount: number;
   description: string;
@@ -210,7 +209,7 @@ export const columns: ColumnDef<Claim>[] = [
       // For demo purposes
       const files = ["medical_report.pdf"];
 
-      return <ViewFilesModal files={files} claimId={claim.claimId} />;
+      return <></>;
     },
   },
 
