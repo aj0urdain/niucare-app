@@ -20,7 +20,7 @@ interface FilterValues {
   claimType: string;
 }
 
-interface CatalogOption {
+export interface CatalogOption {
   id: string;
   group: number;
   label: string;

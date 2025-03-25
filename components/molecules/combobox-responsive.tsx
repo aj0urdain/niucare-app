@@ -128,7 +128,7 @@ export function ComboBoxResponsive({
   );
 
   const content = (
-    <div className="grid w-fit max-w-full min-w-40 gap-1.5">
+    <div className="grid w-full max-w-full min-w-40 gap-1.5">
       {label && (
         <Label
           htmlFor={id}

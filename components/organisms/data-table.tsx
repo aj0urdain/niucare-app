@@ -28,7 +28,7 @@ import { Loader2 } from "lucide-react";
 
 import { DataTablePagination } from "@/components/molecules/data-table-pagination";
 
-import { NewClaimModal } from "./new-claim/new-claim-modal";
+import { NewClaimModal } from "./new-claim-modal";
 
 import { ViewClaimModal } from "./view-claim-modal";
 import { Claim } from "@/components/atoms/columns-data";

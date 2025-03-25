@@ -22,7 +22,7 @@ export function InputWithLabel({
   return (
     <div
       className={cn(
-        "grid w-fit min-w-40 items-center gap-1.5",
+        "grid w-full min-w-40 items-center gap-1.5",
         containerClassName
       )}
     >
