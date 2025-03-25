@@ -36,6 +36,7 @@ query signurl ($input:Payload!){
     }
 }
 `);
+
 export const GET_VERIFY_CLAIM = gql(`
 fragment verifyClaim on REST {
     userId:String,
@@ -335,8 +336,8 @@ query GetUserRegistration($userId: String!) {
 `);
 
 export const GET_EMPLOYEE_ID = gql`
-  query GetEmployeeId($employeeNo: String!) {
-    getEmployeeId(employeeNo: $employeeNo)
+  query getEmployeeId($employeeNo: String!) {
+    employeeId(employeeNo: $employeeNo)
   }
 `;
 
@@ -352,3 +353,40 @@ query getPolicyHolder($employeeId: Int!) {
   }
 }
 `);
+
+// export const GET_HAS_BANK_DETAILS = gql(`
+// fragment hasBankDetails on REST {
+//     userId:String,
+//     employeeNo:String,
+// }
+// query hasBankDetails ($input:hasBankDetails!){
+//     hasBankDetails(input:$input) @rest(path:"/claim/hasbankdetails", method:"POST"){
+//     hasBank
+//     }
+// }
+// `);
+
+export const GET_HAS_BANK_DETAILS = gql`
+  query hasBankDetails($employeeNo: String!) {
+    hasBankDetails(employeeNo: $employeeNo)
+      @rest(
+        type: "Boolean"
+        path: "/claim/hasBankDetails?employeeNo={args.employeeNo}"
+        method: "GET"
+      ) {
+      hasBankDetails
+    }
+  }
+`;
+
+export const GET_POLICY_HOLDER_BY_EMPLOYEE_NO = gql`
+  query GetPolicyHolderByEmployeeNo($employeeNo: String!) {
+    policyHolderByEmployeeNo(employeeNo: $employeeNo) {
+      id
+      employeeNo
+      name
+      gender
+      dateOfBirth
+    }
+  }
+`;

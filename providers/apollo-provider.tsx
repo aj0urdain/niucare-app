@@ -14,7 +14,7 @@ import { RestLink } from "apollo-link-rest";
 
 // Error handling link
 const errorLink = onError(({ graphQLErrors, networkError }) => {
-  if (graphQLErrors) {
+  if (graphQLErrors && Array.isArray(graphQLErrors)) {
     graphQLErrors.forEach(({ message, locations, path }) => {
       console.error(
         `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`

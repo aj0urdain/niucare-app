@@ -9,6 +9,7 @@ import { ApolloWrapper } from "@/providers/apollo-provider";
 import { configureAmplify } from "@/config/amplify-config";
 import { QueryProvider } from "@/providers/query-provider";
 import { UserProfileProvider } from "@/providers/user-profile-manager";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 // Configure Amplify for client-side
 configureAmplify();
@@ -37,22 +38,24 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning={true}>
       <body className={`bg-background text-foreground`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <QueryProvider>
-            <ApolloWrapper>
-              <UserProfileProvider>
-                {children}
-                <Toaster />
-                <Sonner />
-              </UserProfileProvider>
-            </ApolloWrapper>
-          </QueryProvider>
-        </ThemeProvider>
+        <TooltipProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <QueryProvider>
+              <ApolloWrapper>
+                <UserProfileProvider>
+                  {children}
+                  <Toaster />
+                  <Sonner />
+                </UserProfileProvider>
+              </ApolloWrapper>
+            </QueryProvider>
+          </ThemeProvider>
+        </TooltipProvider>
       </body>
     </html>
   );
