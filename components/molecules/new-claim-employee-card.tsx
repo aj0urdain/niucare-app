@@ -30,6 +30,8 @@ interface NewClaimEmployeeCardProps {
   setEmployeeData: (employeeData: PolicyHolder | null) => void;
   hasBankDetails: boolean;
   setHasBankDetails: (hasBankDetails: boolean) => void;
+  formState: string | null;
+  setFormState: (formState: string | null) => void;
 }
 
 interface BankDetailsResponse {
@@ -43,6 +45,8 @@ export function NewClaimEmployeeCard({
   setEmployeeData,
   hasBankDetails,
   setHasBankDetails,
+  formState,
+  setFormState,
 }: NewClaimEmployeeCardProps) {
   // Set up Apollo lazy queries
   const [getPolicyHolder, { loading }] = useLazyQuery(
@@ -51,13 +55,16 @@ export function NewClaimEmployeeCard({
       onCompleted: (data) => {
         if (data?.policyHolderByEmployeeNo?.[0]) {
           setEmployeeData(data.policyHolderByEmployeeNo[0]);
+          setFormState("VALID_EMPLOYEE");
         } else {
           setEmployeeData(null);
+          setFormState("INVALID_EMPLOYEE");
         }
       },
       onError: (error) => {
         console.error("Error fetching policy holder:", error);
         setEmployeeData(null);
+        setFormState("INVALID_EMPLOYEE");
       },
       fetchPolicy: "network-only",
     }
@@ -67,6 +74,8 @@ export function NewClaimEmployeeCard({
     GET_HAS_BANK_DETAILS,
     {
       onCompleted: (data) => {
+        console.log("hasBankDetails");
+        console.log(data.hasBankDetails);
         setHasBankDetails(data.hasBankDetails);
       },
       onError: (error) => {
@@ -88,25 +97,25 @@ export function NewClaimEmployeeCard({
           employeeNo: employeeNumber,
         },
         onCompleted: (data) => {
-          if (data?.policyHolderByEmployeeNo?.[0]) {
+          if (data?.policyHolderByEmployeeNo?.[0] && data?.policyHolderByEmployeeNo?.[0]?.employeeNo) {
             setEmployeeData(data.policyHolderByEmployeeNo[0]);
+            setFormState("VALID_EMPLOYEE");
 
             // Only check bank details after we have employee data
             checkBankDetails({
               variables: {
                 employeeNo: employeeNumber,
-                body: {},
               },
             });
           } else {
             setEmployeeData(null);
+            setFormState("INVALID_EMPLOYEE");
           }
         },
       });
     }
   };
 
-  const showBankResult = !bankLoading && hasBankDetails;
 
   return (
     <Card className="h-fit min-h-[200px] border rounded-xl p-4 flex gap-4">
@@ -185,6 +194,18 @@ export function NewClaimEmployeeCard({
             </>
           ) : loading ? (
             <p className="text-sm text-muted-foreground">Loading...</p>
+          ) : formState === "INVALID_EMPLOYEE" ? (
+            <div className="flex flex-col items-start gap-1">
+              <div className="flex items-center gap-1">
+                <BadgeX className="w-4 h-4 text-destructive" />
+                <h2 className="text-sm font-semibold text-destructive">
+                  Invalid Employee Number
+                </h2>
+              </div>
+              <p className="text-xs text-destructive">
+                No employee found with this ID. Please check and try again.
+              </p>
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground">
               Enter an employee number and click search
@@ -205,17 +226,26 @@ export function NewClaimEmployeeCard({
         </CardHeader>
         <CardContent className="p-0 justify-end flex flex-col h-full gap-1">
           <div className="flex items-center gap-1">
-            {showBankResult && hasBankDetails ? (
-              <BadgeCheck className="w-3 h-3" />
-            ) : showBankResult && !hasBankDetails ? (
-              <BadgeX className="w-3 h-3" />
-            ) : (
-              <Loader2 className={`w-3 h-3 animate-spin`} />
-            )}
+
+{/* Waiting for employee number state */}
+{bankLoading || !employeeData&& (
+  <Loader2 className={`w-3 h-3 animate-spin`} />
+)}
+
+{/* Bank details verified state */}
+{!bankLoading && employeeData && hasBankDetails && (
+  <BadgeCheck className="w-3 h-3" />
+)}
+
+{/* Bank details not verified state */}
+{!bankLoading && employeeData && !hasBankDetails && (
+  <BadgeX className="w-3 h-3" />
+)}
+
             <h2 className="text-sm font-semibold text-muted-foreground/75">
-              {showBankResult && hasBankDetails
+              {employeeData && hasBankDetails
                 ? "Verified"
-                : showBankResult && !hasBankDetails
+                : employeeData && !hasBankDetails
                 ? "Not Verified"
                 : bankLoading
                 ? "Checking..."
@@ -223,15 +253,15 @@ export function NewClaimEmployeeCard({
             </h2>
           </div>
 
-          <h1 className="text-xs text-muted-foreground/75">
-            {showBankResult && hasBankDetails
+          <p className="text-xs text-muted-foreground/75">
+            {employeeData && hasBankDetails
               ? "This policy holder has successfully linked their bank account."
-              : showBankResult && !hasBankDetails
+              : employeeData && !hasBankDetails
               ? "This policy holder has not linked their bank account yet."
               : bankLoading
               ? "Checking bank details..."
               : "Waiting for employee number..."}
-          </h1>
+          </p>
         </CardContent>
       </div>
     </Card>

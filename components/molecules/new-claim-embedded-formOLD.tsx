@@ -30,8 +30,6 @@ interface NewClaimEmbeddedFormProps {
   employeeData: PolicyHolder | null;
   employeeNumber: string;
   hasBankDetails: boolean;
-  formState: string | null;
-  setFormState: (formState: string | null) => void;
 }
 
 interface ClaimTypeVerifyResponse {
@@ -57,8 +55,6 @@ export function NewClaimEmbeddedForm({
   employeeData,
   employeeNumber,
   hasBankDetails,
-  formState,
-  setFormState,
 }: NewClaimEmbeddedFormProps) {
   const [bank, setBank] = useState("");
   const [claimType, setClaimType] = useState<string | null>(null);
@@ -109,7 +105,11 @@ export function NewClaimEmbeddedForm({
   // verify claim: step 1: choosing claim type
   // verify claim 2: actual form verification
 
-
+  useEffect(() => {
+    console.log(`claimType: ${claimType}`);
+    console.log(`user: ${user}`);
+    console.log(claimTypeVerifyResponse);
+  }, [claimType]);
 
   const claimTypeOptions = useMemo(() => {
     const options = [{ id: "all", value: "all", label: "All" }];
@@ -129,13 +129,31 @@ export function NewClaimEmbeddedForm({
 
   function renderBankDetails() {
     return (
-        <CardContent className="flex flex-col p-0">
-          <div className="h-fit flex flex-col gap-6">
+      <>
+        <CardContent className="flex flex-col w-full h-full items-start">
+          <div className="h-fit w-full flex flex-col gap-6">
+            <ComboBoxResponsive
+              placeholder="Select Claim Type"
+              label="Claim Type"
+              options={[
+                { label: "BSP", value: "bsp", id: "bsp" },
+                { label: "KINA BANK", value: "kina-bank", id: "kina-bank" },
+                { label: "WESTPAC", value: "westpac", id: "westpac" },
+                { label: "ANZ", value: "anz", id: "anz" },
+              ]}
+              value={bank}
+              onValueChange={(value) => {
+                setBank(value);
+              }}
+              className="w-full"
+              triggerClassName="w-full"
+            />
+
             <div className="flex gap-3 w-full">
-              <div className="max-w-fit">
-                <InputWithLabel label="Bank Branch Code"  />
+              <div className="w-1/3">
+                <InputWithLabel label="Bank Branch Code" />
               </div>
-              <div className="w-full">
+              <div className="w-2/3">
                 <InputWithLabel label="Bank Branch Name" />
               </div>
             </div>
@@ -144,6 +162,7 @@ export function NewClaimEmbeddedForm({
             <InputWithLabel label="Account Name" />
           </div>
         </CardContent>
+      </>
     );
   }
 
@@ -157,8 +176,6 @@ export function NewClaimEmbeddedForm({
           value={claimType || ""}
           onValueChange={(value) => {
             setClaimType(value);
-            setClaimTypeVerifyResponse(null);
-            setClaimAddVerifyResponse(null);
             verifyClaimQuery({
               variables: {
                 input: {
@@ -321,10 +338,6 @@ export function NewClaimEmbeddedForm({
       return "Waiting for Employee Data";
     }
 
-    if (employeeData && !hasBankDetails) {
-      return renderBankDetails();
-    }
-
     if (
       employeeData &&
       hasBankDetails &&
@@ -342,46 +355,20 @@ export function NewClaimEmbeddedForm({
       return (
         <>
           {renderClaimType()}
-
           {claimTypeVerifyResponse?.previousClaimAmount !== null &&
-            claimTypeVerifyResponse?.previousClaimId !== 0 &&
-            claimTypeVerifyResponse?.previousClaimId !== null &&
-            renderWarningStep()}
-
-          {claimTypeVerifyResponse?.previousClaimAmount === null &&
-            claimTypeVerifyResponse?.previousClaimId === 0 &&
-            claimTypeVerifyResponse?.previousClaimId === null &&
-            renderMainForm()}
-        
-
-        
-
+          (claimTypeVerifyResponse?.previousClaimId !== 0 ||
+            claimTypeVerifyResponse?.previousClaimId !== null) &&
+          !warningAccepted ? (
+            renderWarningStep()
+          ) : (
+            claimAddVerifyResponse?.claimId !== null ? renderFinalVerificationStep() : renderMainForm()
+          )}
         </>
       );
     }
   }
 
   const renderNavigationButtons = () => {
-
-    if (claimAddVerifyResponse?.claimId !== null && employeeData && hasBankDetails && (claimType !== null || claimType !== "all") && warningAccepted) {
-      return (
-        <>
-          <Button variant="ghost">Cancel</Button>
-          <Button variant="default">Proceed</Button>
-        </>
-      );  
-
-    }
-
-    if (claimAddVerifyResponse?.claimId !== null && employeeData && hasBankDetails && (claimType !== null || claimType !== "all") && !warningAccepted) {  
-      return (
-        <>
-          <Button variant="ghost">Cancel</Button>
-          <Button variant="default">Proceed</Button>
-        </>
-      );
-    }
-
     if (employeeData && !hasBankDetails) {
       return (
         <>
@@ -435,8 +422,6 @@ export function NewClaimEmbeddedForm({
             )}
         </>
       );
-
-      
     }
 
     if (
