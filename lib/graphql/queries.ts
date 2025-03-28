@@ -42,7 +42,7 @@ fragment verifyClaim on REST {
     userId:String,
     employeeNo:String,
     claimCode:Number,
-    amount:FLoat,
+    amount:Float,
     description:String,
     status:String,
 }
@@ -52,6 +52,11 @@ query verifyclaim ($input:verifyClaim!){
     policyHolderName
     claimLabel
     amount
+    description
+    previousClaimAmount
+    previousClaimDateTime
+    previousClaimDescription
+    previousClaimId
     }
 }
 `);
@@ -373,9 +378,7 @@ export const GET_HAS_BANK_DETAILS = gql`
         type: "Boolean"
         path: "/claim/hasBankDetails?employeeNo={args.employeeNo}"
         method: "GET"
-      ) {
-      hasBankDetails
-    }
+      )
   }
 `;
 
