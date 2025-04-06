@@ -8,6 +8,7 @@ export interface PolicyHolder {
   gender: string;
   dateOfBirth: string;
   status: string;
+  hasBankDetails?: boolean;
 }
 
 export function usePolicyHolder(employeeNo: string) {

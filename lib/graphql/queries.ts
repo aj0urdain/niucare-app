@@ -141,6 +141,13 @@ mutation AddClaim($input:AddClaim!){
 }
 `);
 
+export const ADD_BANK = gql(`
+mutation AddBank($bank:BankInput!){
+  addBank(bank: $bank){
+          id
+  }
+}`);
+
 export const ADD_REGISTRATION = gql(`
 fragment AddRegistration on REST {
     id,
