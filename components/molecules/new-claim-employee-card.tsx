@@ -12,110 +12,41 @@ import {
 
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { InputWithLabel } from "../atoms/input-with-label";
-import { useState } from "react";
 import { Dot } from "../atoms/dot";
 import { Button } from "../ui/button";
-import { useLazyQuery } from "@apollo/client";
-import {
-  GET_POLICY_HOLDER_BY_EMPLOYEE_NO,
-  GET_HAS_BANK_DETAILS,
-} from "@/lib/graphql/queries";
 import { Separator } from "../ui/separator";
-import { PolicyHolder } from "@/lib/hooks/usePolicyHolder";
+import { useEmployeeStore } from "@/stores/employee-store";
+import { useEmployeeData } from "@/lib/hooks/useEmployeeData";
+import { useState } from "react";
 
 interface NewClaimEmployeeCardProps {
-  employeeNumber: string;
-  setEmployeeNumber: (employeeNumber: string) => void;
-  employeeData: PolicyHolder | null;
-  setEmployeeData: (employeeData: PolicyHolder | null) => void;
-  hasBankDetails: boolean;
-  setHasBankDetails: (hasBankDetails: boolean) => void;
   formState: string | null;
   setFormState: (formState: string | null) => void;
 }
 
-interface BankDetailsResponse {
-  hasBankDetails: boolean;
-}
-
 export function NewClaimEmployeeCard({
-  employeeNumber,
-  setEmployeeNumber,
-  employeeData,
-  setEmployeeData,
-  hasBankDetails,
-  setHasBankDetails,
   formState,
   setFormState,
 }: NewClaimEmployeeCardProps) {
-  // Set up Apollo lazy queries
-  const [getPolicyHolder, { loading }] = useLazyQuery(
-    GET_POLICY_HOLDER_BY_EMPLOYEE_NO,
-    {
-      onCompleted: (data) => {
-        if (data?.policyHolderByEmployeeNo?.[0]) {
-          setEmployeeData(data.policyHolderByEmployeeNo[0]);
-          setFormState("VALID_EMPLOYEE");
-        } else {
-          setEmployeeData(null);
-          setFormState("INVALID_EMPLOYEE");
-        }
-      },
-      onError: (error) => {
-        console.error("Error fetching policy holder:", error);
-        setEmployeeData(null);
-        setFormState("INVALID_EMPLOYEE");
-      },
-      fetchPolicy: "network-only",
-    }
-  );
+  const { employeeNumber, setEmployeeNumber, employeeData } =
+    useEmployeeStore();
+  const { refetchEmployeeData } = useEmployeeData();
+  const [loading, setLoading] = useState(false);
 
-  const [checkBankDetails, { loading: bankLoading }] = useLazyQuery(
-    GET_HAS_BANK_DETAILS,
-    {
-      onCompleted: (data) => {
-        console.log("hasBankDetails");
-        console.log(data.hasBankDetails);
-        setHasBankDetails(data.hasBankDetails);
-      },
-      onError: (error) => {
-        console.error("Error fetching bank details:", error);
-        setHasBankDetails(false);
-      },
-      fetchPolicy: "network-only",
-    }
-  );
-
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (employeeNumber) {
-      // Reset bank response when searching
-      setHasBankDetails(false);
-
-      // Get policy holder data
-      getPolicyHolder({
-        variables: {
-          employeeNo: employeeNumber,
-        },
-        onCompleted: (data) => {
-          if (data?.policyHolderByEmployeeNo?.[0] && data?.policyHolderByEmployeeNo?.[0]?.employeeNo) {
-            setEmployeeData(data.policyHolderByEmployeeNo[0]);
-            setFormState("VALID_EMPLOYEE");
-
-            // Only check bank details after we have employee data
-            checkBankDetails({
-              variables: {
-                employeeNo: employeeNumber,
-              },
-            });
-          } else {
-            setEmployeeData(null);
-            setFormState("INVALID_EMPLOYEE");
-          }
-        },
-      });
+      setLoading(true);
+      try {
+        await refetchEmployeeData();
+        setFormState("VALID_EMPLOYEE");
+      } catch (error) {
+        console.error("Error fetching employee data:", error);
+        setFormState("INVALID_EMPLOYEE");
+      } finally {
+        setLoading(false);
+      }
     }
   };
-
 
   return (
     <Card className="h-fit min-h-[200px] border rounded-xl p-4 flex gap-4">
@@ -125,7 +56,7 @@ export function NewClaimEmployeeCard({
             <InputWithLabel
               label="Employee Number"
               icon={<User className="w-3 h-3" />}
-              value={employeeNumber}
+              value={employeeNumber ?? ""}
               onChange={(e) => setEmployeeNumber(e.target.value)}
             />
             <Button
@@ -154,29 +85,17 @@ export function NewClaimEmployeeCard({
 
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1">
-                  {employeeData.gender === "male" ||
-                  employeeData.gender === "Male" ||
-                  employeeData.gender === "M" ||
-                  employeeData.gender === "m" ? (
+                  {employeeData.gender?.toLowerCase().startsWith("m") ? (
                     <Mars className="w-3 h-3" />
-                  ) : employeeData.gender === "female" ||
-                    employeeData.gender === "Female" ||
-                    employeeData.gender === "F" ||
-                    employeeData.gender === "f" ? (
+                  ) : employeeData.gender?.toLowerCase().startsWith("f") ? (
                     <Venus className="w-3 h-3" />
                   ) : (
                     <VenusAndMars className="w-3 h-3" />
                   )}
                   <p className="text-xs text-muted-foreground/75">
-                    {employeeData.gender === "male" ||
-                    employeeData.gender === "Male" ||
-                    employeeData.gender === "M" ||
-                    employeeData.gender === "m"
+                    {employeeData.gender?.toLowerCase().startsWith("m")
                       ? "Male"
-                      : employeeData.gender === "female" ||
-                        employeeData.gender === "Female" ||
-                        employeeData.gender === "F" ||
-                        employeeData.gender === "f"
+                      : employeeData.gender?.toLowerCase().startsWith("f")
                       ? "Female"
                       : "N/A"}
                   </p>
@@ -226,39 +145,36 @@ export function NewClaimEmployeeCard({
         </CardHeader>
         <CardContent className="p-0 justify-end flex flex-col h-full gap-1">
           <div className="flex items-center gap-1">
+            {/* Waiting for employee number state */}
+            {loading && <Loader2 className={`w-3 h-3 animate-spin`} />}
 
-{/* Waiting for employee number state */}
-{bankLoading || !employeeData&& (
-  <Loader2 className={`w-3 h-3 animate-spin`} />
-)}
+            {/* Bank details verified state */}
+            {!loading && employeeData?.hasBankDetails && (
+              <BadgeCheck className="w-3 h-3" />
+            )}
 
-{/* Bank details verified state */}
-{!bankLoading && employeeData && hasBankDetails && (
-  <BadgeCheck className="w-3 h-3" />
-)}
-
-{/* Bank details not verified state */}
-{!bankLoading && employeeData && !hasBankDetails && (
-  <BadgeX className="w-3 h-3" />
-)}
+            {/* Bank details not verified state */}
+            {!loading && employeeData && !employeeData.hasBankDetails && (
+              <BadgeX className="w-3 h-3" />
+            )}
 
             <h2 className="text-sm font-semibold text-muted-foreground/75">
-              {employeeData && hasBankDetails
+              {employeeData?.hasBankDetails
                 ? "Verified"
-                : employeeData && !hasBankDetails
+                : employeeData && !employeeData.hasBankDetails
                 ? "Not Verified"
-                : bankLoading
+                : loading
                 ? "Checking..."
                 : "Pending..."}
             </h2>
           </div>
 
           <p className="text-xs text-muted-foreground/75">
-            {employeeData && hasBankDetails
+            {employeeData?.hasBankDetails
               ? "This policy holder has successfully linked their bank account."
-              : employeeData && !hasBankDetails
+              : employeeData && !employeeData.hasBankDetails
               ? "This policy holder has not linked their bank account yet."
-              : bankLoading
+              : loading
               ? "Checking bank details..."
               : "Waiting for employee number..."}
           </p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -13,7 +13,8 @@ import { FilePlus } from "lucide-react";
 
 import { NewClaimEmployeeCard } from "@/components/molecules/new-claim-employee-card";
 import { NewClaimEmbeddedForm } from "@/components/molecules/new-claim-embedded-form";
-import { PolicyHolder } from "@/lib/hooks/usePolicyHolder";
+import { useEmployeeStore } from "@/stores/employee-store";
+import { useClaimFormStore } from "@/stores/new-claim-form-store";
 
 export interface FormData {
   employeeNumber: string;
@@ -48,61 +49,21 @@ export type FormState =
   | "ADD_CLAIM_SUCCESS"
   | "ADD_CLAIM_ERROR";
 
-const initialFormData: FormData = {
-  employeeNumber: "",
-  claimType: "",
-  amount: 0,
-  description: "",
-  files: [],
-};
-
-interface PreviousClaimData {
-  previousClaimAmount: number;
-  previousClaimDateTime: string;
-  previousClaimDescription: string;
-  previousClaimId: number;
-  claimLabel: string;
-}
-
-interface ClaimAddVerifyResponse {
-  claimId: number;
-  claimDateTime: string;
-  claimDescription: string;
-  claimLabel: string;
-  amount: number;
-  description: string;
-}
 export function NewClaimModal() {
   const [open, setOpen] = useState(false);
-  const [formState, setFormState] = useState<FormState | null>("PENDING_EMPLOYEE_NUMBER");
-  const [formData, setFormData] = useState<FormData>(initialFormData);
+  const [formState, setFormState] = useState<FormState | null>(
+    "PENDING_EMPLOYEE_NUMBER"
+  );
 
-  const [employeeNumber, setEmployeeNumber] = useState("10022495");
+  const { clearEmployeeData, clearEmployeeNumber } = useEmployeeStore();
+  const { resetForm } = useClaimFormStore();
 
-  const [employeeData, setEmployeeData] = useState<PolicyHolder | null>(null);
-
-  const [hasBankDetails, setHasBankDetails] = useState<boolean | null>(null);
-
-  const [previousClaimData, setPreviousClaimData] = useState<PreviousClaimData | null>(null);
-
-
-  const handleClose = () => {
+  const handleSheetClose = () => {
     setOpen(false);
-    setFormData(initialFormData);
-    setEmployeeData(null);
-    setEmployeeNumber("");
-    setHasBankDetails(false);
+    resetForm();
+    clearEmployeeData();
+    clearEmployeeNumber();
   };
-
-  useEffect(() => {
-    console.log("Form state:", formState);
-  }, [formState]);
-
-  useEffect(() => {
-    console.log("Has bank details status:", hasBankDetails);
-  }, [hasBankDetails]);
-
-  // useEffect(() => {
   //   // Instead of immediate state updates, use conditions to prevent loops
   //   if (formState === null) {
   //     console.log("Setting form state to PENDING_EMPLOYEE_NUMBER");
@@ -117,7 +78,7 @@ export function NewClaimModal() {
   //   }
 
   //   if (formState === "FETCHING_BANK_DETAILS") {
-      
+
   //     if (hasBankDetails === null) {
   //       return;
   //     }
@@ -201,12 +162,11 @@ export function NewClaimModal() {
 
   //   // if the claim has an error, we are now "ADD_CLAIM_ERROR"
   //   // the employee will be shown an error message
-    
-    
+
   // }, [formState, employeeData, hasBankDetails, previousClaimData]);
 
   return (
-    <Sheet open={open} onOpenChange={handleClose}>
+    <Sheet open={open} onOpenChange={handleSheetClose}>
       <Button
         onClick={() => setOpen(true)}
         className="font-semibold"
@@ -230,24 +190,13 @@ export function NewClaimModal() {
         </SheetHeader>
         <div className="flex flex-col gap-4 h-full">
           <NewClaimEmployeeCard
-            employeeNumber={employeeNumber}
-            setEmployeeNumber={setEmployeeNumber}
-            employeeData={employeeData}
-            setEmployeeData={setEmployeeData}
-            hasBankDetails={hasBankDetails ?? false}
-            setHasBankDetails={setHasBankDetails}
             formState={formState}
             setFormState={setFormState as (formState: string | null) => void}
           />
-
           <NewClaimEmbeddedForm
-            formData={formData}
-            setFormData={setFormData}
-            employeeData={employeeData}
-            employeeNumber={employeeNumber}
-            hasBankDetails={hasBankDetails ?? false}
             formState={formState}
             setFormState={setFormState as (formState: string | null) => void}
+            setOpen={setOpen}
           />
         </div>
       </SheetContent>

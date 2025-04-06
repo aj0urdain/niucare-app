@@ -21,6 +21,7 @@ import {
   ClipboardCopy,
   Info,
   ClipboardList,
+  ChevronDown,
 } from "lucide-react";
 import { Claim } from "@/components/atoms/columns-data";
 import { Input } from "@/components/ui/input";
@@ -84,7 +85,7 @@ Description: ${claim.description}`;
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-w-3xl mx-auto h-full max-h-[60vh] rounded-t-[1rem]"
+        className="max-w-xl mx-auto h-full min-h-[90vh] max-h-[90vh] rounded-t-[1rem]"
       >
         <SheetHeader>
           <SheetTitle className="flex items-center gap-4">
@@ -124,7 +125,7 @@ Description: ${claim.description}`;
           </TabsList>
 
           <TabsContent value="overview" className="mt-8">
-            <div className="flex gap-4 h-full items-center justify-center">
+            <div className="flex flex-col gap-4 h-full items-center justify-center">
               {/* Employee Information Card */}
               <Card className="relative bg-muted w-full flex flex-col animate-slide-left-fade-in">
                 <UserRoundSearch className="absolute right-4 top-4 h-32 w-32 rotate-12 opacity-5" />
@@ -182,12 +183,12 @@ Description: ${claim.description}`;
 
               {/* Arrow Column */}
               <div className="animate-slide-up-fade-in">
-                <div className="flex flex-col justify-center gap-2 w-fit animate-pulse">
-                  <ChevronRight className="h-6 w-6 text-muted-foreground opacity-20" />
-                  <ChevronRight className="h-6 w-6 text-muted-foreground opacity-40" />
-                  <ChevronRight className="h-6 w-6 text-muted-foreground opacity-60" />
-                  <ChevronRight className="h-6 w-6 text-muted-foreground opacity-80" />
-                  <ChevronRight className="h-6 w-6 text-muted-foreground" />
+                <div className="flex justify-center gap-2 w-fit animate-pulse">
+                  <ChevronDown className="h-6 w-6 text-muted-foreground opacity-20" />
+                  <ChevronDown className="h-6 w-6 text-muted-foreground opacity-40" />
+                  <ChevronDown className="h-6 w-6 text-muted-foreground opacity-60" />
+                  <ChevronDown className="h-6 w-6 text-muted-foreground opacity-80" />
+                  <ChevronDown className="h-6 w-6 text-muted-foreground" />
                 </div>
               </div>
 

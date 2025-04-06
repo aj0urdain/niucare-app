@@ -1,4 +1,4 @@
-import { AlertTriangle, CircleHelp, Component, File } from "lucide-react";
+import { AlertTriangle, Component, File } from "lucide-react";
 import { InputWithLabel } from "../atoms/input-with-label";
 import { Button } from "../ui/button";
 import {
@@ -11,27 +11,32 @@ import {
 } from "../ui/card";
 import { ComboBoxResponsive } from "./combobox-responsive";
 import { useEffect, useMemo, useState } from "react";
-import { useLazyQuery, useQuery } from "@apollo/client";
-import { GET_CATALOGS, GET_VERIFY_CLAIM } from "@/lib/graphql/queries";
+import { useLazyQuery, useQuery, useMutation } from "@apollo/client";
+import {
+  GET_CATALOGS,
+  GET_VERIFY_CLAIM,
+  ADD_POLICYHOLDERCLAIM,
+  GET_POLICYHOLDERCLAIMS,
+  ADD_BANK,
+} from "@/lib/graphql/queries";
 import { CatalogOption } from "./data-table-filters";
-import { TooltipContent } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
-import { Tooltip } from "@/components/ui/tooltip";
-import { TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { PolicyHolder } from "@/lib/hooks/usePolicyHolder";
-import { FormData } from "@/components/organisms/new-claim-modal";
+
 import { useUserProfile } from "@/providers/user-profile-manager";
+import Image from "next/image";
+import { FileUploader } from "@/components/atoms/file-uploader";
+import { toast } from "sonner";
+import { useEmployeeStore } from "@/stores/employee-store";
+import { useClaimFormStore } from "@/stores/new-claim-form-store";
+import { useEmployeeData } from "@/lib/hooks/useEmployeeData";
+import { Badge } from "@/components/ui/badge";
 
 interface NewClaimEmbeddedFormProps {
-  formData: FormData;
-  setFormData: (formData: FormData) => void;
-  employeeData: PolicyHolder | null;
-  employeeNumber: string;
-  hasBankDetails: boolean;
   formState: string | null;
   setFormState: (formState: string | null) => void;
+  setOpen: (open: boolean) => void;
 }
 
 interface ClaimTypeVerifyResponse {
@@ -52,31 +57,86 @@ interface ClaimAddVerifyResponse {
 }
 
 export function NewClaimEmbeddedForm({
-  formData,
-  setFormData,
-  employeeData,
-  employeeNumber,
-  hasBankDetails,
   formState,
   setFormState,
+  setOpen,
 }: NewClaimEmbeddedFormProps) {
-  const [bank, setBank] = useState("");
   const [claimType, setClaimType] = useState<string | null>(null);
   const [hasWarning, setHasWarning] = useState(false);
   const [warningAccepted, setWarningAccepted] = useState(false);
 
-  const [claimTypeVerifyResponse, setClaimTypeVerifyResponse] = useState<
-    ClaimTypeVerifyResponse | null
-  >();
+  const { employeeNumber, setEmployeeNumber, employeeData, setEmployeeData } =
+    useEmployeeStore();
 
-  const [claimAddVerifyResponse, setClaimAddVerifyResponse] = useState<
-    ClaimAddVerifyResponse | null
-  >();
+  const { formData, setFormData } = useClaimFormStore();
+
+  const [claimTypeVerifyResponse, setClaimTypeVerifyResponse] =
+    useState<ClaimTypeVerifyResponse | null>();
+
+  const [claimAddVerifyResponse, setClaimAddVerifyResponse] =
+    useState<ClaimAddVerifyResponse | null>();
 
   // get user id from user profile manager context
   const { user } = useUserProfile();
 
   const { data: catalogsData } = useQuery(GET_CATALOGS);
+
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+
+  const [bank, setBank] = useState<string | null>(null);
+
+  const [addBank, { loading: bankLoading }] = useMutation(ADD_BANK);
+  const [bankFormData, setBankFormData] = useState({
+    name: "",
+    branch_Number: "",
+    branch_Name: "",
+    account_Number: "",
+    account_Name: "",
+  });
+
+  const [bankError, setBankError] = useState<string | null>(null);
+  const [bankDetailsAdded, setBankDetailsAdded] = useState(false);
+
+  const { refetchEmployeeData } = useEmployeeData();
+
+  useEffect(() => {
+    console.log(claimAddVerifyResponse);
+  }, [claimAddVerifyResponse]);
+
+  const handleBankSubmit = async () => {
+    try {
+      setBankError(null);
+      const bankData = {
+        id: 0,
+        policyHolderId: employeeData?.id || 0,
+        name: bank || "",
+        branch_Number: bankFormData.branch_Number,
+        branch_Name: bankFormData.branch_Name,
+        account_Number: bankFormData.account_Number,
+        account_Name: bankFormData.account_Name,
+      };
+
+      const response = await addBank({
+        variables: { bank: bankData },
+      });
+
+      if (response.data?.addBank) {
+        // Use the hook to refetch data
+        await refetchEmployeeData();
+        setBankDetailsAdded(true);
+        toast.success("Bank details added successfully");
+      }
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to add bank details";
+      setBankError(errorMessage);
+      toast.error("Failed to add bank details");
+      console.error("Error adding bank:", err);
+    }
+  };
+
+  const [addClaimQuery, { loading: addClaimLoading, error: addClaimError }] =
+    useMutation(ADD_POLICYHOLDERCLAIM);
 
   const [verifyClaimQuery, { loading, error }] = useLazyQuery(
     GET_VERIFY_CLAIM,
@@ -84,17 +144,21 @@ export function NewClaimEmbeddedForm({
       fetchPolicy: "network-only",
       errorPolicy: "all",
       onCompleted: (data) => {
-        console.log("Verify Claim Query successful:", data);
-
         if (data.verifyclaim) {
-
-          if (data.verifyclaim.previousClaimAmount !== null &&
+          if (
+            data.verifyclaim.previousClaimAmount !== null &&
             data.verifyclaim.previousClaimId !== 0 &&
-          data.verifyclaim.previousClaimId !== null) {
+            data.verifyclaim.previousClaimId !== null &&
+            !warningAccepted
+          ) {
             setClaimTypeVerifyResponse(data.verifyclaim);
             setHasWarning(true);
+            console.log("warning");
+            console.log(data.verifyclaim);
           } else {
+            console.log("no warning or warning accepted");
             setClaimAddVerifyResponse(data.verifyclaim);
+            setFormState("verification");
           }
         }
       },
@@ -106,44 +170,99 @@ export function NewClaimEmbeddedForm({
     }
   );
 
-  // verify claim: step 1: choosing claim type
-  // verify claim 2: actual form verification
-
-
-
   const claimTypeOptions = useMemo(() => {
-    const options = [{ id: "all", value: "all", label: "All" }];
+    if (!catalogsData?.catalogs) return [];
 
-    if (catalogsData?.catalogs) {
-      catalogsData.catalogs.forEach((catalog: CatalogOption) => {
-        options.push({
-          id: catalog.id,
-          value: catalog.id,
-          label: catalog.label,
-        });
-      });
-    }
-
-    return options;
+    return catalogsData.catalogs.map((catalog: CatalogOption) => ({
+      id: catalog.id,
+      value: catalog.id,
+      label: catalog.label,
+    }));
   }, [catalogsData]);
 
   function renderBankDetails() {
     return (
-        <CardContent className="flex flex-col p-0">
-          <div className="h-fit flex flex-col gap-6">
-            <div className="flex gap-3 w-full">
-              <div className="max-w-fit">
-                <InputWithLabel label="Bank Branch Code"  />
-              </div>
-              <div className="w-full">
-                <InputWithLabel label="Bank Branch Name" />
-              </div>
+      <CardContent className="flex flex-col p-0">
+        <div className="h-fit flex flex-col gap-6">
+          <ComboBoxResponsive
+            placeholder="Select Bank"
+            label="Bank Name"
+            options={[
+              { label: "BSP", value: "BSP", id: "bsp" },
+              { label: "KINA BANK", value: "KINA BANK", id: "kina-bank" },
+              { label: "WESTPAC", value: "WESTPAC", id: "westpac" },
+              { label: "ANZ", value: "ANZ", id: "anz" },
+            ]}
+            value={bank || ""}
+            onValueChange={(value) => {
+              setBank(value);
+              setBankFormData((prev) => ({
+                ...prev,
+                name: value || "",
+              }));
+            }}
+            className="w-full"
+            triggerClassName="w-full"
+          />
+          <div className="flex gap-3 w-full">
+            <div className="max-w-fit">
+              <InputWithLabel
+                label="Bank Branch Code"
+                value={bankFormData.branch_Number}
+                onChange={(e) =>
+                  setBankFormData((prev) => ({
+                    ...prev,
+                    branch_Number: e.target.value,
+                  }))
+                }
+                required
+              />
             </div>
-
-            <InputWithLabel label="Account Number" />
-            <InputWithLabel label="Account Name" />
+            <div className="w-full">
+              <InputWithLabel
+                label="Bank Branch Name"
+                value={bankFormData.branch_Name}
+                onChange={(e) =>
+                  setBankFormData((prev) => ({
+                    ...prev,
+                    branch_Name: e.target.value,
+                  }))
+                }
+                required
+              />
+            </div>
           </div>
-        </CardContent>
+
+          <InputWithLabel
+            label="Account Number"
+            value={bankFormData.account_Number}
+            onChange={(e) =>
+              setBankFormData((prev) => ({
+                ...prev,
+                account_Number: e.target.value,
+              }))
+            }
+            required
+          />
+          <InputWithLabel
+            label="Account Name"
+            value={bankFormData.account_Name}
+            onChange={(e) =>
+              setBankFormData((prev) => ({
+                ...prev,
+                account_Name: e.target.value,
+              }))
+            }
+            required
+          />
+
+          {bankError && (
+            <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md border border-red-200">
+              {bankError}
+            </div>
+          )}
+        </div>
+      </CardContent>
     );
   }
 
@@ -166,6 +285,21 @@ export function NewClaimEmbeddedForm({
                   employeeNo: employeeNumber,
                   claimCode: value,
                 },
+              },
+              onCompleted: (data) => {
+                if (data.verifyclaim) {
+                  if (
+                    data.verifyclaim.previousClaimAmount !== null &&
+                    data.verifyclaim.previousClaimId !== 0 &&
+                    data.verifyclaim.previousClaimId !== null &&
+                    !warningAccepted
+                  ) {
+                    setClaimTypeVerifyResponse(data.verifyclaim);
+                    setHasWarning(true);
+                    console.log("warning");
+                    console.log(data.verifyclaim);
+                  }
+                }
               },
             });
           }}
@@ -215,7 +349,7 @@ export function NewClaimEmbeddedForm({
                   <div className="w-1/2">
                     <div className="flex flex-row gap-1 items-center">
                       {/* Claim Type */}
-                    <Component className="w-3 h-3" />
+                      <Component className="w-3 h-3" />
                       <p className="font-medium">
                         {claimTypeVerifyResponse?.claimLabel}
                       </p>
@@ -259,25 +393,60 @@ export function NewClaimEmbeddedForm({
     return (
       <>
         <div className="h-fit w-full flex flex-col gap-6 mt-6">
-          <InputWithLabel label="Amount" value={formData.amount} onChange={(e) => {
-            setFormData({ ...formData, amount: Number(e.target.value) });
-          }} />
+          <InputWithLabel
+            label="Amount"
+            value={formData.amount}
+            onChange={(e) => {
+              setFormData({ ...formData, amount: Number(e.target.value) });
+            }}
+          />
 
           <div className="flex flex-col gap-2">
             <Label className="text-xs font-semibold text-muted-foreground/75">
               Description
             </Label>
-            <Textarea placeholder="Claim Description" value={formData.description} onChange={(e) => {
-              setFormData({ ...formData, description: e.target.value });
-            }} />
+            <Textarea
+              placeholder="Claim Description"
+              value={formData.description}
+              onChange={(e) => {
+                setFormData({ ...formData, description: e.target.value });
+              }}
+            />
           </div>
 
-          <div className="flex flex-row gap-2">
-            {/* File uploading area */}
-            <div className="flex flex-row gap-2">
-              <Button variant="outline">
-                <File className="w-4 h-4" />
-              </Button>
+          <div className="flex flex-col gap-2 w-full">
+            <Label className="text-xs font-semibold text-muted-foreground/75">
+              Upload Files
+            </Label>
+            <div className="gap-2 w-full max-w-fit grid grid-cols-5">
+              {uploadedFiles.map((file, index) => (
+                <Button
+                  key={index}
+                  variant="outline"
+                  className="w-full text-ellipsis"
+                >
+                  <Image
+                    src="/images/pdf_icon.png"
+                    alt={file.name}
+                    width={12}
+                    height={12}
+                  />
+                  <p className="truncate text-xs">{file.name}</p>
+                </Button>
+              ))}
+              <FileUploader
+                onFileSelect={(file) => {
+                  setUploadedFiles((prev) => [...prev, file]);
+                  setFormData((prev) => ({
+                    ...prev,
+                    supporting_documents: [
+                      ...(prev.supporting_documents || []),
+                      file,
+                    ],
+                  }));
+                }}
+                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+              />
             </div>
           </div>
         </div>
@@ -287,23 +456,72 @@ export function NewClaimEmbeddedForm({
 
   function renderFinalVerificationStep() {
     return (
-      <>
-        <div className="h-fit w-full flex flex-col gap-6 mt-6">
-          Final Verification Step
-        </div>
-      </>
+      <div className="h-fit w-full flex flex-col gap-6 mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Verify Claim Details</CardTitle>
+            <CardDescription>
+              Please verify the following claim details before submitting
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs font-semibold text-muted-foreground/75">
+                  Claim Type
+                </Label>
+                <p className="text-sm font-medium">
+                  {claimAddVerifyResponse?.claimLabel}
+                </p>
+              </div>
+              <div>
+                <Label className="text-xs font-semibold text-muted-foreground/75">
+                  Amount
+                </Label>
+                <p className="text-sm font-medium">PGK {formData.amount}</p>
+              </div>
+              <div className="col-span-2">
+                <Label className="text-xs font-semibold text-muted-foreground/75">
+                  Description
+                </Label>
+                <p className="text-sm font-medium">{formData.description}</p>
+              </div>
+              {uploadedFiles.length > 0 && (
+                <div className="col-span-2">
+                  <Label>Supporting Documents</Label>
+                  <div className="flex gap-2 mt-2">
+                    {uploadedFiles.map((file, index) => (
+                      <div
+                        key={index}
+                        className="text-sm text-muted-foreground"
+                      >
+                        {file.name}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
+
   function renderFormHeader() {
-    if (!employeeData && !hasBankDetails) {
-      return "Waiting for Employee Data";
+    if (!employeeData && !employeeData?.hasBankDetails) {
+      return (
+        <h1 className="font-semibold text-muted-foreground/25 animate-pulse">
+          Waiting for Employee Data
+        </h1>
+      );
     }
 
-    if (employeeData && hasBankDetails) {
+    if (employeeData && employeeData?.hasBankDetails) {
       return "Select Claim Type";
     }
 
-    if (employeeData && !hasBankDetails) {
+    if (employeeData && !employeeData?.hasBankDetails) {
       return "Enter Bank Details";
     }
 
@@ -318,146 +536,232 @@ export function NewClaimEmbeddedForm({
 
   function renderFormContent() {
     if (!employeeData) {
-      return "Waiting for Employee Data";
+      return "";
     }
 
-    if (employeeData && !hasBankDetails) {
+    if (employeeData && !employeeData?.hasBankDetails) {
       return renderBankDetails();
     }
 
     if (
       employeeData &&
-      hasBankDetails &&
-      (claimType === null || claimType === "all") &&
-      (claimAddVerifyResponse?.claimLabel === null && claimAddVerifyResponse?.amount === null && claimAddVerifyResponse?.description === null)
+      employeeData?.hasBankDetails &&
+      (claimType === null || claimType === "all")
     ) {
       return renderClaimType();
     }
 
     if (
       employeeData &&
-      hasBankDetails &&
-      (claimType !== null || claimType !== "all")
+      employeeData?.hasBankDetails &&
+      claimType !== null &&
+      claimType !== "all"
     ) {
       return (
         <>
-          {renderClaimType()}
-
-          {claimTypeVerifyResponse?.previousClaimAmount !== null &&
-            claimTypeVerifyResponse?.previousClaimId !== 0 &&
-            claimTypeVerifyResponse?.previousClaimId !== null &&
-            renderWarningStep()}
-
-          {claimTypeVerifyResponse?.previousClaimAmount === null &&
-            claimTypeVerifyResponse?.previousClaimId === 0 &&
-            claimTypeVerifyResponse?.previousClaimId === null &&
-            renderMainForm()}
-        
-
-        
-
+          {formState !== "verification" && renderClaimType()}
+          {hasWarning && !warningAccepted
+            ? renderWarningStep()
+            : formState === "verification"
+            ? renderFinalVerificationStep()
+            : renderMainForm()}
         </>
       );
     }
   }
 
   const renderNavigationButtons = () => {
-
-    if (claimAddVerifyResponse?.claimId !== null && employeeData && hasBankDetails && (claimType !== null || claimType !== "all") && warningAccepted) {
-      return (
-        <>
-          <Button variant="ghost">Cancel</Button>
-          <Button variant="default">Proceed</Button>
-        </>
-      );  
-
+    if (!employeeData) {
+      return <Button variant="ghost">Cancel</Button>;
     }
 
-    if (claimAddVerifyResponse?.claimId !== null && employeeData && hasBankDetails && (claimType !== null || claimType !== "all") && !warningAccepted) {  
+    if (employeeData && !employeeData?.hasBankDetails) {
       return (
         <>
           <Button variant="ghost">Cancel</Button>
-          <Button variant="default">Proceed</Button>
-        </>
-      );
-    }
-
-    if (employeeData && !hasBankDetails) {
-      return (
-        <>
-          <Button variant="ghost">Cancel</Button>
-          <Button className="bg-blue-700 hover:bg-blue-800 text-primary-foreground font-semibold">
+          <Button
+            onClick={handleBankSubmit}
+            disabled={bankLoading}
+            className="bg-blue-700 hover:bg-blue-800 text-primary-foreground font-semibold"
+          >
             Add Bank Details
           </Button>
         </>
       );
     }
 
-    if (employeeData && hasBankDetails) {
-      return (
-        <>
-          <Button variant="ghost">Cancel</Button>
-
-          {claimType !== null &&
-            claimType !== "all" &&
-            hasWarning && (
-              !warningAccepted ? (
-                <Button
-                  variant="default"
-                  className="bg-warning hover:bg-warning-foreground hover:text-primary-background text-primary-background font-semibold border border-warning-foreground hover:border-warning"
-                  onClick={() => {
-                  setWarningAccepted(true);
-                }}
-                >
-                  Proceed?
-                </Button>
-              ) : (
-                <Button
-                  variant="default"
-                  onClick={() => {
-                    verifyClaimQuery({
-                      variables: {
-                        input: {
-                          userId: user?.userId,
-                          employeeNo: employeeNumber,
-                          claimCode: claimType,
-                          amount: formData.amount,
-                          description: formData.description,
-                          // claimFiles: formData.files,
-                        },
-                      },
-                    });
-                  }}
-                >
-                  Next
-                </Button>
-              )
-            )}
-        </>
-      );
-
-      
-    }
-
+    // When we're at the claim type selection stage
     if (
       employeeData &&
-      hasBankDetails &&
-      (claimType !== null || claimType !== "all")
+      employeeData?.hasBankDetails &&
+      (claimType === null || claimType === "all")
+    ) {
+      return <Button variant="ghost">Cancel</Button>;
+    }
+
+    // When we have a claim type selected and there's a warning
+    if (
+      employeeData &&
+      employeeData?.hasBankDetails &&
+      claimType &&
+      hasWarning &&
+      !warningAccepted
     ) {
       return (
         <>
           <Button variant="ghost">Cancel</Button>
-          <Button variant="default">Proceed</Button>
+          <Button
+            variant="default"
+            className="bg-warning hover:bg-warning-foreground hover:text-primary-background text-primary-background font-semibold border border-warning-foreground hover:border-warning"
+            onClick={() => {
+              setWarningAccepted(true);
+            }}
+          >
+            Proceed?
+          </Button>
         </>
       );
     }
+
+    // When we're at the verification step
+    if (formState === "verification") {
+      return (
+        <>
+          <Button variant="ghost">Cancel</Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setFormState(null);
+            }}
+          >
+            Back
+          </Button>
+          <Button
+            variant="default"
+            onClick={() => {
+              addClaimQuery({
+                variables: {
+                  input: {
+                    userId: user?.userId,
+                    employeeNo: employeeNumber,
+                    claimCode: claimType,
+                    amount: formData.amount,
+                    description: formData.description,
+                    status: "Pending",
+                    documents: uploadedFiles.map((file) => file.name).join(";"),
+                  },
+                },
+                refetchQueries: [
+                  {
+                    query: GET_POLICYHOLDERCLAIMS,
+                    variables: {
+                      userId: user?.userId,
+                      providerRegNumber: "",
+                      claimId: "",
+                      employeeNo: "",
+                      claimCode: "",
+                      status: "",
+                    },
+                  },
+                ],
+              })
+                .then((response) => {
+                  if (response.data) {
+                    // Reset all form state
+                    setClaimType(null);
+                    setHasWarning(false);
+                    setWarningAccepted(false);
+                    setClaimTypeVerifyResponse(null);
+                    setClaimAddVerifyResponse(null);
+                    setUploadedFiles([]);
+                    setFormState(null);
+                    setFormData({
+                      amount: 0,
+                      description: "",
+                      supporting_documents: [],
+                      employeeNumber: "",
+                      claimType: "",
+                      files: [],
+                    });
+                    setEmployeeData(null);
+                    setEmployeeNumber("");
+
+                    // Close the modal and show success message
+                    setOpen(false);
+                    toast.success("Claim Added Successfully", {
+                      description: "Your claim has been submitted.",
+                    });
+                  }
+                })
+                .catch((error) => {
+                  toast.error("Failed to Add Claim", {
+                    description: error.message,
+                  });
+                });
+            }}
+          >
+            Add Claim
+          </Button>
+        </>
+      );
+    }
+
+    // When we're showing the main form (either no warning or warning accepted)
+    if (
+      employeeData &&
+      employeeData?.hasBankDetails &&
+      claimType &&
+      (!hasWarning || warningAccepted)
+    ) {
+      return (
+        <>
+          <Button variant="ghost">Cancel</Button>
+          <Button
+            variant="default"
+            onClick={() => {
+              verifyClaimQuery({
+                variables: {
+                  input: {
+                    userId: user?.userId,
+                    employeeNo: employeeNumber,
+                    claimCode: claimType,
+                    amount: formData.amount,
+                    description: formData.description,
+                  },
+                },
+              });
+            }}
+          >
+            Next
+          </Button>
+        </>
+      );
+    }
+
+    return <Button variant="ghost">Cancel</Button>;
   };
 
   return (
     <Card className="w-full h-full border-dotted">
       <CardHeader className="">
-        <CardTitle className="flex items-center gap-1">
+        <CardTitle className="flex items-center justify-between gap-1">
           {renderFormHeader()}
+          <div className="flex gap-2">
+            {bankDetailsAdded && (
+              <Badge className="bg-blue-700 text-white hover:bg-blue-800">
+                Bank Details Added
+              </Badge>
+            )}
+            {warningAccepted && (
+              <Badge
+                variant="destructive"
+                className="bg-warning text-warning-foreground cursor-pointer hover:bg-warning/90"
+                onClick={() => setWarningAccepted(false)}
+              >
+                Warning Accepted
+              </Badge>
+            )}
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="">{renderFormContent()}</CardContent>
