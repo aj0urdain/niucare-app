@@ -42,7 +42,7 @@ import {
 import { Separator } from "../ui/separator";
 import { toast } from "sonner";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useQuery } from "@apollo/client";
 import { GET_POLICY_HOLDER_BY_EMPLOYEE_NO } from "@/lib/graphql/queries";
 
@@ -52,11 +52,11 @@ interface ViewClaimModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function ViewClaimModal({
+const ViewClaimModalContent = ({
   claim,
   open,
   onOpenChange,
-}: ViewClaimModalProps) {
+}: ViewClaimModalProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<"overview" | "details" | "files">(
@@ -591,5 +591,21 @@ Description: ${claim.description}`;
         </Tabs>
       </SheetContent>
     </Sheet>
+  );
+};
+
+export function ViewClaimModal({
+  claim,
+  open,
+  onOpenChange,
+}: ViewClaimModalProps) {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ViewClaimModalContent
+        claim={claim}
+        open={open}
+        onOpenChange={onOpenChange}
+      />
+    </Suspense>
   );
 }

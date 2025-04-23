@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { Claim, columns } from "@/components/atoms/columns-data";
 import { DataTable } from "@/components/organisms/data-table";
 import { Separator } from "@/components/ui/separator";
@@ -29,7 +29,7 @@ interface PolicyHolderClaim {
   userBucket?: string;
 }
 
-const Claims = () => {
+const ClaimsContent = () => {
   const searchParams = useSearchParams();
   const claimId = searchParams.get("id");
   const [userId, setUserId] = useState<string | null>(null);
@@ -92,6 +92,14 @@ const Claims = () => {
         initialClaimId={claimId}
       />
     </div>
+  );
+};
+
+const Claims = () => {
+  return (
+    <Suspense fallback={<></>}>
+      <ClaimsContent />
+    </Suspense>
   );
 };
 
