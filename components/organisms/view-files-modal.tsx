@@ -29,7 +29,7 @@ export function ViewFilesModal({ files = [], claimId }: ViewFilesModalProps) {
           data-view-files="true"
           onClick={() => openFileViewer(files, claimId)}
         >
-          <span className="sr-only">View files</span>
+          <span className="sr-only">Files</span>
           <FileDown className="h-4 w-4" />
         </Button>
       </DialogTrigger>
