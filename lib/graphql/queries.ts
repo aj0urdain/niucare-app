@@ -9,6 +9,7 @@ query GetUserRegistration($userId: String!) {
       status
       reason
       bucket
+      isPsnaProvider
    }
 }
 `);
@@ -397,6 +398,47 @@ export const GET_POLICY_HOLDER_BY_EMPLOYEE_NO = gql`
       name
       gender
       dateOfBirth
+    }
+  }
+`;
+
+export const DRAFTS_BY_USER_ID = gql`
+  query DraftsByUserId($userId: String!) {
+    draftByUserId(userId: $userId) {
+      id
+      public_officer_firstname
+      public_officer_lastname
+      email
+      business_Phone_Number
+      location_Creation_Date
+      practice_Section
+      practice_Lot
+      practice_Street
+      practice_Suburb
+      practice_Province
+      applicant_Employment_Status
+      registered_Business_Name
+      tin_Certificate
+      ipa_Registration_Number
+      business_Type
+      practice_Name
+      ptype
+      bank
+      branch_Number
+      branch_Name
+      account_Number
+      account_Name
+      ipa_Certificate
+      medical_Certificate
+      medical_Practitioner_firstname
+      medical_Practitioner_lastname
+      medical_Practitioner_Signiture
+      pbox_Name
+      pbox_Number
+      pbox_Branch
+      pbox_Province
+      isPsnaProvider
+      updated_Date
     }
   }
 `;
