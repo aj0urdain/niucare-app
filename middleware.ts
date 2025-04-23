@@ -30,7 +30,7 @@ export async function middleware(request: NextRequest) {
 
     // Only check auth status for auth page to prevent authenticated users from accessing it
     if (pathname === "/auth" && authenticated) {
-      return NextResponse.redirect(new URL("/claims", request.url));
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
     // For non-public paths, require authentication

@@ -13,7 +13,7 @@ export function AuthListener() {
       switch (payload.event) {
         case "signedIn":
           toast.success("Signed in successfully");
-          router.push("/claims");
+          router.push("/dashboard");
           router.refresh();
           break;
         case "signedOut":
