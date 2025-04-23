@@ -9,7 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   FileDown,
   UserRoundSearch,
-  ChevronRight,
   IdCard,
   Venus,
   Mars,
@@ -42,7 +41,10 @@ import {
 } from "@/components/ui/tooltip";
 import { Separator } from "../ui/separator";
 import { toast } from "sonner";
-import { usePolicyHolder } from "@/lib/hooks/usePolicyHolder";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useQuery } from "@apollo/client";
+import { GET_POLICY_HOLDER_BY_EMPLOYEE_NO } from "@/lib/graphql/queries";
 
 interface ViewClaimModalProps {
   claim: Claim | null;
@@ -55,9 +57,57 @@ export function ViewClaimModal({
   open,
   onOpenChange,
 }: ViewClaimModalProps) {
-  const { policyHolder, loading: policyHolderLoading } = usePolicyHolder(
-    claim?.employeeNumber || ""
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<"overview" | "details" | "files">(
+    "overview"
   );
+
+  const { data: policyHolderData, loading: policyHolderLoading } = useQuery(
+    GET_POLICY_HOLDER_BY_EMPLOYEE_NO,
+    {
+      variables: { employeeNo: claim?.employeeNumber },
+      skip: !claim?.employeeNumber,
+    }
+  );
+
+  const policyHolder = policyHolderData?.policyHolderByEmployeeNo?.[0];
+
+  // Sync URL with modal state
+  useEffect(() => {
+    if (open && claim) {
+      const params = new URLSearchParams();
+      params.set("id", claim.id);
+      if (activeTab !== "overview") {
+        params.set("sheetTab", activeTab);
+      }
+      router.push(`?${params.toString()}`);
+    } else {
+      router.push("?");
+    }
+  }, [open, claim, activeTab, router]);
+
+  // Sync tab state with URL on mount
+  useEffect(() => {
+    const tab = searchParams.get("sheetTab") as
+      | "overview"
+      | "details"
+      | "files"
+      | null;
+    if (tab && ["overview", "details", "files"].includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
+  // Update URL when tab changes
+  const handleTabChange = (tab: "overview" | "details" | "files") => {
+    setActiveTab(tab);
+  };
+
+  // Update URL when modal state changes
+  const handleOpenChange = (open: boolean) => {
+    onOpenChange(open);
+  };
 
   if (!claim) return null;
 
@@ -82,13 +132,13 @@ Description: ${claim.description}`;
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent
         side="bottom"
         className="max-w-xl mx-auto h-full min-h-[90vh] max-h-[90vh] rounded-t-[1rem]"
       >
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-4">
+          <SheetTitle className="flex items-center gap-4 pb-4">
             <div
               className={cn(
                 "px-3 py-1.5 text-xs font-semibold rounded-md",
@@ -107,24 +157,28 @@ Description: ${claim.description}`;
           </SheetTitle>
         </SheetHeader>
 
-        <Tabs defaultValue="overview" className="my-8">
-          <TabsList className="grid grid-cols-3 h-12">
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) =>
+            handleTabChange(value as "overview" | "details" | "files")
+          }
+        >
+          <TabsList className="grid grid-cols-3 w-fit">
             <TabsTrigger value="overview" className="flex items-center gap-1">
-              <Info className="h-4 w-4" />
-              <span>Overview</span>
+              <Info className="h-3.5 w-3.5" />
+              <span className="text-xs">Overview</span>
             </TabsTrigger>
             <TabsTrigger value="details" className="flex items-center gap-1">
-              <ClipboardList className="h-4 w-4" />
-              <span>Details</span>
+              <ClipboardList className="h-3.5 w-3.5" />
+              <span className="text-xs">Details</span>
             </TabsTrigger>
-
             <TabsTrigger value="files" className="flex items-center gap-1">
-              <FileDown className="h-4 w-4" />
-              <span>Files</span>
+              <FileDown className="h-3.5 w-3.5" />
+              <span className="text-xs">Files</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="mt-8">
+          <TabsContent value="overview" className="mt-4">
             <div className="flex flex-col gap-4 h-full items-center justify-center">
               {/* Employee Information Card */}
               <Card className="relative bg-muted w-full flex flex-col animate-slide-left-fade-in">
@@ -144,7 +198,7 @@ Description: ${claim.description}`;
                     </Tooltip>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="flex flex-col gap-4 flex-1">
+                <CardContent className="flex flex-col gap-2 flex-1">
                   <div className="grid gap-2">
                     <div className="font-bold text-3xl">
                       {policyHolderLoading ? (
@@ -154,8 +208,8 @@ Description: ${claim.description}`;
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1 text-muted-foreground font-semibold text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-0.5 text-muted-foreground font-medium text-xs">
                       {policyHolder?.gender === "M" ? (
                         <>
                           <Mars className="h-4 w-4" />
@@ -170,11 +224,15 @@ Description: ${claim.description}`;
                         </>
                       )}
                     </div>
-                    <div className="w-1 h-1 bg-muted-foreground rounded-full" />
-                    <div className="flex items-center gap-1 text-muted-foreground font-semibold text-sm">
+                    <div className="w-0.5 h-0.5 bg-muted-foreground rounded-full" />
+                    <div className="flex items-center gap-1 text-muted-foreground font-medium text-xs">
                       <Cake className="h-4 w-4 text-muted-foreground" />
                       <span className="">
-                        {policyHolder?.dateOfBirth || "N/A"}
+                        {policyHolder?.dateOfBirth
+                          ? new Date(
+                              policyHolder.dateOfBirth
+                            ).toLocaleDateString()
+                          : "N/A"}
                       </span>
                     </div>
                   </div>
@@ -294,12 +352,12 @@ Description: ${claim.description}`;
             </div>
           </TabsContent>
 
-          <TabsContent value="details" className="mt-8">
-            <div className="grid grid-cols-2 gap-4">
+          <TabsContent value="details" className="mt-4">
+            <div className="flex flex-col gap-4">
               {/* Employee Details - Left Column */}
               <Card className="bg-muted animate-slide-left-fade-in">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-base font-semibold">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                  <CardTitle className="font-semibold text-muted-foreground">
                     Employee Information
                   </CardTitle>
                   <Tooltip>
@@ -325,25 +383,10 @@ Description: ${claim.description}`;
                   </Tooltip>
                 </CardHeader>
                 <CardContent className="grid gap-4">
-                  <div>
-                    <Label
-                      htmlFor="employeeNumber"
-                      className="text-muted-foreground"
-                    >
-                      Employee Number
-                    </Label>
-                    <Input
-                      id="employeeNumber"
-                      value={claim.employeeNumber}
-                      disabled
-                      className="mt-1.5 text-foreground opacity-100"
-                    />
-                  </div>
-
-                  <div>
+                  <div className="flex flex-col gap-0">
                     <Label
                       htmlFor="employeeName"
-                      className="text-muted-foreground"
+                      className="text-muted-foreground text-xs pl-1.5"
                     >
                       Employee Name
                     </Label>
@@ -351,15 +394,29 @@ Description: ${claim.description}`;
                       id="employeeName"
                       value={policyHolder?.name || "N/A"}
                       disabled
-                      className="mt-1.5 text-foreground opacity-100"
+                      className="mt-1.5 text-black opacity-100 disabled:opacity-100 disabled:cursor-default disabled:bg-white"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="flex flex-col gap-0">
+                      <Label
+                        htmlFor="employeeNumber"
+                        className="text-muted-foreground text-xs pl-1.5"
+                      >
+                        Employee Number
+                      </Label>
+                      <Input
+                        id="employeeNumber"
+                        value={claim.employeeNumber}
+                        disabled
+                        className="mt-1.5 text-black opacity-100 disabled:opacity-100 disabled:cursor-default disabled:bg-white"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-0">
                       <Label
                         htmlFor="employeeGender"
-                        className="text-muted-foreground"
+                        className="text-muted-foreground text-xs pl-1.5"
                       >
                         Gender
                       </Label>
@@ -367,21 +424,27 @@ Description: ${claim.description}`;
                         id="employeeGender"
                         value={policyHolder?.gender === "M" ? "Male" : "Female"}
                         disabled
-                        className="mt-1.5 text-foreground opacity-100"
+                        className="mt-1.5 text-black opacity-100 disabled:opacity-100 disabled:cursor-default disabled:bg-white"
                       />
                     </div>
-                    <div>
+                    <div className="flex flex-col gap-0">
                       <Label
                         htmlFor="employeeDob"
-                        className="text-muted-foreground"
+                        className="text-muted-foreground text-xs pl-1.5"
                       >
                         Date of Birth
                       </Label>
                       <Input
                         id="employeeDob"
-                        value={policyHolder?.dateOfBirth || "N/A"}
+                        value={
+                          policyHolder?.dateOfBirth
+                            ? new Date(
+                                policyHolder.dateOfBirth
+                              ).toLocaleDateString()
+                            : "N/A"
+                        }
                         disabled
-                        className="mt-1.5 text-foreground opacity-100"
+                        className="mt-1.5 text-black opacity-100 disabled:opacity-100 disabled:cursor-default disabled:bg-white"
                       />
                     </div>
                   </div>
@@ -390,8 +453,8 @@ Description: ${claim.description}`;
 
               {/* Claim Details - Right Column */}
               <Card className="bg-muted animate-slide-right-fade-in">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-base font-semibold">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                  <CardTitle className="font-semibold text-muted-foreground">
                     Claim Information
                   </CardTitle>
                   <Tooltip>
@@ -417,11 +480,11 @@ Description: ${claim.description}`;
                   </Tooltip>
                 </CardHeader>
                 <CardContent className="grid gap-4">
-                  <div className="grid grid-cols-5 gap-4">
-                    <div className="col-span-2">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="flex flex-col gap-0">
                       <Label
                         htmlFor="claimId"
-                        className="text-muted-foreground"
+                        className="text-muted-foreground text-xs pl-1.5"
                       >
                         Claim ID
                       </Label>
@@ -429,44 +492,63 @@ Description: ${claim.description}`;
                         id="claimId"
                         value={claim.claimId}
                         disabled
-                        className="mt-1.5 text-foreground opacity-100"
+                        className="mt-1.5 text-black opacity-100 disabled:opacity-100 disabled:cursor-default disabled:bg-white"
                       />
                     </div>
-                    <div className="col-span-3">
+                    <div className="flex flex-col gap-0">
                       <Label
-                        htmlFor="claimType"
-                        className="text-muted-foreground"
+                        htmlFor="claimStatus"
+                        className="text-muted-foreground text-xs pl-1.5"
                       >
-                        Claim Type
+                        Status
                       </Label>
                       <Input
-                        id="claimType"
-                        value={claim.claimType}
+                        id="claimStatus"
+                        value={
+                          claim.status.charAt(0).toUpperCase() +
+                          claim.status.slice(1)
+                        }
                         disabled
-                        className="mt-1.5 text-foreground opacity-100"
+                        className="mt-1.5 text-black opacity-100 disabled:opacity-100 disabled:cursor-default disabled:bg-white"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-0">
+                      <Label
+                        htmlFor="claimAmount"
+                        className="text-muted-foreground text-xs pl-1.5"
+                      >
+                        Amount
+                      </Label>
+                      <Input
+                        id="claimAmount"
+                        value={new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: "PGK",
+                        }).format(claim.amount)}
+                        disabled
+                        className="mt-1.5 text-black opacity-100 disabled:opacity-100 disabled:cursor-default disabled:bg-white"
                       />
                     </div>
                   </div>
-
-                  <div>
-                    <Label htmlFor="amount" className="text-muted-foreground">
-                      Amount
+                  <div className="flex flex-col gap-0">
+                    <Label
+                      htmlFor="claimType"
+                      className="text-muted-foreground text-xs pl-1.5"
+                    >
+                      Claim Type
                     </Label>
                     <Input
-                      id="amount"
-                      value={new Intl.NumberFormat("en-US", {
-                        style: "currency",
-                        currency: "PGK",
-                      }).format(claim.amount)}
+                      id="claimType"
+                      value={claim.claimType}
                       disabled
-                      className="mt-1.5 text-foreground opacity-100"
+                      className="mt-1.5 text-black opacity-100 disabled:opacity-100 disabled:cursor-default disabled:bg-white"
                     />
                   </div>
 
-                  <div>
+                  <div className="flex flex-col gap-0">
                     <Label
                       htmlFor="description"
-                      className="text-muted-foreground"
+                      className="text-muted-foreground text-xs pl-1.5"
                     >
                       Description
                     </Label>
@@ -474,7 +556,7 @@ Description: ${claim.description}`;
                       id="description"
                       value={claim.description}
                       disabled
-                      className="mt-1.5 h-24 resize-none text-foreground opacity-100"
+                      className="mt-1.5 h-24 resize-none text-black opacity-100 disabled:opacity-100 disabled:cursor-default disabled:bg-white"
                     />
                   </div>
                 </CardContent>
@@ -482,13 +564,13 @@ Description: ${claim.description}`;
             </div>
           </TabsContent>
 
-          <TabsContent value="files" className="mt-8">
+          <TabsContent value="files" className="mt-4">
             <div className="grid gap-4">
               {files.length > 0 ? (
                 files.map((file, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between gap-4 rounded-lg border p-4"
+                    className="flex items-center justify-between gap-4 rounded-lg border p-4 animate-slide-down-fade-in"
                   >
                     <div className="flex items-center gap-2">
                       <FileDown className="h-4 w-4 text-muted-foreground" />

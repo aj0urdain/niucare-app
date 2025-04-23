@@ -21,25 +21,31 @@ import {
 import { signOut } from "aws-amplify/auth";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useUserProfile } from "@/providers/user-profile-manager";
+import { useUserProfileStore } from "@/stores/user-profile-store";
 import { useQueryClient } from "@tanstack/react-query";
 
 export function NavUser() {
-  const { user } = useUserProfile();
+  const { user } = useUserProfileStore();
   const { isMobile } = useSidebar();
   const router = useRouter();
   const queryClient = useQueryClient();
   const handleSignOut = async () => {
     try {
       await signOut();
-      // invalidate user profile
-      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+      // Reset the entire query client state
+      queryClient.removeQueries();
+      queryClient.clear();
+      queryClient.resetQueries();
+      queryClient.cancelQueries();
+      // Force a hard reset of the query client
+      queryClient.setQueryData(["userProfile"], null);
       router.push("/auth");
       router.refresh(); // Force a refresh of the router
       toast.success("Signed out successfully");
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Error signing out", {
-        description: error.message,
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
       });
     }
   };

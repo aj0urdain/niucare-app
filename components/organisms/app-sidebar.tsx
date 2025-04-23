@@ -25,7 +25,7 @@ import {
 import { Separator } from "../ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
-import { useUserProfile } from "@/providers/user-profile-manager";
+import { useUserProfileStore } from "@/stores/user-profile-store";
 
 const data = {
   teams: [
@@ -69,14 +69,14 @@ const data = {
   ],
   navServiceProvider: [
     {
-      title: "Registration",
-      url: "/registration",
-      icon: FilePen,
-    },
-    {
       title: "Dashboard",
       url: "/dashboard",
       icon: LayoutDashboard,
+    },
+    {
+      title: "Registration",
+      url: "/registration",
+      icon: FilePen,
     },
     {
       title: "Claims",
@@ -114,7 +114,7 @@ const NavSkeleton = () => {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user, isLoading } = useUserProfile();
+  const { user, isLoading } = useUserProfileStore();
 
   // Filter service provider nav items based on registration status
   const getServiceProviderNav = () => {
@@ -128,9 +128,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       );
     }
 
-    // If not registered or registration is pending/rejected, only show registration
+    // If not registered or registration is pending/rejected, show dashboard and registration
     return data.navServiceProvider.filter(
-      (item) => item.title === "Registration"
+      (item) => item.title === "Registration" || item.title === "Dashboard"
     );
   };
 

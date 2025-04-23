@@ -138,7 +138,7 @@ export function LoginForm({
         // Add explicit redirect after successful sign in
         if (isSignedIn) {
           toast.success("Signed in successfully");
-          router.push("/claims");
+          router.push("/dashboard");
           router.refresh();
         }
       }
@@ -154,7 +154,7 @@ export function LoginForm({
         });
         toast.info("You are already signed in");
         queryClient.invalidateQueries({ queryKey: ["userProfile"] });
-        router.push("/claims");
+
         return;
       } catch (getUserError) {
         console.error("Error getting current user:", getUserError);

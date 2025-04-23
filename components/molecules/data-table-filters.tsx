@@ -67,7 +67,7 @@ export function DataTableFilters<TData>({
   };
 
   return (
-    <div className="flex items-end justify-end gap-4">
+    <div className="flex items-end justify-end gap-2">
       <ComboBoxResponsive
         id="status"
         label="Status"

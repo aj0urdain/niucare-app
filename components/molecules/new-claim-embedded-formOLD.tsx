@@ -14,10 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLazyQuery, useQuery } from "@apollo/client";
 import { GET_CATALOGS, GET_VERIFY_CLAIM } from "@/lib/graphql/queries";
 import { CatalogOption } from "./data-table-filters";
-import { TooltipContent } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
-import { Tooltip } from "@/components/ui/tooltip";
-import { TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { PolicyHolder } from "@/lib/hooks/usePolicyHolder";
@@ -61,13 +58,11 @@ export function NewClaimEmbeddedForm({
   const [hasWarning, setHasWarning] = useState(false);
   const [warningAccepted, setWarningAccepted] = useState(false);
 
-  const [claimTypeVerifyResponse, setClaimTypeVerifyResponse] = useState<
-    ClaimTypeVerifyResponse | null
-  >();
+  const [claimTypeVerifyResponse, setClaimTypeVerifyResponse] =
+    useState<ClaimTypeVerifyResponse | null>();
 
-  const [claimAddVerifyResponse, setClaimAddVerifyResponse] = useState<
-    ClaimAddVerifyResponse | null
-  >();
+  const [claimAddVerifyResponse, setClaimAddVerifyResponse] =
+    useState<ClaimAddVerifyResponse | null>();
 
   // get user id from user profile manager context
   const { user } = useUserProfile();
@@ -83,10 +78,11 @@ export function NewClaimEmbeddedForm({
         console.log("Verify Claim Query successful:", data);
 
         if (data.verifyclaim) {
-
-          if (data.verifyclaim.previousClaimAmount !== null &&
+          if (
+            data.verifyclaim.previousClaimAmount !== null &&
             data.verifyclaim.previousClaimId !== 0 &&
-          data.verifyclaim.previousClaimId !== null) {
+            data.verifyclaim.previousClaimId !== null
+          ) {
             setClaimTypeVerifyResponse(data.verifyclaim);
             setHasWarning(true);
           } else {
@@ -232,7 +228,7 @@ export function NewClaimEmbeddedForm({
                   <div className="w-1/2">
                     <div className="flex flex-row gap-1 items-center">
                       {/* Claim Type */}
-                    <Component className="w-3 h-3" />
+                      <Component className="w-3 h-3" />
                       <p className="font-medium">
                         {claimTypeVerifyResponse?.claimLabel}
                       </p>
@@ -276,17 +272,25 @@ export function NewClaimEmbeddedForm({
     return (
       <>
         <div className="h-fit w-full flex flex-col gap-6 mt-6">
-          <InputWithLabel label="Amount" value={formData.amount} onChange={(e) => {
-            setFormData({ ...formData, amount: Number(e.target.value) });
-          }} />
+          <InputWithLabel
+            label="Amount"
+            value={formData.amount}
+            onChange={(e) => {
+              setFormData({ ...formData, amount: Number(e.target.value) });
+            }}
+          />
 
           <div className="flex flex-col gap-2">
             <Label className="text-xs font-semibold text-muted-foreground/75">
               Description
             </Label>
-            <Textarea placeholder="Claim Description" value={formData.description} onChange={(e) => {
-              setFormData({ ...formData, description: e.target.value });
-            }} />
+            <Textarea
+              placeholder="Claim Description"
+              value={formData.description}
+              onChange={(e) => {
+                setFormData({ ...formData, description: e.target.value });
+              }}
+            />
           </div>
 
           <div className="flex flex-row gap-2">
@@ -342,7 +346,9 @@ export function NewClaimEmbeddedForm({
       employeeData &&
       hasBankDetails &&
       (claimType === null || claimType === "all") &&
-      (claimAddVerifyResponse?.claimLabel === null && claimAddVerifyResponse?.amount === null && claimAddVerifyResponse?.description === null)
+      claimAddVerifyResponse?.claimLabel === null &&
+      claimAddVerifyResponse?.amount === null &&
+      claimAddVerifyResponse?.description === null
     ) {
       return renderClaimType();
     }
@@ -358,11 +364,11 @@ export function NewClaimEmbeddedForm({
           {claimTypeVerifyResponse?.previousClaimAmount !== null &&
           (claimTypeVerifyResponse?.previousClaimId !== 0 ||
             claimTypeVerifyResponse?.previousClaimId !== null) &&
-          !warningAccepted ? (
-            renderWarningStep()
-          ) : (
-            claimAddVerifyResponse?.claimId !== null ? renderFinalVerificationStep() : renderMainForm()
-          )}
+          !warningAccepted
+            ? renderWarningStep()
+            : claimAddVerifyResponse?.claimId !== null
+            ? renderFinalVerificationStep()
+            : renderMainForm()}
         </>
       );
     }
@@ -387,39 +393,38 @@ export function NewClaimEmbeddedForm({
 
           {claimType !== null &&
             claimType !== "all" &&
-            hasWarning && (
-              !warningAccepted ? (
-                <Button
-                  variant="default"
-                  className="bg-warning hover:bg-warning-foreground hover:text-primary-background text-primary-background font-semibold border border-warning-foreground hover:border-warning"
-                  onClick={() => {
+            hasWarning &&
+            (!warningAccepted ? (
+              <Button
+                variant="default"
+                className="bg-warning hover:bg-warning-foreground hover:text-primary-background text-primary-background font-semibold border border-warning-foreground hover:border-warning"
+                onClick={() => {
                   setWarningAccepted(true);
                 }}
-                >
-                  Proceed?
-                </Button>
-              ) : (
-                <Button
-                  variant="default"
-                  onClick={() => {
-                    verifyClaimQuery({
-                      variables: {
-                        input: {
-                          userId: user?.userId,
-                          employeeNo: employeeNumber,
-                          claimCode: claimType,
-                          amount: formData.amount,
-                          description: formData.description,
-                          // claimFiles: formData.files,
-                        },
+              >
+                Proceed?
+              </Button>
+            ) : (
+              <Button
+                variant="default"
+                onClick={() => {
+                  verifyClaimQuery({
+                    variables: {
+                      input: {
+                        userId: user?.userId,
+                        employeeNo: employeeNumber,
+                        claimCode: claimType,
+                        amount: formData.amount,
+                        description: formData.description,
+                        // claimFiles: formData.files,
                       },
-                    });
-                  }}
-                >
-                  Next
-                </Button>
-              )
-            )}
+                    },
+                  });
+                }}
+              >
+                Next
+              </Button>
+            ))}
         </>
       );
     }

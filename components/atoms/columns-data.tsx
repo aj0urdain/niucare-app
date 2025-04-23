@@ -8,6 +8,7 @@ import {
   CircleCheckBig,
   CircleDashed,
   Trash,
+  FileBadge,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ViewFilesModal } from "@/components/organisms/view-files-modal";
 
 export type Claim = {
   id: string;
@@ -44,30 +44,30 @@ export type Claim = {
 };
 
 export const columns: ColumnDef<Claim>[] = [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <div className="px-4 pt-1">
-        <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && "indeterminate")
-          }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      </div>
-    ),
-    cell: ({ row }) => (
-      <div className="px-4 pt-1">
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      </div>
-    ),
-  },
+  // {
+  //   id: "select",
+  //   header: ({ table }) => (
+  //     <div className="px-4 pt-1">
+  //       <Checkbox
+  //         checked={
+  //           table.getIsAllPageRowsSelected() ||
+  //           (table.getIsSomePageRowsSelected() && "indeterminate")
+  //         }
+  //         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+  //         aria-label="Select all"
+  //       />
+  //     </div>
+  //   ),
+  //   cell: ({ row }) => (
+  //     <div className="px-4 pt-1">
+  //       <Checkbox
+  //         checked={row.getIsSelected()}
+  //         onCheckedChange={(value) => row.toggleSelected(!!value)}
+  //         aria-label="Select row"
+  //       />
+  //     </div>
+  //   ),
+  // },
   {
     accessorKey: "status",
     header: ({ column }) => {
@@ -205,11 +205,13 @@ export const columns: ColumnDef<Claim>[] = [
       return <DataTableColumnHeader column={column} title="View Files" />;
     },
     cell: ({ row }) => {
-      const claim = row.original;
-      // For demo purposes
-      const files = ["medical_report.pdf"];
+      // const documents = row.getValue("documents")
 
-      return <></>;
+      return (
+        <Button variant="ghost">
+          <FileBadge className="w-3 h-3" />
+        </Button>
+      );
     },
   },
 

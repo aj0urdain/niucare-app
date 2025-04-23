@@ -24,7 +24,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
-import { useUserProfile } from "@/providers/user-profile-manager";
+import { useUserProfileStore } from "@/stores/user-profile-store";
 import Image from "next/image";
 import { FileUploader } from "@/components/atoms/file-uploader";
 import { toast } from "sonner";
@@ -56,6 +56,20 @@ interface ClaimAddVerifyResponse {
   description: string;
 }
 
+interface FormState {
+  type:
+    | "initial"
+    | "psna_bank"
+    | "claim_type"
+    | "warning"
+    | "verification"
+    | "main_form"
+    | "loading";
+  header: () => JSX.Element;
+  content: () => JSX.Element;
+  navigation: () => JSX.Element;
+}
+
 export function NewClaimEmbeddedForm({
   formState,
   setFormState,
@@ -77,7 +91,7 @@ export function NewClaimEmbeddedForm({
     useState<ClaimAddVerifyResponse | null>();
 
   // get user id from user profile manager context
-  const { user } = useUserProfile();
+  const { user } = useUserProfileStore();
 
   const { data: catalogsData } = useQuery(GET_CATALOGS);
 
@@ -102,6 +116,11 @@ export function NewClaimEmbeddedForm({
   useEffect(() => {
     console.log(claimAddVerifyResponse);
   }, [claimAddVerifyResponse]);
+
+  useEffect(() => {
+    console.log("User");
+    console.log(user?.registration);
+  }, [user]);
 
   const handleBankSubmit = async () => {
     try {
@@ -138,9 +157,8 @@ export function NewClaimEmbeddedForm({
   const [addClaimQuery, { loading: addClaimLoading, error: addClaimError }] =
     useMutation(ADD_POLICYHOLDERCLAIM);
 
-  const [verifyClaimQuery, { loading, error }] = useLazyQuery(
-    GET_VERIFY_CLAIM,
-    {
+  const [verifyClaimQuery, { loading: isVerifyingClaimType, error }] =
+    useLazyQuery(GET_VERIFY_CLAIM, {
       fetchPolicy: "network-only",
       errorPolicy: "all",
       onCompleted: (data) => {
@@ -153,12 +171,12 @@ export function NewClaimEmbeddedForm({
           ) {
             setClaimTypeVerifyResponse(data.verifyclaim);
             setHasWarning(true);
-            console.log("warning");
-            console.log(data.verifyclaim);
           } else {
-            console.log("no warning or warning accepted");
             setClaimAddVerifyResponse(data.verifyclaim);
-            setFormState("verification");
+            // Only set to verification if we're in the final verification step
+            if (formState === "SUBMITTING_CLAIM_ADD_VERIFY") {
+              setFormState("verification");
+            }
           }
         }
       },
@@ -167,8 +185,7 @@ export function NewClaimEmbeddedForm({
         console.error("Error details:", error.graphQLErrors);
         console.error("Network error:", error.networkError);
       },
-    }
-  );
+    });
 
   const claimTypeOptions = useMemo(() => {
     if (!catalogsData?.catalogs) return [];
@@ -286,25 +303,14 @@ export function NewClaimEmbeddedForm({
                   claimCode: value,
                 },
               },
-              onCompleted: (data) => {
-                if (data.verifyclaim) {
-                  if (
-                    data.verifyclaim.previousClaimAmount !== null &&
-                    data.verifyclaim.previousClaimId !== 0 &&
-                    data.verifyclaim.previousClaimId !== null &&
-                    !warningAccepted
-                  ) {
-                    setClaimTypeVerifyResponse(data.verifyclaim);
-                    setHasWarning(true);
-                    console.log("warning");
-                    console.log(data.verifyclaim);
-                  }
-                }
-              },
             });
           }}
-          className="w-full"
-          triggerClassName="w-full"
+          className="w-full animate-slide-down-fade-in"
+          triggerClassName={`w-full ${
+            !claimType
+              ? "ring-2 ring-blue-700 focus-visible:ring-2 focus-visible:ring-blue-700"
+              : ""
+          }`}
         />
       </>
     );
@@ -312,14 +318,14 @@ export function NewClaimEmbeddedForm({
 
   function renderWarningStep() {
     return (
-      <div className="h-fit w-full flex flex-col gap-6 mt-6 animate-slide-down-fade-in">
+      <div className="min-h-fit h-full w-full flex flex-col gap-6 mt-6 animate-slide-down-fade-in">
         <Card className="bg-warning-foreground/75 border-warning border-2 flex flex-col">
           <CardTitle className="p-6 flex flex-col gap-2">
             <CardHeader className="flex flex-row items-center gap-2 h-fit p-0">
               <AlertTriangle className="w-6 h-6" />
               Existing Claim!
             </CardHeader>
-            <CardDescription className="text-xs font-normal">
+            <CardDescription className="text-sm font-normal">
               This member has tried to claim the same benefit in the past 90
               days. Please check the previous claim submission and ensure you
               are not attempting to submit a duplicate.
@@ -391,7 +397,7 @@ export function NewClaimEmbeddedForm({
 
   function renderMainForm() {
     return (
-      <>
+      <div className="animate-slide-down-fade-in">
         <div className="h-fit w-full flex flex-col gap-6 mt-6">
           <InputWithLabel
             label="Amount"
@@ -450,7 +456,7 @@ export function NewClaimEmbeddedForm({
             </div>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 
@@ -508,244 +514,296 @@ export function NewClaimEmbeddedForm({
     );
   }
 
-  function renderFormHeader() {
-    if (!employeeData && !employeeData?.hasBankDetails) {
-      return (
-        <h1 className="font-semibold text-muted-foreground/25 animate-pulse">
-          Waiting for Employee Data
-        </h1>
-      );
-    }
+  const handleCancel = () => {
+    // Reset all form state
+    setClaimType(null);
+    setHasWarning(false);
+    setWarningAccepted(false);
+    setClaimTypeVerifyResponse(null);
+    setClaimAddVerifyResponse(null);
+    setUploadedFiles([]);
+    setFormState(null);
+    setFormData({
+      amount: 0,
+      description: "",
+      files: [],
+      employeeNumber: "",
+      claimType: "",
+    });
+    setEmployeeData(null);
+    setEmployeeNumber("");
+    setOpen(false);
+  };
 
-    if (employeeData && employeeData?.hasBankDetails) {
-      return "Select Claim Type";
-    }
-
-    if (employeeData && !employeeData?.hasBankDetails) {
-      return "Enter Bank Details";
-    }
-
-    if (claimType !== "all" && claimType !== null) {
-      return "New Claim";
-    }
-
-    if (claimType === "all" || claimType === null) {
-      return "Select Claim Type";
-    }
-  }
-
-  function renderFormContent() {
+  const getFormState = (): FormState | null => {
+    // Early return if no employee data
     if (!employeeData) {
-      return "";
+      return null;
     }
 
-    if (employeeData && !employeeData?.hasBankDetails) {
-      return renderBankDetails();
+    // Handle PSNA provider flow
+    if (user?.registration?.isPsnaProvider) {
+      if (!employeeData.hasBankDetails) {
+        return {
+          type: "psna_bank",
+          header: () => <h1>Enter Bank Details</h1>,
+          content: () => renderBankDetails(),
+          navigation: () => (
+            <>
+              <Button variant="ghost" onClick={handleCancel}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleBankSubmit}
+                disabled={bankLoading}
+                className="bg-blue-700 hover:bg-blue-800 text-primary-foreground font-semibold"
+              >
+                Add Bank Details
+              </Button>
+            </>
+          ),
+        };
+      }
     }
 
-    if (
-      employeeData &&
-      employeeData?.hasBankDetails &&
-      (claimType === null || claimType === "all")
-    ) {
-      return renderClaimType();
-    }
-
-    if (
-      employeeData &&
-      employeeData?.hasBankDetails &&
-      claimType !== null &&
-      claimType !== "all"
-    ) {
-      return (
-        <>
-          {formState !== "verification" && renderClaimType()}
-          {hasWarning && !warningAccepted
-            ? renderWarningStep()
-            : formState === "verification"
-            ? renderFinalVerificationStep()
-            : renderMainForm()}
-        </>
-      );
-    }
-  }
-
-  const renderNavigationButtons = () => {
-    if (!employeeData) {
-      return <Button variant="ghost">Cancel</Button>;
-    }
-
-    if (employeeData && !employeeData?.hasBankDetails) {
-      return (
-        <>
-          <Button variant="ghost">Cancel</Button>
-          <Button
-            onClick={handleBankSubmit}
-            disabled={bankLoading}
-            className="bg-blue-700 hover:bg-blue-800 text-primary-foreground font-semibold"
-          >
-            Add Bank Details
-          </Button>
-        </>
-      );
-    }
-
-    // When we're at the claim type selection stage
-    if (
-      employeeData &&
-      employeeData?.hasBankDetails &&
-      (claimType === null || claimType === "all")
-    ) {
-      return <Button variant="ghost">Cancel</Button>;
-    }
-
-    // When we have a claim type selected and there's a warning
-    if (
-      employeeData &&
-      employeeData?.hasBankDetails &&
-      claimType &&
-      hasWarning &&
-      !warningAccepted
-    ) {
-      return (
-        <>
-          <Button variant="ghost">Cancel</Button>
-          <Button
-            variant="default"
-            className="bg-warning hover:bg-warning-foreground hover:text-primary-background text-primary-background font-semibold border border-warning-foreground hover:border-warning"
-            onClick={() => {
-              setWarningAccepted(true);
-            }}
-          >
-            Proceed?
-          </Button>
-        </>
-      );
-    }
-
-    // When we're at the verification step
-    if (formState === "verification") {
-      return (
-        <>
-          <Button variant="ghost">Cancel</Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setFormState(null);
-            }}
-          >
-            Back
-          </Button>
-          <Button
-            variant="default"
-            onClick={() => {
-              addClaimQuery({
-                variables: {
-                  input: {
-                    userId: user?.userId,
-                    employeeNo: employeeNumber,
-                    claimCode: claimType,
-                    amount: formData.amount,
-                    description: formData.description,
-                    status: "Pending",
-                    documents: uploadedFiles.map((file) => file.name).join(";"),
-                  },
-                },
-                refetchQueries: [
-                  {
-                    query: GET_POLICYHOLDERCLAIMS,
-                    variables: {
-                      userId: user?.userId,
-                      providerRegNumber: "",
-                      claimId: "",
-                      employeeNo: "",
-                      claimCode: "",
-                      status: "",
-                    },
-                  },
-                ],
-              })
-                .then((response) => {
-                  if (response.data) {
-                    // Reset all form state
-                    setClaimType(null);
-                    setHasWarning(false);
-                    setWarningAccepted(false);
-                    setClaimTypeVerifyResponse(null);
-                    setClaimAddVerifyResponse(null);
-                    setUploadedFiles([]);
-                    setFormState(null);
-                    setFormData({
-                      amount: 0,
-                      description: "",
-                      supporting_documents: [],
-                      employeeNumber: "",
-                      claimType: "",
-                      files: [],
-                    });
-                    setEmployeeData(null);
-                    setEmployeeNumber("");
-
-                    // Close the modal and show success message
-                    setOpen(false);
-                    toast.success("Claim Added Successfully", {
-                      description: "Your claim has been submitted.",
-                    });
-                  }
-                })
-                .catch((error) => {
-                  toast.error("Failed to Add Claim", {
-                    description: error.message,
-                  });
-                });
-            }}
-          >
-            Add Claim
-          </Button>
-        </>
-      );
-    }
-
-    // When we're showing the main form (either no warning or warning accepted)
-    if (
-      employeeData &&
-      employeeData?.hasBankDetails &&
-      claimType &&
-      (!hasWarning || warningAccepted)
-    ) {
-      return (
-        <>
-          <Button variant="ghost">Cancel</Button>
-          <Button
-            variant="default"
-            onClick={() => {
+    // Handle claim type selection
+    if (claimType === null || claimType === "all") {
+      return {
+        type: "claim_type",
+        header: () => <h1>Select Claim Type</h1>,
+        content: () => (
+          <ComboBoxResponsive
+            placeholder="Select Claim Type"
+            label="Claim Type"
+            options={claimTypeOptions}
+            value={claimType || ""}
+            onValueChange={(value) => {
+              setClaimType(value);
+              setClaimTypeVerifyResponse(null);
+              setClaimAddVerifyResponse(null);
               verifyClaimQuery({
                 variables: {
                   input: {
                     userId: user?.userId,
                     employeeNo: employeeNumber,
-                    claimCode: claimType,
-                    amount: formData.amount,
-                    description: formData.description,
+                    claimCode: value,
                   },
                 },
               });
             }}
-          >
+            className="w-full"
+            triggerClassName={`w-full ${
+              !claimType
+                ? "ring-2 ring-blue-700 focus-visible:ring-2 focus-visible:ring-blue-700"
+                : ""
+            }`}
+          />
+        ),
+        navigation: () => (
+          <Button variant="ghost" onClick={handleCancel}>
+            Cancel
+          </Button>
+        ),
+      };
+    }
+
+    // Handle loading state
+    if (isVerifyingClaimType) {
+      return {
+        type: "loading",
+        header: () => <h1>Verifying Claim Type</h1>,
+        content: () => (
+          <div className="flex flex-col items-center justify-center h-48">
+            {/* <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div> */}
+            <p className="mt-4 text-muted-foreground">
+              Please wait while we verify your claim type...
+            </p>
+          </div>
+        ),
+        navigation: () => (
+          <Button variant="ghost" onClick={handleCancel} disabled>
+            Cancel
+          </Button>
+        ),
+      };
+    }
+
+    // Handle warning state
+    if (hasWarning && !warningAccepted) {
+      return {
+        type: "warning",
+        header: () => <h1 className="text-warning">Warning!</h1>,
+        content: () => renderWarningStep(),
+        navigation: () => (
+          <>
+            <Button variant="ghost" onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              className="bg-warning hover:bg-warning-foreground hover:text-primary-background text-primary-background font-semibold border border-warning-foreground hover:border-warning"
+              onClick={() => setWarningAccepted(true)}
+            >
+              Proceed?
+            </Button>
+          </>
+        ),
+      };
+    }
+
+    // Handle verification state
+    if (formState === "verification") {
+      return {
+        type: "verification",
+        header: () => <h1>Final Verification</h1>,
+        content: () => renderFinalVerificationStep(),
+        navigation: () => (
+          <>
+            <Button variant="ghost" onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button variant="outline" onClick={() => setFormState(null)}>
+              Back
+            </Button>
+            <Button variant="default" onClick={handleAddClaim}>
+              Add Claim
+            </Button>
+          </>
+        ),
+      };
+    }
+
+    // Handle final verification loading state
+    if (formState === "SUBMITTING_CLAIM_ADD_VERIFY") {
+      return {
+        type: "loading",
+        header: () => <h1>Final Verification</h1>,
+        content: () => (
+          <div className="flex flex-col items-center justify-center h-48">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700"></div>
+            <p className="mt-4 text-muted-foreground">
+              Please wait while we verify your claim details...
+            </p>
+          </div>
+        ),
+        navigation: () => (
+          <Button variant="ghost" onClick={handleCancel} disabled>
+            Cancel
+          </Button>
+        ),
+      };
+    }
+
+    // Default to main form
+    return {
+      type: "main_form",
+      header: () => <h1>New Claim</h1>,
+      content: () => (
+        <>
+          {renderClaimType()}
+          {renderMainForm()}
+        </>
+      ),
+      navigation: () => (
+        <>
+          <Button variant="ghost" onClick={handleCancel}>
+            Cancel
+          </Button>
+          <Button variant="default" onClick={handleNext}>
             Next
           </Button>
         </>
-      );
-    }
-
-    return <Button variant="ghost">Cancel</Button>;
+      ),
+    };
   };
 
+  const handleAddClaim = () => {
+    addClaimQuery({
+      variables: {
+        input: {
+          userId: user?.userId,
+          employeeNo: employeeNumber,
+          claimCode: claimType,
+          amount: formData.amount,
+          description: formData.description,
+          status: "Pending",
+          documents: uploadedFiles.map((file) => file.name).join(";"),
+        },
+      },
+      refetchQueries: [
+        {
+          query: GET_POLICYHOLDERCLAIMS,
+          variables: {
+            userId: user?.userId,
+            providerRegNumber: "",
+            claimId: "",
+            employeeNo: "",
+            claimCode: "",
+            status: "",
+          },
+        },
+      ],
+    })
+      .then((response) => {
+        if (response.data) {
+          // Reset all form state
+          setClaimType(null);
+          setHasWarning(false);
+          setWarningAccepted(false);
+          setClaimTypeVerifyResponse(null);
+          setClaimAddVerifyResponse(null);
+          setUploadedFiles([]);
+          setFormState(null);
+          setFormData({
+            amount: 0,
+            description: "",
+            files: [],
+            employeeNumber: "",
+            claimType: "",
+          });
+          setEmployeeData(null);
+          setEmployeeNumber("");
+
+          // Close the modal and show success message
+          setOpen(false);
+          toast.success("Claim Added Successfully", {
+            description: "Your claim has been submitted.",
+          });
+        }
+      })
+      .catch((error) => {
+        toast.error("Failed to Add Claim", {
+          description: error.message,
+        });
+      });
+  };
+
+  const handleNext = () => {
+    setFormState("SUBMITTING_CLAIM_ADD_VERIFY");
+    verifyClaimQuery({
+      variables: {
+        input: {
+          userId: user?.userId,
+          employeeNo: employeeNumber,
+          claimCode: claimType,
+          amount: formData.amount,
+          description: formData.description,
+        },
+      },
+    });
+  };
+
+  const currentState = getFormState();
+
+  if (!currentState) {
+    return null;
+  }
+
   return (
-    <Card className="w-full h-full border-dotted">
-      <CardHeader className="">
+    <Card className="w-full h-full border-dotted animate-slide-down-fade-in">
+      <CardHeader className="border-b border-muted">
         <CardTitle className="flex items-center justify-between gap-1">
-          {renderFormHeader()}
+          {currentState.header()}
           <div className="flex gap-2">
             {bankDetailsAdded && (
               <Badge className="bg-blue-700 text-white hover:bg-blue-800">
@@ -764,9 +822,9 @@ export function NewClaimEmbeddedForm({
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="">{renderFormContent()}</CardContent>
-      <CardFooter className="justify-end items-end">
-        {renderNavigationButtons()}
+      <CardContent className="mt-6">{currentState.content()}</CardContent>
+      <CardFooter className="justify-end items-end gap-2">
+        {currentState.navigation()}
       </CardFooter>
     </Card>
   );
