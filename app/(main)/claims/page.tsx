@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { useQuery } from "@apollo/client";
 import { GET_POLICYHOLDERCLAIMS } from "@/lib/graphql/queries";
 import { getCurrentUser } from "aws-amplify/auth";
+import { useSearchParams } from "next/navigation";
 
 interface FilterValues {
   status: string;
@@ -15,7 +16,22 @@ interface FilterValues {
   claimType: string;
 }
 
+interface PolicyHolderClaim {
+  id: number;
+  employeeNo: string;
+  providerRegNumber: string;
+  label: string;
+  amount: number;
+  description: string;
+  status: string;
+  documents: string;
+  reason?: string;
+  userBucket?: string;
+}
+
 const Claims = () => {
+  const searchParams = useSearchParams();
+  const claimId = searchParams.get("id");
   const [userId, setUserId] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterValues>({
     status: "",
@@ -36,7 +52,7 @@ const Claims = () => {
     getUserId();
   }, []);
 
-  const { loading, error, data } = useQuery(GET_POLICYHOLDERCLAIMS, {
+  const { loading, data } = useQuery(GET_POLICYHOLDERCLAIMS, {
     variables: {
       userId: userId || "",
       providerRegNumber: "",
@@ -49,7 +65,7 @@ const Claims = () => {
   });
 
   const transformedData: Claim[] =
-    data?.policyHolderClaims?.map((claim: any) => ({
+    data?.policyHolderClaims?.map((claim: PolicyHolderClaim) => ({
       id: claim.id.toString(),
       claimId: claim.id.toString(),
       amount: claim.amount,
@@ -71,9 +87,9 @@ const Claims = () => {
         data={transformedData}
         newClaimButton={true}
         loading={loading}
-        error={error}
         filters={filters}
         onFilterChange={setFilters}
+        initialClaimId={claimId}
       />
     </div>
   );

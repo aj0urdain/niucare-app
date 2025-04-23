@@ -8,8 +8,11 @@ import "@aws-amplify/ui-react/styles.css";
 import { ApolloWrapper } from "@/providers/apollo-provider";
 import { configureAmplify } from "@/config/amplify-config";
 import { QueryProvider } from "@/providers/query-provider";
-import { UserProfileProvider } from "@/providers/user-profile-manager";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useUserProfileStore } from "@/stores/user-profile-store";
+import { useEffect } from "react";
+import { useApolloClient } from "@apollo/client";
+import { Hub } from "aws-amplify/utils";
 
 // Configure Amplify for client-side
 configureAmplify();
@@ -30,6 +33,46 @@ configureAmplify();
 //   creator: "Aaron J. Girton",
 // };
 
+function UserProfileInitializer() {
+  const client = useApolloClient();
+  const fetchUserProfile = useUserProfileStore(
+    (state) => state.fetchUserProfile
+  );
+  const clearUserProfile = useUserProfileStore(
+    (state) => state.clearUserProfile
+  );
+
+  useEffect(() => {
+    // Initial fetch
+    fetchUserProfile(client);
+
+    // Set up auth listener
+    const hubListener = Hub.listen("auth", ({ payload }) => {
+      switch (payload.event) {
+        case "signedIn":
+          console.log("Auth: User signed in - fetching profile");
+          fetchUserProfile(client);
+          break;
+        case "signedOut":
+          console.log("Auth: User signed out - clearing profile");
+          clearUserProfile();
+          break;
+        case "tokenRefresh":
+          console.log("Auth: Tokens refreshed - fetching profile");
+          fetchUserProfile(client);
+          break;
+      }
+    });
+
+    // Cleanup listener on unmount
+    return () => {
+      hubListener();
+    };
+  }, [client, fetchUserProfile, clearUserProfile]);
+
+  return null;
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -47,11 +90,10 @@ export default function RootLayout({
           >
             <QueryProvider>
               <ApolloWrapper>
-                <UserProfileProvider>
-                  {children}
-                  <Toaster />
-                  <Sonner />
-                </UserProfileProvider>
+                <UserProfileInitializer />
+                {children}
+                <Toaster />
+                <Sonner />
               </ApolloWrapper>
             </QueryProvider>
           </ThemeProvider>

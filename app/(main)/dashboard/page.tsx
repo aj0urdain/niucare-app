@@ -1,293 +1,232 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { ChevronsDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { TrendingUp, CircleDashed } from "lucide-react";
 import CountUp from "react-countup";
+import { ChartAreaInteractive } from "@/components/molecules/dashboard-chart";
+import { useQuery } from "@apollo/client";
+import { GET_POLICYHOLDERCLAIMS } from "@/lib/graphql/queries";
+import { getCurrentUser } from "aws-amplify/auth";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
+interface PolicyHolderClaim {
+  id: number;
+  amount: number;
+  status: string;
+  label: string;
+  employeeNo: string;
+  description: string;
+  documents?: string;
+}
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getUserId = async () => {
+      try {
+        const { userId } = await getCurrentUser();
+        setUserId(userId);
+      } catch (error) {
+        console.error("Error getting user ID:", error);
+      }
+    };
+    getUserId();
+  }, []);
+
+  const { loading, data } = useQuery(GET_POLICYHOLDERCLAIMS, {
+    variables: {
+      userId: userId || "",
+      providerRegNumber: "",
+      claimId: "",
+      employeeNo: "",
+      claimCode: "",
+      status: "pending",
+    },
+    skip: !userId,
+  });
+
+  const pendingClaims: PolicyHolderClaim[] =
+    data?.policyHolderClaims?.slice(0, 5) || [];
+
   // Sample data - replace with actual data fetching
   const stats = {
     totalClaims: 1234,
-    pendingClaims: 56,
+    pendingClaims: pendingClaims.length,
     approvedClaims: 1178,
     totalProviders: 89,
   };
-
-  const recentClaims = [
-    {
-      id: "CL001",
-      employee: "John Doe",
-      type: "In-Patient Treatment",
-      amount: 1500,
-      status: "Pending",
-    },
-    {
-      id: "CL002",
-      employee: "Jane Smith",
-      type: "Dental Services",
-      amount: 300,
-      status: "Approved",
-    },
-    {
-      id: "CL003",
-      employee: "Bob Johnson",
-      type: "Optical",
-      amount: 200,
-      status: "Rejected",
-    },
-    {
-      id: "CL004",
-      employee: "Alice Brown",
-      type: "General Practitioner Consultation",
-      amount: 100,
-      status: "Approved",
-    },
-  ];
-
-  const providerRegistrations = [
-    {
-      id: "REG001",
-      name: "City Hospital",
-      type: "Private",
-      province: "Central",
-      status: "Pending",
-    },
-    {
-      id: "REG002",
-      name: "Rural Health Center",
-      type: "Public",
-      province: "Eastern Highlands",
-      status: "Approved",
-    },
-    {
-      id: "REG003",
-      name: "Dental Clinic",
-      type: "Private",
-      province: "Morobe",
-      status: "Pending",
-    },
-    {
-      id: "REG004",
-      name: "Community Health Post",
-      type: "Public",
-      province: "West New Britain",
-      status: "Rejected",
-    },
-  ];
 
   return (
     <div className="flex flex-col gap-4 py-4">
       <h1 className="text-2xl font-bold">Dashboard</h1>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="animate-slide-left-fade-in">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-normal">Total Claims</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+      <div className="*:data-[slot=card]:shadow-xs grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
+        <Card className="@container/card transition-all duration-300 hover:bg-primary/5">
+          <CardHeader className="relative">
+            <div className="text-muted-foreground/75">
+              <span className="text-xs font-semibold">Total Claims</span>
+            </div>
+            <CardTitle className="@[250px]/card:text-4xl text-3xl font-semibold tabular-nums transition-all duration-300 hover:text-5xl">
               <CountUp
                 end={stats.totalClaims}
                 duration={2}
-                delay={0}
-                useEasing
-                smartEasingAmount={0.1}
-                easingFn={(t, b, c, d) => {
-                  // Quartic easing in/out
-                  t /= d / 2;
-                  if (t < 1) return (c / 2) * t * t * t * t + b;
-                  t -= 2;
-                  return (-c / 2) * (t * t * t * t - 2) + b;
-                }}
+                className="text-primary"
               />
-            </div>
-            <div className="flex items-center gap-0.5">
-              <ChevronsDown className="w-3 h-3 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">
-                20.1% from last month
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="animate-slide-top-fade-in">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Pending Claims
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold animate-slide-top-fade-in">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-green-500" />
+              <span className="text-xs text-muted-foreground">
+                +12% from last month
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="@container/card transition-all duration-300 hover:bg-yellow-500/5">
+          <CardHeader className="relative">
+            <div className="text-muted-foreground/75">
+              <span className="text-xs font-semibold">Pending Claims</span>
+            </div>
+            <CardTitle className="@[250px]/card:text-4xl text-3xl font-semibold tabular-nums transition-all duration-300 hover:text-5xl">
               <CountUp
                 end={stats.pendingClaims}
                 duration={2}
-                delay={0}
-                useEasing
-                smartEasingAmount={0.1}
-                easingFn={(t, b, c, d) => {
-                  // Quartic easing in/out
-                  t /= d / 2;
-                  if (t < 1) return (c / 2) * t * t * t * t + b;
-                  t -= 2;
-                  return (-c / 2) * (t * t * t * t - 2) + b;
-                }}
+                className="text-yellow-500"
               />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="animate-slide-right-fade-in">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Approved Claims
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="flex items-center gap-2">
+              <CircleDashed className="h-4 w-4 text-yellow-500" />
+              <span className="text-xs text-muted-foreground">
+                {stats.pendingClaims} claims pending
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="@container/card transition-all duration-300 hover:bg-green-500/5">
+          <CardHeader className="relative">
+            <div className="text-muted-foreground/75">
+              <span className="text-xs font-semibold">Approved Claims</span>
+            </div>
+            <CardTitle className="@[250px]/card:text-4xl text-3xl font-semibold tabular-nums transition-all duration-300 hover:text-5xl">
               <CountUp
                 end={stats.approvedClaims}
                 duration={2}
-                delay={0}
-                useEasing
-                smartEasingAmount={0.1}
-                easingFn={(t, b, c, d) => {
-                  // Quartic easing in/out
-                  t /= d / 2;
-                  if (t < 1) return (c / 2) * t * t * t * t + b;
-                  t -= 2;
-                  return (-c / 2) * (t * t * t * t - 2) + b;
-                }}
+                className="text-green-500"
               />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="animate-slide-bottom-fade-in">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Providers
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-green-500" />
+              <span className="text-xs text-muted-foreground">
+                +8% from last month
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="@container/card transition-all duration-300 hover:bg-blue-500/5">
+          <CardHeader className="relative">
+            <div className="text-muted-foreground/75">
+              <span className="text-xs font-semibold">Rejected Claims</span>
+            </div>
+            <CardTitle className="@[250px]/card:text-4xl text-3xl font-semibold tabular-nums transition-all duration-300 hover:text-5xl">
               <CountUp
                 end={stats.totalProviders}
                 duration={2}
-                delay={0}
-                useEasing
-                smartEasingAmount={0.1}
-                easingFn={(t, b, c, d) => {
-                  // Quartic easing in/out
-                  t /= d / 2;
-                  if (t < 1) return (c / 2) * t * t * t * t + b;
-                  t -= 2;
-                  return (-c / 2) * (t * t * t * t - 2) + b;
-                }}
+                className="text-red-500"
               />
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-red-500" />
+              <span className="text-xs text-muted-foreground">
+                +5% from last month
+              </span>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Claims Overview and Recent Claims */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="animate-slide-left-fade-in">
-          <CardHeader>
-            <CardTitle>Claims Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {/* Replace this div with an actual chart component */}
-            <div className="h-[300px] flex items-center justify-center bg-muted/10 rounded-md">
-              Could possibly add a chart here?? Need data
-            </div>
-          </CardContent>
-        </Card>
+      {/* <ChartAreaInteractive /> */}
 
+      <div className="grid grid-cols-1 gap-4 w-full">
         <Card className="animate-slide-right-fade-in">
           <CardHeader>
-            <CardTitle>Recent Claims</CardTitle>
+            <CardTitle>Pending Claims</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Claim ID</TableHead>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Amount (PGK)</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentClaims.map((claim) => (
-                  <TableRow key={claim.id}>
-                    <TableCell>{claim.id}</TableCell>
-                    <TableCell>{claim.employee}</TableCell>
-                    <TableCell>{claim.type}</TableCell>
-                    <TableCell>{claim.amount}</TableCell>
-                    <TableCell>{claim.status}</TableCell>
-                  </TableRow>
+            {loading ? (
+              <div className="flex items-center justify-center h-24">
+                <div className="flex items-center gap-2">
+                  <CircleDashed className="h-4 w-4 animate-spin" />
+                  <span>Loading claims...</span>
+                </div>
+              </div>
+            ) : pendingClaims.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {pendingClaims.map((claim) => (
+                  <Card
+                    key={claim.id}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => router.push(`/claims?id=${claim.id}`)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className="bg-yellow-900/25 text-yellow-800 dark:text-yellow-400 border border-yellow-700/50"
+                          >
+                            Pending
+                          </Badge>
+                          <span className="font-medium text-sm">
+                            ID: {claim.id}
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground">
+                            Employee: {claim.employeeNo}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Type: {claim.label}
+                          </p>
+                          <p className="font-medium text-sm">
+                            {new Intl.NumberFormat("en-US", {
+                              style: "currency",
+                              currency: "PGK",
+                            }).format(claim.amount)}
+                          </p>
+                        </div>
+                        {claim.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">
+                            {claim.description}
+                          </p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-24 text-muted-foreground">
+                No pending claims found.
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
-
-      {/* Provider Registrations */}
-      <Card className="animate-slide-bottom-fade-in">
-        <CardHeader>
-          <CardTitle>Provider Registrations</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Registration ID</TableHead>
-                <TableHead>Provider Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Province</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {providerRegistrations.map((provider) => (
-                <TableRow key={provider.id}>
-                  <TableCell>{provider.id}</TableCell>
-                  <TableCell>{provider.name}</TableCell>
-                  <TableCell>{provider.type}</TableCell>
-                  <TableCell>{provider.province}</TableCell>
-                  <TableCell>{provider.status}</TableCell>
-                  <TableCell className="space-x-2">
-                    <Button variant="outline" size="sm">
-                      View
-                    </Button>
-                    {provider.status === "Pending" && (
-                      <>
-                        <Button variant="outline" size="sm">
-                          Approve
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          Reject
-                        </Button>
-                      </>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
     </div>
   );
 }
