@@ -141,9 +141,9 @@ export function DataTableFilters<TData>({
         onValueChange={(value) =>
           handleFilterChange("claimType", value === "all" ? "" : value)
         }
-        placeholder="Filter by Claim Type"
-        className="w-[200px] p-0"
-        triggerClassName="max-w-xs"
+        placeholder="None"
+        className="p-0 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap"
+        triggerClassName="max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap"
       />
       <DataTableViewOptions table={table} />
     </div>

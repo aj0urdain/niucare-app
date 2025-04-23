@@ -94,7 +94,7 @@ export const columns: ColumnDef<AdminClaim>[] = [
   {
     accessorKey: "documents",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="View Files" />
+      <DataTableColumnHeader column={column} title="Files" />
     ),
     cell: ({ row }) => {
       const documents = row.getValue("documents") as string;

@@ -59,7 +59,7 @@ export function ClaimsTable() {
             <TableHead>Amount (PGK)</TableHead>
             <TableHead>Description</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>View Files</TableHead>
+            <TableHead>Files</TableHead>
             <TableHead>Action</TableHead>
           </TableRow>
         </TableHeader>
@@ -79,7 +79,7 @@ export function ClaimsTable() {
               </TableCell>
               <TableCell>
                 <Button variant="secondary" size="sm">
-                  VIEW FILES
+                  Files
                 </Button>
               </TableCell>
               <TableCell>
