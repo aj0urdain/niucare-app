@@ -37,8 +37,8 @@ const config: Config = {
           foreground: "hsl(var(--accent-foreground))",
         },
         warning: {
-          DEFAULT: 'hsl(var(--warning))',
-          foreground: 'hsl(var(--warning-foreground))',
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
@@ -79,6 +79,41 @@ const config: Config = {
           "50%": {
             backgroundPosition: "100% 50%",
             transform: "rotate(3deg)",
+          },
+        },
+        ellipsis: {
+          "0%": { content: "''" },
+          "25%": { content: "'.'" },
+          "50%": { content: "'..'" },
+          "75%": { content: "'...'" },
+          "100%": { content: "''" },
+        },
+        "border-flash-red": {
+          "0%": {
+            borderColor: "hsl(var(--border))",
+            backgroundColor: "hsl(var(--card))",
+          },
+          "50%": {
+            borderColor: "rgb(239 68 68)",
+            backgroundColor: "rgb(254 226 226)",
+          },
+          "100%": {
+            borderColor: "rgb(248 113 113)",
+            backgroundColor: "hsl(var(--card))",
+          },
+        },
+        "border-flash-green": {
+          "0%": {
+            borderColor: "hsl(var(--border))",
+            backgroundColor: "hsl(var(--card))",
+          },
+          "50%": {
+            borderColor: "rgb(34 197 94)",
+            backgroundColor: "rgb(220 252 231)",
+          },
+          "100%": {
+            borderColor: "rgb(187 247 208)",
+            backgroundColor: "hsl(var(--card))",
           },
         },
         "float-up": {
@@ -137,6 +172,22 @@ const config: Config = {
           },
           "100%": {
             transform: "rotate(360deg)",
+          },
+        },
+        "spin-reverse": {
+          "0%": {
+            transform: "rotate(0deg)",
+          },
+          "100%": {
+            transform: "rotate(-360deg)",
+          },
+        },
+        "spin-slow-reverse": {
+          "0%": {
+            transform: "rotate(0deg)",
+          },
+          "100%": {
+            transform: "rotate(-360deg)",
           },
         },
         "caret-blink": {
@@ -200,6 +251,9 @@ const config: Config = {
       },
       animation: {
         "gradient-animation": "gradient-animation 15s ease infinite",
+        ellipsis: "ellipsis 1.5s steps(4, end) infinite",
+        "border-flash-red": "border-flash-red 0.75s ease-in-out 1",
+        "border-flash-green": "border-flash-green 0.75s ease-in-out 1",
         "gavel-hit": "gavel-hit 0.75s ease-in-out infinite",
         "float-up-fade-out": "float-up-fade-out 0.5s ease-out forwards",
         "float-up": "float-up 0.5s ease-out forwards",
@@ -208,6 +262,8 @@ const config: Config = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "spin-slow": "spin-slow 3s linear infinite",
+        "spin-reverse": "spin-reverse 1s linear infinite",
+        "spin-slow-reverse": "spin-slow-reverse 3s linear infinite",
         "caret-blink": "caret-blink 1.25s ease-out infinite",
         "slide-down-fade-in": "slide-down-fade-in 0.3s ease-out forwards",
         "slide-up-fade-in": "slide-up-fade-in 0.3s ease-out forwards",
