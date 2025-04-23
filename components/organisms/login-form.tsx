@@ -5,15 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-import { redirect, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ComboBoxResponsive } from "@/components/molecules/combobox-responsive-phone";
-
 import ReactCountryFlag from "react-country-flag";
 import {
   Form,
@@ -24,13 +21,26 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { COUNTRIES } from "@/lib/constants/countries";
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { PasswordInput } from "@/components/atoms/password-input";
-
 import { toast } from "sonner";
-import { signIn, getCurrentUser } from "aws-amplify/auth";
+import { signIn, getCurrentUser, signUp } from "aws-amplify/auth";
 import { useQueryClient } from "@tanstack/react-query";
+
+type SignUpData = {
+  email: string;
+  password: string;
+  familyName: string;
+  givenName: string;
+  phoneCode: string;
+  phone: string;
+  confirmPassword: string;
+};
+
+type SignInData = {
+  email: string;
+  password: string;
+};
 
 const signUpSchema = z
   .object({
@@ -61,15 +71,12 @@ const signInSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-export function LoginForm({
-  className,
-  ...props
-}: React.ComponentProps<"form">) {
+const LoginFormContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isSignUp = searchParams.get("mode") === "sign-up";
   const queryClient = useQueryClient();
-  const form = useForm({
+  const form = useForm<SignUpData | SignInData>({
     resolver: zodResolver(isSignUp ? signUpSchema : signInSchema),
     defaultValues: {
       familyName: "",
@@ -102,20 +109,19 @@ export function LoginForm({
     });
   }, [isSignUp, form]);
 
-  const onSubmit = async (
-    data: z.infer<typeof signUpSchema | typeof signInSchema>
-  ) => {
+  const onSubmit = async (data: SignUpData | SignInData) => {
     try {
       if (isSignUp) {
-        const { email, password, givenName, familyName, phone, phoneCode } =
-          data;
-        await Auth.signUp({
-          username: email,
-          password,
-          attributes: {
-            given_name: givenName,
-            family_name: familyName,
-            phone_number: `${phoneCode}${phone}`,
+        const signUpData = data as SignUpData;
+        await signUp({
+          username: signUpData.email,
+          password: signUpData.password,
+          options: {
+            userAttributes: {
+              given_name: signUpData.givenName,
+              family_name: signUpData.familyName,
+              phone_number: `${signUpData.phoneCode}${signUpData.phone}`,
+            },
           },
         });
         toast.success("Account created successfully", {
@@ -123,26 +129,23 @@ export function LoginForm({
         });
         router.push("/auth?mode=sign-in");
       } else {
+        const signInData = data as SignInData;
         const { isSignedIn, nextStep } = await signIn({
-          username: data.email,
-          password: data.password,
+          username: signInData.email,
+          password: signInData.password,
         });
-
-        console.log("isSignedIn", isSignedIn);
-        console.log("nextStep", nextStep);
 
         if (!isSignedIn && nextStep.signInStep !== "DONE") {
           throw new Error(`Sign in failed: ${nextStep.signInStep}`);
         }
 
-        // Add explicit redirect after successful sign in
         if (isSignedIn) {
           toast.success("Signed in successfully");
           router.push("/dashboard");
           router.refresh();
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Authentication error:", error);
 
       try {
@@ -154,14 +157,17 @@ export function LoginForm({
         });
         toast.info("You are already signed in");
         queryClient.invalidateQueries({ queryKey: ["userProfile"] });
-
         return;
       } catch (getUserError) {
         console.error("Error getting current user:", getUserError);
         toast.error("Error verifying current user");
       }
 
-      toast.error(error.message);
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("An unexpected error occurred");
+      }
     }
   };
 
@@ -169,8 +175,7 @@ export function LoginForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className={cn("flex flex-col w-full", className)}
-        {...props}
+        className={cn("flex flex-col w-full")}
       >
         <Card className="overflow-hidden">
           <CardContent className="grid p-0">
@@ -490,4 +495,14 @@ export function LoginForm({
       </form>
     </Form>
   );
-}
+};
+
+const LoginForm = () => {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginFormContent />
+    </Suspense>
+  );
+};
+
+export default LoginForm;
