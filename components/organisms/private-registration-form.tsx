@@ -1,59 +1,72 @@
-"use client";
-
+import { Card, CardTitle, CardHeader, CardContent } from "@/components/ui/card";
+import {
+  Building2,
+  ChevronsRight,
+  UserCheck,
+  Landmark,
+  FileText,
+  FileSignature,
+  BadgeCheck,
+  Check,
+  TriangleAlert,
+  ChevronsLeft,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
-
+import debounce from "lodash/debounce";
 import {
   Form,
-  FormControl,
   FormField,
   FormItem as FormItemUI,
   FormLabel as FormLabelUI,
+  FormControl,
   FormMessage,
 } from "@/components/ui/form";
-import { useState, useRef } from "react";
-import { FileUpload } from "@/components/molecules/file-upload";
+import { Input } from "@/components/ui/input";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, UseFormReturn } from "react-hook-form";
 import {
   Select,
-  SelectContent,
-  SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectContent,
+  SelectItem,
 } from "@/components/ui/select";
-import SignaturePad from "react-signature-canvas";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
-
-import {
-  FileText,
-  Building2,
-  Landmark,
-  FileSignature,
-  Check,
-  TriangleAlert,
-  BadgeCheck,
-  UserCheck,
-  ChevronsRight,
-  ChevronsLeft,
-} from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "../ui/scroll-area";
 import { Separator } from "../ui/separator";
+import { Progress } from "../ui/progress";
+import { cn } from "@/lib/utils";
+import { ADD_OR_UPDATE_DRAFT } from "@/lib/graphql/mutations";
+import { useMutation } from "@apollo/client";
+import { useUserProfileStore } from "@/stores/user-profile-store";
 
 const registrationSchema = z.object({
   // Public Officer Details
-  officerFirstName: z
+  userId: z.string().optional(),
+  public_officer_firstname: z
     .string()
     .min(2, "First name must be at least 2 characters"),
-  officerLastName: z.string().min(2, "Last name must be at least 2 characters"),
-  poBoxName: z.string().min(2, "P.O Box name is required"),
-  poBoxNumber: z.string().min(1, "P.O Box number is required"),
-  poBoxBranch: z.string().min(2, "P.O Box branch is required"),
-  poBoxProvince: z.enum([
+  public_officer_lastname: z
+    .string()
+    .min(2, "Last name must be at least 2 characters"),
+  mobile_Phone_Number: z.string().regex(/^\d+$/, "Must be a valid number"),
+  medical_Practitioner_firstname: z
+    .string()
+    .min(2, "First name must be at least 2 characters"),
+  medical_Practitioner_lastname: z
+    .string()
+    .min(2, "Last name must be at least 2 characters"),
+  applicantsTermsInPractice: z.number().min(0, "Must be a positive number"),
+  mb_Registration_Number: z
+    .string()
+    .min(1, "Medical board registration number is required"),
+  rn_Expiry: z.date().nullable(),
+  pbox_Name: z.string().min(2, "P.O Box name is required"),
+  pbox_Number: z.string().min(1, "P.O Box number is required"),
+  pbox_Branch: z.string().min(2, "P.O Box branch is required"),
+  pbox_Province: z.enum([
     "Central",
     "Chimbu (Simbu)",
     "Eastern Highlands",
@@ -77,22 +90,20 @@ const registrationSchema = z.object({
     "Hela",
     "Jiwaka",
   ]),
-  // We'll add a registrationId field
-  registrationId: z.string().optional(),
 
-  // Step 2: Business Details
-  serviceName: z.string().min(2, "Service provider name is required"),
-  businessEmail: z.string().email("Invalid email address"),
-  businessPhone: z.string().regex(/^\d+$/, "Must be a valid number"),
-  inceptionDate: z
+  // Business Details
+  practice_Name: z.string().min(2, "Service provider name is required"),
+  email: z.string().email("Invalid email address"),
+  business_Phone_Number: z.string().regex(/^\d+$/, "Must be a valid number"),
+  location_Creation_Date: z
     .date()
     .max(new Date(), "Date must be in the past")
     .nullable(),
-  practiceSection: z.string().min(1, "Practice section is required"),
-  practiceLot: z.string().min(1, "Practice lot is required"),
-  practiceStreet: z.string().min(1, "Practice street is required"),
-  practiceSuburb: z.string().min(1, "Practice suburb is required"),
-  practiceProvince: z.enum([
+  practice_Section: z.string().min(1, "Practice section is required"),
+  practice_Lot: z.string().min(1, "Practice lot is required"),
+  practice_Street: z.string().min(1, "Practice street is required"),
+  practice_Suburb: z.string().min(1, "Practice suburb is required"),
+  practice_Province: z.enum([
     "Central",
     "Chimbu (Simbu)",
     "Eastern Highlands",
@@ -116,453 +127,155 @@ const registrationSchema = z.object({
     "Hela",
     "Jiwaka",
   ]),
-  employmentStatus: z.string().min(1, "Employment status is required"),
-  registeredBusinessName: z
+  applicant_Employment_Status: z
+    .string()
+    .min(1, "Employment status is required"),
+  registered_Business_Name: z
     .string()
     .min(2, "Registered business name is required"),
-  tinNumber: z.string().min(1, "TIN number is required"),
-  ipaNumber: z.string().min(1, "IPA registration number is required"),
-  businessType: z.enum([
+  ipa_Registration_Number: z
+    .string()
+    .min(1, "IPA registration number is required"),
+  business_Type: z.enum([
     "Partnership",
     "Company",
     "National Government",
     "Provincial Government",
     "District Local Level Government",
   ]),
-  practiceType: z.enum([
-    "Hospital - public",
-    "Hospital - private",
-    "Practice - general practice",
-    "Practice - other private practice",
-    "Educational institution",
-    "Residential care facility",
-    "Other community health care service",
-    "Mobile",
-  ]),
+  premises: z.string().min(1, "Premises type is required"),
+  ptype: z.enum(["private", "public"]),
 
-  // Step 3: Bank Details
-  bankName: z.enum(["BSP", "KINA BANK", "WESTPAC", "ANZ"]),
-  branchCode: z.string().min(1, "Branch code is required"),
-  branchName: z.string().min(2, "Branch name is required"),
-  accountNumber: z
+  // Bank Details
+  bank: z.enum(["BSP", "KINA BANK", "WESTPAC", "ANZ"]),
+  branch_Number: z.string().min(1, "Branch code is required"),
+  branch_Name: z.string().min(2, "Branch name is required"),
+  account_Number: z
     .string()
     .regex(/^\d+$/, "Must contain only numbers")
     .min(6, "Account number must be at least 6 digits")
     .max(10, "Account number must not exceed 10 digits"),
-  accountName: z.string().min(2, "Account name is required"),
+  account_Name: z.string().min(2, "Account name is required"),
 
-  // Step 4: Documents
-  documents: z.object({
-    ipaCertificate: z.any().optional(),
-    tinCertificate: z.any().optional(),
-    medicalBoardCertificate: z.any().optional(),
-  }),
+  // Documents
+  ipa_Certificate: z.any().optional(),
+  tin_Certificate: z.any().optional(),
+  medical_Certificate: z.any().optional(),
 
-  // Step 5: Signature
-  signatureType: z.enum(["draw", "upload"]),
-  signature: z.object({
-    drawnSignature: z.string().optional(),
-    uploadedSignature: z.any().optional(),
-  }),
+  // Signature
+  medical_Practitioner_Signiture: z.string().optional(),
+
+  // Metadata
+  created_Date: z.date().optional(),
+  updated_Date: z.date().optional(),
+  status: z.string().optional(),
+  luhnRegistrationNumber: z.string().optional(),
+  bucket: z.string().optional(),
+  reason: z.string().optional(),
+  isPsnaProvider: z.boolean().optional(),
 });
 
-// Add this type before the steps array
-type Step = {
-  title: string;
-  icon: React.ElementType;
-  description: string;
-  subsections: {
-    title: string;
-    fields: string[];
-  }[];
+const FormLabel = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <FormLabelUI className="text-xs font-medium text-gray-700 ml-2">
+      {children}
+    </FormLabelUI>
+  );
 };
 
-const steps: Step[] = [
-  {
-    title: "Officer",
-    icon: UserCheck,
-    description: "Public Officer & Medical Practitioner Details",
-    subsections: [
-      {
-        title: "Public Officer",
-        fields: ["officerFirstName", "officerLastName", "officerPhone"],
-      },
-      {
-        title: "Medical Practitioner",
-        fields: [
-          "practitionerFirstName",
-          "practitionerLastName",
-          "termsInPractice",
-          "medicalBoardRegNumber",
-          "regExpiryDate",
-        ],
-      },
-      {
-        title: "P.O Box",
-        fields: ["poBoxName", "poBoxNumber", "poBoxBranch", "poBoxProvince"],
-      },
-    ],
-  },
-  {
-    title: "Business",
-    icon: Building2,
-    description: "Service Provider Information",
-    subsections: [
-      {
-        title: "Basic Information",
-        fields: [
-          "serviceName",
-          "businessEmail",
-          "businessPhone",
-          "inceptionDate",
-        ],
-      },
-      {
-        title: "Practice Location",
-        fields: [
-          "practiceSection",
-          "practiceLot",
-          "practiceStreet",
-          "practiceSuburb",
-          "practiceProvince",
-          "practiceType",
-          "employmentStatus",
-          "registeredBusinessName",
-          "tinNumber",
-          "ipaNumber",
-          "businessType",
-        ],
-      },
-    ],
-  },
-  {
-    title: "Bank",
-    icon: Landmark,
-    description: "Banking Information",
-    subsections: [
-      {
-        title: "Bank Details",
-        fields: [
-          "bankName",
-          "branchCode",
-          "branchName",
-          "accountNumber",
-          "accountName",
-        ],
-      },
-    ],
-  },
-
-  {
-    title: "Documents",
-    icon: FileText,
-    description: "Required Certificates",
-    subsections: [
-      {
-        title: "IPA Certificate",
-        fields: ["ipaCertificate"],
-      },
-      {
-        title: "TIN Certificate",
-        fields: ["tinCertificate"],
-      },
-      {
-        title: "Medical Board Certificate",
-        fields: ["medicalBoardCertificate"],
-      },
-    ],
-  },
-
-  {
-    title: "Signature",
-    icon: FileSignature,
-    description: "Sign Registration Form",
-    subsections: [
-      {
-        title: "Signature",
-        fields: ["signatureType", "signature"],
-      },
-    ],
-  },
-  {
-    title: "Verify",
-    icon: BadgeCheck,
-    description: "Verify Registration",
-    subsections: [
-      {
-        title: "Verify Details",
-        fields: ["verifyDetails"],
-      },
-    ],
-  },
-];
-
-// Update the helper function to include more detailed validation
-const isSubsectionValid = (
-  form: any,
-  fields: string[],
-  formState: any,
-  currentStep: number,
-  stepIndex: number
-): { isValid: boolean; invalidCount: number; isStarted: boolean } => {
-  let invalidCount = 0;
-  let filledFieldCount = 0;
-
-  for (const field of fields) {
-    const value = form.getValues(field);
-    const error = formState.errors[field];
-
-    // Check if field has any value
-    if (value) {
-      filledFieldCount++;
-    }
-
-    // Check if field is empty or has validation errors
-    if (!value || error) {
-      invalidCount++;
-    }
-
-    // Special handling for nested fields
-    if (field.includes(".")) {
-      const [parent, child] = field.split(".");
-      const parentValue = form.getValues(parent);
-      if (parentValue?.[child]) {
-        filledFieldCount++;
-      }
-      if (!parentValue?.[child]) {
-        invalidCount++;
-      }
-    }
-  }
-
-  return {
-    isValid: invalidCount === 0,
-    invalidCount,
-    // Section is considered started if at least one field has been filled
-    isStarted: filledFieldCount > 0,
-  };
+const FormItem = ({ children }: { children: React.ReactNode }) => {
+  return <FormItemUI className="space-y-1">{children}</FormItemUI>;
 };
 
-// Update the calculateTotalProgress function signature
-const calculateTotalProgress = (
-  form: any,
-  formState: any,
-  steps: Step[]
-): number => {
-  let totalFields = 0;
-  let completedFields = 0;
-
-  steps.forEach((step) => {
-    step.subsections.forEach((sub) => {
-      const { invalidCount, isValid } = isSubsectionValid(
-        form,
-        sub.fields,
-        formState,
-        0,
-        0
-      );
-      totalFields += sub.fields.length;
-      if (isValid) {
-        completedFields += sub.fields.length;
-      } else {
-        completedFields += sub.fields.length - invalidCount;
-      }
-    });
-  });
-
-  return Math.round((completedFields / totalFields) * 100);
-};
-
-export function PrivateRegistrationForm() {
-  const [step, setStep] = useState(1);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const form = useForm<z.infer<typeof registrationSchema>>({
-    resolver: zodResolver(registrationSchema),
-    defaultValues: {
-      // Public Officer Details
-      officerFirstName: "",
-      officerLastName: "",
-      poBoxName: "",
-      poBoxNumber: "",
-      poBoxBranch: "",
-      poBoxProvince: undefined,
-      registrationId: undefined,
-
-      // Step 2: Business Details
-      serviceName: "",
-      businessEmail: "",
-      businessPhone: "",
-      inceptionDate: null,
-      practiceSection: "",
-      practiceLot: "",
-      practiceStreet: "",
-      practiceSuburb: "",
-      practiceProvince: undefined,
-      employmentStatus: "",
-      registeredBusinessName: "",
-      tinNumber: "",
-      ipaNumber: "",
-      businessType: undefined,
-      bankName: undefined,
-      branchCode: "",
-      branchName: "",
-      accountNumber: "",
-      accountName: "",
-      practiceType: undefined,
-      documents: {
-        ipaCertificate: null,
-        tinCertificate: null,
-        medicalBoardCertificate: null,
-      },
-      signatureType: undefined,
-      signature: {
-        drawnSignature: "",
-        uploadedSignature: null,
-      },
-    },
-  });
-
-  const signaturePadRef = useRef<SignaturePad | null>(null);
-
-  const onSubmit = async (data: z.infer<typeof registrationSchema>) => {
-    try {
-      // Generate a registration ID (you might want to get this from your backend)
-      const registrationId = `REG-${Math.random()
-        .toString(36)
-        .substr(2, 6)
-        .toUpperCase()}`;
-
-      // Update the form data with the registration ID
-      form.setValue("registrationId", registrationId);
-
-      // Log the complete form data
-      console.log({ ...data, registrationId });
-
-      // Set submitted state to true
-      setIsSubmitted(true);
-
-      // Show success message with registration ID using Sonner
-      toast.success("Registration submitted successfully!", {
-        description: `Your Registration Number: ${registrationId}`,
-        duration: 5000,
-      });
-
-      // You would typically make an API call here to save the data
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to submit registration", {
-        description: "Please try again later",
-      });
-    }
-  };
-
-  const nextStep = () => {
-    setStep((prev) => Math.min(prev + 1, 6));
-  };
-
-  const prevStep = () => {
-    setStep((prev) => Math.max(prev - 1, 1));
-  };
-
-  const FormLabel = ({ children }: { children: React.ReactNode }) => {
-    return (
-      <FormLabelUI className="text-xs font-medium text-gray-700 ml-2">
-        {children}
-      </FormLabelUI>
-    );
-  };
-
-  const FormItem = ({ children }: { children: React.ReactNode }) => {
-    return <FormItemUI className="space-y-1">{children}</FormItemUI>;
-  };
-
-  const renderStep = () => {
-    switch (step) {
-      case 1:
-        return (
-          <div className="grid gap-4">
-            <h2 className="text-lg font-semibold">Public Officer Details</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="officerFirstName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>First Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="John" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="officerLastName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Last Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Doe" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
+const renderStep = (
+  step: number,
+  form: UseFormReturn<z.infer<typeof registrationSchema>>
+) => {
+  switch (step) {
+    case 1:
+      return (
+        <div className="grid gap-4">
+          <h2 className="text-lg font-semibold">Public Officer Details</h2>
+          <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}
-              name="officerPhone"
+              name="public_officer_firstname"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Mobile Phone Number</FormLabel>
+                  <FormLabel>First Name</FormLabel>
                   <FormControl>
-                    <Input {...field} type="tel" placeholder="70123456" />
+                    <Input {...field} placeholder="John" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="public_officer_lastname"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Last Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Doe" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
-            <h2 className="text-lg font-semibold mt-6">
-              Medical Practitioner Details
-            </h2>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="practitionerFirstName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>First Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Jane" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="practitionerLastName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Last Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Smith" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+          <FormField
+            control={form.control}
+            name="mobile_Phone_Number"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mobile Phone Number</FormLabel>
+                <FormControl>
+                  <Input {...field} type="tel" placeholder="70123456" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <div className="grid grid-cols-6 gap-4">
-              <FormField
-                control={form.control}
-                name="termsInPractice"
-                render={({ field }) => (
-                  <FormItem className="col-span-1">
+          <h2 className="font-semibold mt-6">Medical Practitioner Details</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="medical_Practitioner_firstname"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>First Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Jane" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="medical_Practitioner_lastname"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Last Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Smith" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid grid-cols-6 gap-4">
+            <FormField
+              control={form.control}
+              name="applicantsTermsInPractice"
+              render={({ field }) => (
+                <div className="col-span-2">
+                  <FormItem>
                     <FormLabel>Terms in Practice</FormLabel>
                     <FormControl>
                       <Input
@@ -577,28 +290,32 @@ export function PrivateRegistrationForm() {
                     </FormControl>
                     <FormMessage />
                   </FormItem>
-                )}
-              />
+                </div>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="medicalBoardRegNumber"
-                render={({ field }) => (
-                  <FormItem className="col-span-2">
+            <FormField
+              control={form.control}
+              name="mb_Registration_Number"
+              render={({ field }) => (
+                <div className="col-span-2">
+                  <FormItem>
                     <FormLabel>Medical Board Registration Number</FormLabel>
                     <FormControl>
                       <Input {...field} placeholder="MB12345" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
-                )}
-              />
+                </div>
+              )}
+            />
 
-              <FormField
-                control={form.control}
-                name="regExpiryDate"
-                render={({ field }) => (
-                  <FormItem className="col-span-3">
+            <FormField
+              control={form.control}
+              name="rn_Expiry"
+              render={({ field }) => (
+                <div className="col-span-2">
+                  <FormItem>
                     <FormLabel>Registration Expiry Date</FormLabel>
                     <FormControl>
                       <Input
@@ -620,247 +337,57 @@ export function PrivateRegistrationForm() {
                     </FormControl>
                     <FormMessage />
                   </FormItem>
-                )}
-              />
-            </div>
-
-            <h2 className="text-lg font-semibold mt-6">P.O Box Details</h2>
-            <FormField
-              control={form.control}
-              name="poBoxName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>P.O Box Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Medical Center" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+                </div>
               )}
             />
-
-            <div className="grid grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="poBoxNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>P.O Box Number</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="123" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="poBoxBranch"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>P.O Box Branch</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Main Branch" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="poBoxProvince"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Province</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a province" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[
-                          "Central",
-                          "Chimbu (Simbu)",
-                          "Eastern Highlands",
-                          "East New Britain",
-                          "East Sepik",
-                          "Enga",
-                          "Gulf",
-                          "Madang",
-                          "Manus",
-                          "Milne Bay",
-                          "Morobe",
-                          "New Ireland",
-                          "Oro (Northern)",
-                          "Bougainville",
-                          "Southern Highlands",
-                          "Western (Fly)",
-                          "Western Highlands",
-                          "West New Britain",
-                          "Sandaun (West Sepik)",
-                          "National Capital District",
-                          "Hela",
-                          "Jiwaka",
-                        ].map((province) => (
-                          <SelectItem key={province} value={province}>
-                            {province}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
           </div>
-        );
 
-      case 2:
-        return (
-          <div className="grid gap-4">
-            <h2 className="text-lg font-semibold">Business Details</h2>
+          <h2 className="text-lg font-semibold mt-6">P.O Box Details</h2>
+          <FormField
+            control={form.control}
+            name="pbox_Name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>P.O Box Name</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="Medical Center" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="grid grid-cols-3 gap-4">
             <FormField
               control={form.control}
-              name="serviceName"
+              name="pbox_Number"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Service Provider/Medical Center Name</FormLabel>
+                  <FormLabel>P.O Box Number</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Healthcare Center" />
+                    <Input {...field} placeholder="123" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="pbox_Branch"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>P.O Box Branch</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Main Branch" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="businessEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Business Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="email"
-                        placeholder="contact@example.com"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="businessPhone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Business Phone Number</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="tel" placeholder="70123456" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
             <FormField
               control={form.control}
-              name="inceptionDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Business Inception Date</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      type="date"
-                      max={new Date().toISOString().split("T")[0]}
-                      value={
-                        field.value instanceof Date
-                          ? field.value.toISOString().split("T")[0]
-                          : ""
-                      }
-                      onChange={(e) => {
-                        const date = e.target.value
-                          ? new Date(e.target.value)
-                          : null;
-                        field.onChange(date);
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <h3 className="text-md font-semibold mt-4">Practice Location</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="practiceSection"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Section</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Section" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="practiceLot"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Lot</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Lot" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="practiceStreet"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Street</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Street" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="practiceSuburb"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Suburb</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Suburb" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="practiceProvince"
+              name="pbox_Province"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Province</FormLabel>
@@ -906,585 +433,472 @@ export function PrivateRegistrationForm() {
                 </FormItem>
               )}
             />
-
-            <FormField
-              control={form.control}
-              name="practiceType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Type of Practice</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select practice type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[
-                        "Hospital - public",
-                        "Hospital - private",
-                        "Practice - general practice",
-                        "Practice - other private practice",
-                        "Educational institution",
-                        "Residential care facility",
-                        "Other community health care service",
-                        "Mobile",
-                      ].map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="employmentStatus"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Employment Status for this Location</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Full-time" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="registeredBusinessName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Registered Business Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Business Legal Name" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="tinNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>TIN Number</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="123456789" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="ipaNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>IPA Registration Number</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="IPA12345" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="businessType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Business Type</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select business type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[
-                        "Partnership",
-                        "Company",
-                        "National Government",
-                        "Provincial Government",
-                        "District Local Level Government",
-                      ].map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
           </div>
-        );
+        </div>
+      );
+    case 2:
+      return <div>Step 2</div>;
+    default:
+      return <div>Step 1</div>;
+  }
+};
 
-      case 3:
-        return (
-          <div className="grid gap-4">
-            <h2 className="text-lg font-semibold">Bank Details</h2>
-            <FormField
-              control={form.control}
-              name="bankName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Bank Name</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a bank" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["BSP", "KINA BANK", "WESTPAC", "ANZ"].map((bank) => (
-                        <SelectItem key={bank} value={bank}>
-                          {bank}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+const createDebouncedSave = (
+  saveFn: (values: z.infer<typeof registrationSchema>) => void
+) => debounce(saveFn, 2000);
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="branchCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Branch Code</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="001" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="branchName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Branch Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Port Moresby" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+type Province =
+  | "Central"
+  | "Chimbu (Simbu)"
+  | "Eastern Highlands"
+  | "East New Britain"
+  | "East Sepik"
+  | "Enga"
+  | "Gulf"
+  | "Madang"
+  | "Manus"
+  | "Milne Bay"
+  | "Morobe"
+  | "New Ireland"
+  | "Oro (Northern)"
+  | "Bougainville"
+  | "Southern Highlands"
+  | "Western (Fly)"
+  | "Western Highlands"
+  | "West New Britain"
+  | "Sandaun (West Sepik)"
+  | "National Capital District"
+  | "Hela"
+  | "Jiwaka";
 
-            <FormField
-              control={form.control}
-              name="accountNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Account Number</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      type="text"
-                      placeholder="1234567890"
-                      maxLength={10}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+type BusinessType =
+  | "Partnership"
+  | "Company"
+  | "National Government"
+  | "Provincial Government"
+  | "District Local Level Government";
 
-            <FormField
-              control={form.control}
-              name="accountName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Account Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="HEALTHCARE CENTER LTD" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        );
+type BankType = "BSP" | "KINA BANK" | "WESTPAC" | "ANZ";
 
-      case 4:
-        return (
-          <div className="grid gap-4">
-            <h2 className="text-lg font-semibold">Required Documents</h2>
+type PracticeType = "private" | "public";
 
-            <FormField
-              control={form.control}
-              name="documents.ipaCertificate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>IPA Certificate</FormLabel>
-                  <FormControl>
-                    <FileUpload
-                      value={field.value}
-                      onChange={field.onChange}
-                      accept=".pdf,.jpg,.jpeg,.png"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+type Draft = {
+  id?: string;
+  userId?: string;
+  public_officer_firstname?: string;
+  public_officer_lastname?: string;
+  mobile_Phone_Number?: string;
+  medical_Practitioner_firstname?: string;
+  medical_Practitioner_lastname?: string;
+  applicantsTermsInPractice?: string;
+  mb_Registration_Number?: string;
+  rn_Expiry?: string;
+  pbox_Name?: string;
+  pbox_Number?: string;
+  pbox_Branch?: string;
+  pbox_Province?: Province;
+  practice_Name?: string;
+  email?: string;
+  business_Phone_Number?: string;
+  location_Creation_Date?: string;
+  practice_Section?: string;
+  practice_Lot?: string;
+  practice_Street?: string;
+  practice_Suburb?: string;
+  practice_Province?: Province;
+  applicant_Employment_Status?: string;
+  registered_Business_Name?: string;
+  ipa_Registration_Number?: string;
+  business_Type?: BusinessType;
+  premises?: string;
+  bank?: BankType;
+  branch_Number?: string;
+  branch_Name?: string;
+  account_Number?: string;
+  account_Name?: string;
+  medical_Practitioner_Signiture?: string;
+  created_Date?: string;
+  updated_Date?: string;
+  status?: string;
+  ipa_Certificate?: string;
+  tin_Certificate?: string;
+  medical_Certificate?: string;
+  luhnRegistrationNumber?: string;
+  ptype?: PracticeType;
+  bucket?: string;
+  reason?: string;
+  isPsnaProvider?: boolean;
+};
 
-            <FormField
-              control={form.control}
-              name="documents.tinCertificate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>TIN Certificate</FormLabel>
-                  <FormControl>
-                    <FileUpload
-                      value={field.value}
-                      onChange={field.onChange}
-                      accept=".pdf,.jpg,.jpeg,.png"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+interface PrivateRegistrationFormProps {
+  initialDraft?: Draft;
+}
 
-            <FormField
-              control={form.control}
-              name="documents.medicalBoardCertificate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Medical Board Registration Certificate</FormLabel>
-                  <FormControl>
-                    <FileUpload
-                      value={field.value}
-                      onChange={field.onChange}
-                      accept=".pdf,.jpg,.jpeg,.png"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-        );
+function PrivateRegistrationForm({
+  initialDraft,
+}: PrivateRegistrationFormProps) {
+  const [addOrUpdateDraft] = useMutation(ADD_OR_UPDATE_DRAFT);
+  const user = useUserProfileStore((state) => state.user);
+  const [step, setStep] = useState(1);
+  const [previousFormValues, setPreviousFormValues] = useState<z.infer<
+    typeof registrationSchema
+  > | null>(null);
 
-      case 5:
-        return (
-          <div className="grid gap-4">
-            <h2 className="text-lg font-semibold">Signature</h2>
+  const form = useForm<z.infer<typeof registrationSchema>>({
+    resolver: zodResolver(registrationSchema),
+    defaultValues: {
+      // Public Officer Details
+      userId: initialDraft?.userId,
+      public_officer_firstname: initialDraft?.public_officer_firstname || "",
+      public_officer_lastname: initialDraft?.public_officer_lastname || "",
+      mobile_Phone_Number: initialDraft?.mobile_Phone_Number || "",
+      medical_Practitioner_firstname:
+        initialDraft?.medical_Practitioner_firstname || "",
+      medical_Practitioner_lastname:
+        initialDraft?.medical_Practitioner_lastname || "",
+      applicantsTermsInPractice: initialDraft?.applicantsTermsInPractice
+        ? parseInt(initialDraft.applicantsTermsInPractice)
+        : 0,
+      mb_Registration_Number: initialDraft?.mb_Registration_Number || "",
+      rn_Expiry: initialDraft?.rn_Expiry
+        ? new Date(initialDraft.rn_Expiry)
+        : null,
+      pbox_Name: initialDraft?.pbox_Name || "",
+      pbox_Number: initialDraft?.pbox_Number || "",
+      pbox_Branch: initialDraft?.pbox_Branch || "",
+      pbox_Province: initialDraft?.pbox_Province,
 
-            <FormField
-              control={form.control}
-              name="signatureType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Signature Type</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select signature type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draw">Sign on Screen</SelectItem>
-                      <SelectItem value="upload">Upload File</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+      // Business Details
+      practice_Name: initialDraft?.practice_Name || "",
+      email: initialDraft?.email || "",
+      business_Phone_Number: initialDraft?.business_Phone_Number || "",
+      location_Creation_Date: initialDraft?.location_Creation_Date
+        ? new Date(initialDraft.location_Creation_Date)
+        : null,
+      practice_Section: initialDraft?.practice_Section || "",
+      practice_Lot: initialDraft?.practice_Lot || "",
+      practice_Street: initialDraft?.practice_Street || "",
+      practice_Suburb: initialDraft?.practice_Suburb || "",
+      practice_Province: initialDraft?.practice_Province,
+      applicant_Employment_Status:
+        initialDraft?.applicant_Employment_Status || "",
+      registered_Business_Name: initialDraft?.registered_Business_Name || "",
+      ipa_Registration_Number: initialDraft?.ipa_Registration_Number || "",
+      business_Type: initialDraft?.business_Type,
+      premises: initialDraft?.premises || "",
+      ptype: initialDraft?.ptype || "private",
 
-            {form.watch("signatureType") === "draw" ? (
-              <FormField
-                control={form.control}
-                name="signature.drawnSignature"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Draw Signature</FormLabel>
-                    <FormControl>
-                      <div className="border rounded-md p-4">
-                        <SignaturePad
-                          ref={(ref) => {
-                            if (ref) {
-                              signaturePadRef.current = ref;
-                            }
-                          }}
-                          canvasProps={{
-                            className:
-                              "signature-canvas w-full h-[200px] border",
-                          }}
-                          onEnd={() => {
-                            if (signaturePadRef.current) {
-                              const dataUrl =
-                                signaturePadRef.current.toDataURL();
-                              field.onChange(dataUrl);
-                            }
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="mt-2"
-                          onClick={() => {
-                            if (signaturePadRef.current) {
-                              signaturePadRef.current.clear();
-                              field.onChange("");
-                            }
-                          }}
-                        >
-                          Clear
-                        </Button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ) : (
-              <FormField
-                control={form.control}
-                name="signature.uploadedSignature"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Upload Signature</FormLabel>
-                    <FormControl>
-                      <FileUpload
-                        value={field.value}
-                        onChange={field.onChange}
-                        accept=".jpg,.jpeg,.png"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-          </div>
-        );
+      // Bank Details
+      bank: initialDraft?.bank,
+      branch_Number: initialDraft?.branch_Number || "",
+      branch_Name: initialDraft?.branch_Name || "",
+      account_Number: initialDraft?.account_Number || "",
+      account_Name: initialDraft?.account_Name || "",
 
-      case 6:
-        return (
-          <div className="grid gap-6">
-            <h2 className="text-lg font-semibold">Verify Your Information</h2>
-            {isSubmitted && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                <div className="flex items-center gap-2">
-                  <Check className="h-5 w-5 text-green-500" />
-                  <h3 className="font-medium text-green-900">
-                    Registration Successful
-                  </h3>
-                </div>
-                <p className="mt-2 text-green-700">
-                  Registration Number: {form.getValues("registrationId")}
-                </p>
-              </div>
-            )}
-            {isSubmitted && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                <div className="flex items-center gap-2">
-                  <Check className="h-5 w-5 text-green-500" />
-                  <h3 className="font-medium text-green-900">
-                    Registration Successful
-                  </h3>
-                </div>
-                <p className="mt-2 text-green-700">
-                  Registration Number: {form.getValues("registrationId")}
-                </p>
-              </div>
-            )}
+      // Documents
+      ipa_Certificate: initialDraft?.ipa_Certificate,
+      tin_Certificate: initialDraft?.tin_Certificate,
+      medical_Certificate: initialDraft?.medical_Certificate,
 
-            <section className="grid gap-4">
-              <h3 className="font-medium">Public Officer Details</h3>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Name:</span>
-                  <p>{`${form.getValues("officerFirstName")} ${form.getValues(
-                    "officerLastName"
-                  )}`}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Phone:</span>
-                  <p>{form.getValues("officerPhone")}</p>
-                </div>
-              </div>
-            </section>
+      // Signature
+      medical_Practitioner_Signiture:
+        initialDraft?.medical_Practitioner_Signiture || "",
 
-            <section className="grid gap-4">
-              <h3 className="font-medium">Medical Practitioner Details</h3>
-              <div className="grid grid-cols-3 gap-x-4 gap-y-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Name:</span>
-                  <p>{`${form.getValues(
-                    "practitionerFirstName"
-                  )} ${form.getValues("practitionerLastName")}`}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">
-                    Terms in Practice:
-                  </span>
-                  <p>{form.getValues("termsInPractice")} years</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">
-                    Medical Board Registration:
-                  </span>
-                  <p>{form.getValues("medicalBoardRegNumber")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">
-                    Registration Expiry:
-                  </span>
-                  <p>{form.getValues("regExpiryDate")?.toLocaleDateString()}</p>
-                </div>
-              </div>
-            </section>
+      // Metadata
+      created_Date: initialDraft?.created_Date
+        ? new Date(initialDraft.created_Date)
+        : undefined,
+      updated_Date: initialDraft?.updated_Date
+        ? new Date(initialDraft.updated_Date)
+        : undefined,
+      status: initialDraft?.status,
+      luhnRegistrationNumber: initialDraft?.luhnRegistrationNumber,
+      bucket: initialDraft?.bucket,
+      reason: initialDraft?.reason,
+      isPsnaProvider: initialDraft?.isPsnaProvider,
+    },
+  });
 
-            <section className="grid gap-4">
-              <h3 className="font-medium">P.O Box Details</h3>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Name:</span>
-                  <p>{form.getValues("poBoxName")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Number:</span>
-                  <p>{form.getValues("poBoxNumber")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Branch:</span>
-                  <p>{form.getValues("poBoxBranch")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Province:</span>
-                  <p>{form.getValues("poBoxProvince")}</p>
-                </div>
-              </div>
-            </section>
+  const saveDraft = useCallback(
+    async (values: z.infer<typeof registrationSchema>) => {
+      if (!user?.userId) return;
+      try {
+        await addOrUpdateDraft({
+          variables: {
+            draft: {
+              ...values,
+              applicantsTermsInPractice:
+                values.applicantsTermsInPractice.toString(),
+              userId: user.userId,
+              created_Date: new Date().toISOString(),
+              updated_Date: new Date().toISOString(),
+              isPsnaProvider: false,
+              status: "DRAFT",
+            },
+          },
+        });
+        console.log("Draft saved successfully");
+        toast.success("Draft saved successfully");
+        setPreviousFormValues(values);
+      } catch (error) {
+        console.error("Error saving draft:", error);
+        toast.error("Failed to save draft");
+      }
+    },
+    [addOrUpdateDraft, user?.userId]
+  );
 
-            <section className="grid gap-4">
-              <h3 className="font-medium">Business Details</h3>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground">
-                    Service Provider Name:
-                  </span>
-                  <p>{form.getValues("serviceName")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Business Type:</span>
-                  <p>{form.getValues("businessType")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Practice Type:</span>
-                  <p>{form.getValues("practiceType")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Email:</span>
-                  <p>{form.getValues("businessEmail")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Phone:</span>
-                  <p>{form.getValues("businessPhone")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Inception Date:</span>
-                  <p>{form.getValues("inceptionDate")?.toLocaleDateString()}</p>
-                </div>
-              </div>
-            </section>
+  const debouncedSaveDraft = useMemo(
+    () => createDebouncedSave(saveDraft),
+    [saveDraft]
+  );
 
-            <section className="grid gap-4">
-              <h3 className="font-medium">Bank Details</h3>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Bank Name:</span>
-                  <p>{form.getValues("bankName")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Branch:</span>
-                  <p>{form.getValues("branchName")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Account Number:</span>
-                  <p>{form.getValues("accountNumber")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Account Name:</span>
-                  <p>{form.getValues("accountName")}</p>
-                </div>
-              </div>
-            </section>
+  useEffect(() => {
+    const subscription = form.watch((values) => {
+      if (!previousFormValues) {
+        setPreviousFormValues(values as z.infer<typeof registrationSchema>);
+        return;
+      }
 
-            <section className="grid gap-4">
-              <h3 className="font-medium">Documents & Signature</h3>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground">
-                    IPA Certificate:
-                  </span>
-                  <p>
-                    {form.getValues("documents.ipaCertificate")
-                      ? "Uploaded"
-                      : "Not uploaded"}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">
-                    TIN Certificate:
-                  </span>
-                  <p>
-                    {form.getValues("documents.tinCertificate")
-                      ? "Uploaded"
-                      : "Not uploaded"}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">
-                    Medical Board Certificate:
-                  </span>
-                  <p>
-                    {form.getValues("documents.medicalBoardCertificate")
-                      ? "Uploaded"
-                      : "Not uploaded"}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Signature Type:</span>
-                  <p>{form.getValues("signatureType")}</p>
-                </div>
-              </div>
-            </section>
-          </div>
-        );
+      // Compare current values with previous values
+      const hasChanges = Object.keys(values).some((key) => {
+        const currentValue = values[key as keyof typeof values];
+        const previousValue =
+          previousFormValues[key as keyof typeof previousFormValues];
+        return JSON.stringify(currentValue) !== JSON.stringify(previousValue);
+      });
+
+      if (hasChanges) {
+        debouncedSaveDraft(values as z.infer<typeof registrationSchema>);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      debouncedSaveDraft.cancel();
+    };
+  }, [form, previousFormValues, debouncedSaveDraft]);
+
+  const isSubsectionValid = (
+    form: UseFormReturn<z.infer<typeof registrationSchema>>,
+    fields: string[],
+    formState: UseFormReturn<z.infer<typeof registrationSchema>>
+  ): { isValid: boolean; invalidCount: number; isStarted: boolean } => {
+    let invalidCount = 0;
+    let filledFieldCount = 0;
+
+    for (const field of fields) {
+      const value = form.getValues(
+        field as keyof z.infer<typeof registrationSchema>
+      );
+      const error =
+        formState.formState.errors[
+          field as keyof z.infer<typeof registrationSchema>
+        ];
+
+      // Check if field has any value
+      if (value) {
+        filledFieldCount++;
+      }
+
+      // Check if field is empty or has validation errors
+      if (!value || error) {
+        invalidCount++;
+      }
+
+      // Special handling for nested fields
+      if (field.includes(".")) {
+        const [parent, child] = field.split(".");
+        const parentValue = form.getValues(
+          parent as keyof z.infer<typeof registrationSchema>
+        ) as Record<string, unknown>;
+        if (parentValue?.[child]) {
+          filledFieldCount++;
+        }
+        if (!parentValue?.[child]) {
+          invalidCount++;
+        }
+      }
     }
+
+    return {
+      isValid: invalidCount === 0,
+      invalidCount,
+      isStarted: filledFieldCount > 0,
+    };
+  };
+
+  // Update the calculateTotalProgress function signature
+  const calculateTotalProgress = (
+    form: UseFormReturn<z.infer<typeof registrationSchema>>,
+    steps: Step[]
+  ): number => {
+    let totalFields = 0;
+    let completedFields = 0;
+
+    steps.forEach((step) => {
+      step.subsections.forEach((sub) => {
+        const { invalidCount, isValid } = isSubsectionValid(
+          form,
+          sub.fields,
+          form
+        );
+        totalFields += sub.fields.length;
+        if (isValid) {
+          completedFields += sub.fields.length;
+        } else {
+          completedFields += sub.fields.length - invalidCount;
+        }
+      });
+    });
+
+    return Math.round((completedFields / totalFields) * 100);
+  };
+
+  type Step = {
+    title: string;
+    icon: React.ElementType;
+    description: string;
+    subsections: {
+      title: string;
+      fields: string[];
+    }[];
+  };
+
+  const steps: Step[] = [
+    {
+      title: "Officer",
+      icon: UserCheck,
+      description: "Public Officer & Medical Practitioner Details",
+      subsections: [
+        {
+          title: "Public Officer",
+          fields: [
+            "public_officer_firstname",
+            "public_officer_lastname",
+            "mobile_Phone_Number",
+          ],
+        },
+        {
+          title: "Medical Practitioner",
+          fields: [
+            "medical_Practitioner_firstname",
+            "medical_Practitioner_lastname",
+            "applicantsTermsInPractice",
+            "mb_Registration_Number",
+            "rn_Expiry",
+          ],
+        },
+        {
+          title: "P.O Box",
+          fields: ["pbox_Name", "pbox_Number", "pbox_Branch", "pbox_Province"],
+        },
+      ],
+    },
+    {
+      title: "Business",
+      icon: Building2,
+      description: "Service Provider Information",
+      subsections: [
+        {
+          title: "Basic Information",
+          fields: [
+            "practice_Name",
+            "email",
+            "business_Phone_Number",
+            "location_Creation_Date",
+          ],
+        },
+        {
+          title: "Practice Location",
+          fields: [
+            "practice_Section",
+            "practice_Lot",
+            "practice_Street",
+            "practice_Suburb",
+            "practice_Province",
+            "ptype",
+            "applicant_Employment_Status",
+            "registered_Business_Name",
+            "ipa_Registration_Number",
+            "business_Type",
+          ],
+        },
+      ],
+    },
+    {
+      title: "Bank",
+      icon: Landmark,
+      description: "Banking Information",
+      subsections: [
+        {
+          title: "Bank Details",
+          fields: [
+            "bank",
+            "branch_Number",
+            "branch_Name",
+            "account_Number",
+            "account_Name",
+          ],
+        },
+      ],
+    },
+
+    {
+      title: "Documents",
+      icon: FileText,
+      description: "Required Certificates",
+      subsections: [
+        {
+          title: "IPA Certificate",
+          fields: ["ipa_Certificate"],
+        },
+        {
+          title: "TIN Certificate",
+          fields: ["tin_Certificate"],
+        },
+        {
+          title: "Medical Board Certificate",
+          fields: ["medical_Certificate"],
+        },
+      ],
+    },
+
+    {
+      title: "Signature",
+      icon: FileSignature,
+      description: "Sign Registration Form",
+      subsections: [
+        {
+          title: "Signature",
+          fields: ["medical_Practitioner_Signiture"],
+        },
+      ],
+    },
+    {
+      title: "Verify",
+      icon: BadgeCheck,
+      description: "Verify Registration",
+      subsections: [
+        {
+          title: "Verify Details",
+          fields: ["verifyDetails"],
+        },
+      ],
+    },
+  ];
+
+  const nextStep = () => {
+    setStep(step + 1);
+  };
+
+  const prevStep = () => {
+    setStep(step - 1);
   };
 
   return (
-    <div className="flex w-full gap-4 h-[calc(100vh-theme(spacing.24))]">
-      <div className="w-1/4 min-w-[250px]">
+    <div className="flex w-full gap-4 h-[calc(98vh-theme(spacing.24))]">
+      <Card className="w-1/4 min-w-[250px] h-full">
         <div className="sticky top-4">
           <div className="rounded-lg border bg-muted text-card-foreground shadow animate-slide-left-fade-in">
             <div className="p-4 flex flex-col gap-4">
@@ -1504,12 +918,10 @@ export function PrivateRegistrationForm() {
               <div className="space-y-2">
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>Progress</span>
-                  <span>
-                    {calculateTotalProgress(form, form.formState, steps)}%
-                  </span>
+                  <span>{calculateTotalProgress(form, steps)}%</span>
                 </div>
                 <Progress
-                  value={calculateTotalProgress(form, form.formState, steps)}
+                  value={calculateTotalProgress(form, steps)}
                   className="h-2 transition-all duration-300"
                 />
               </div>
@@ -1541,13 +953,7 @@ export function PrivateRegistrationForm() {
                       <div className="flex flex-col items-start w-full space-y-1">
                         {s.subsections.map((sub) => {
                           const { isValid, invalidCount, isStarted } =
-                            isSubsectionValid(
-                              form,
-                              sub.fields,
-                              form.formState,
-                              step,
-                              i + 1
-                            );
+                            isSubsectionValid(form, sub.fields, form);
 
                           const showWarning =
                             (step > i + 1 || (step < i + 1 && isStarted)) &&
@@ -1592,13 +998,14 @@ export function PrivateRegistrationForm() {
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="flex flex-col w-full">
-        <Card className="flex flex-col animate-slide-right-fade-in">
-          <CardContent className="p-6 flex flex-col h-full">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold">{steps[step - 1].title}</h1>
+      </Card>
+      <Card className="w-3/4 h-full">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold flex items-center justify-between">
+            <div className="flex items-center justify-between w-full">
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                {steps[step - 1].title}
+              </h1>
               <div className="flex justify-between items-center gap-2">
                 {step > 1 && (
                   <Button
@@ -1618,29 +1025,28 @@ export function PrivateRegistrationForm() {
                       {steps[step].title}
                     </Button>
                   ) : (
-                    <Button type="submit" onClick={form.handleSubmit(onSubmit)}>
+                    <Button
+                      type="submit"
+                      // onClick={form.handleSubmit(onSubmit)}
+                    >
                       Submit
                     </Button>
                   )}
                 </div>
               </div>
             </div>
-            <Separator className="my-6" />
-
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                key={step}
-                className="flex flex-col animate-slide-left-fade-in"
-              >
-                <ScrollArea className="h-full max-h-[calc(100vh-260px)] w-full">
-                  {renderStep()}
-                </ScrollArea>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="py-0 overflow-y-auto">
+          <Form {...form}>
+            <ScrollArea className="h-full max-h-[calc(100vh)] w-full">
+              {renderStep(step, form)}
+            </ScrollArea>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
+
+export default PrivateRegistrationForm;

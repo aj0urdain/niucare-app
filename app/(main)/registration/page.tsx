@@ -1,24 +1,45 @@
-import Link from "next/link";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
-import {
-  Hospital,
-  Building2,
-  FileText,
-  Landmark,
-  FileSignature,
-  UserCheck,
-  Badge,
-  Clock,
-} from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+"use client";
+
+import { Building2, Hospital } from "lucide-react";
+import { useQuery } from "@apollo/client";
+import { DRAFTS_BY_USER_ID } from "@/lib/graphql/queries";
+import { useUserProfileStore } from "@/stores/user-profile-store";
+import { Skeleton } from "@/components/ui/skeleton";
+import { RegistrationCard } from "@/components/organisms/registration-card";
 
 export default function RegistrationPage() {
+  const { user } = useUserProfileStore();
+  const { data: draftsData, loading } = useQuery(DRAFTS_BY_USER_ID, {
+    variables: {
+      userId: user?.userId || "",
+    },
+    skip: !user?.userId,
+  });
+
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-6 pt-6">
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-5 w-72" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Private Card Skeleton */}
+          <div className="flex flex-col w-full">
+            <Skeleton className="w-full h-[400px] rounded-xl" />
+          </div>
+          {/* Public Card Skeleton */}
+          <div className="flex flex-col w-full">
+            <Skeleton className="w-full h-[400px] rounded-xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Get the most recent draft if available
+  const latestDraft = draftsData?.draftByUserId?.[0];
+
   return (
     <div className="flex flex-col gap-6 pt-6">
       <div className="flex flex-col gap-2">
@@ -29,163 +50,25 @@ export default function RegistrationPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Link href="/registration/private">
-          <Card className="hover:bg-muted/50 transition-colors cursor-pointer animate-slide-left-fade-in">
-            <CardHeader className="flex flex-row items-center justify-between gap-4">
-              <div className="flex flex-row items-center gap-4">
-                <Building2 className="h-8 w-8" />
-                <div className="flex flex-col gap-1">
-                  <CardTitle>Private Service Providers</CardTitle>
-                  <CardDescription>
-                    Non-government Health Care Providers
-                  </CardDescription>
-                </div>
-              </div>
-              <div className="flex flex-row items-center gap-2 border border-muted-foreground/20 px-3 py-1.5 rounded-md">
-                {/* Badge showing estimated time to complete the form */}
+        {/* Private Card */}
+        <RegistrationCard
+          title="Private Service Providers"
+          description="Non-government Health Care Providers"
+          icon={Building2}
+          href="/registration/private"
+          registrationType="private"
+          latestDraft={latestDraft}
+        />
 
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <p className="text-muted-foreground text-xs font-semibold">
-                  10 minutes
-                </p>
-              </div>
-            </CardHeader>
-            <Separator className="" />
-            <CardContent className="mt-4">
-              <p className="text-muted-foreground text-xs mb-2 w-1/2">
-                To complete this form, please make sure you have the following
-                information available:
-              </p>
-              {/* <h4 className="text-sm font-medium mb-2">
-                Required Information:
-              </h4> */}
-
-              <div className="space-y-4 text-sm pt-4">
-                <div className="flex items-start gap-2">
-                  <UserCheck className="w-4 h-4 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="font-medium">Officer Details</p>
-                    <p className="text-muted-foreground text-xs">
-                      Public officer and medical practitioner information
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Building2 className="w-4 h-4 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="font-medium">Business Details</p>
-                    <p className="text-muted-foreground text-xs">
-                      Service provider and practice information
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Landmark className="w-4 h-4 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="font-medium">Bank Details</p>
-                    <p className="text-muted-foreground text-xs">
-                      Banking and payment information
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <FileText className="w-4 h-4 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="font-medium">Documents</p>
-                    <p className="text-muted-foreground text-xs">
-                      IPA, TIN, and medical board certificates
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <FileSignature className="w-4 h-4 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="font-medium">Signature</p>
-                    <p className="text-muted-foreground text-xs">
-                      Draw on screen or upload signature file
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/registration/public">
-          <Card className="hover:bg-muted/50 transition-colors cursor-pointer animate-slide-right-fade-in">
-            <CardHeader className="flex flex-row items-center justify-between gap-4">
-              <div className="flex flex-row items-center gap-4">
-                <Hospital className="h-8 w-8" />
-                <div className="flex flex-col gap-1">
-                  <CardTitle>Provincial Health Authorities</CardTitle>
-                  <CardDescription>
-                    Government Hospitals, Clinics and Medical Centers
-                  </CardDescription>
-                </div>
-              </div>
-              <div className="flex flex-row items-center gap-2 border border-muted-foreground/20 px-3 py-1.5 rounded-md">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <p className="text-muted-foreground text-xs font-semibold">
-                  10 minutes
-                </p>
-              </div>
-            </CardHeader>
-            <Separator className="" />
-            <CardContent className="mt-4">
-              <p className="text-muted-foreground text-xs mb-2 w-1/2">
-                To complete this form, please make sure you have the following
-                information available:
-              </p>
-              <div className="space-y-4 text-sm pt-4">
-                <div className="flex items-start gap-2">
-                  <UserCheck className="w-4 h-4 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="font-medium">Public Officer Details</p>
-                    <p className="text-muted-foreground text-xs">
-                      Officer information and P.O Box details
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Hospital className="w-4 h-4 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="font-medium">Provincial Health Authority</p>
-                    <p className="text-muted-foreground text-xs">
-                      PHA details, location, and practice information
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <Landmark className="w-4 h-4 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="font-medium">Bank Details</p>
-                    <p className="text-muted-foreground text-xs">
-                      Banking and payment information
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <FileText className="w-4 h-4 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="font-medium">Documents</p>
-                    <p className="text-muted-foreground text-xs">
-                      TIN certificate and authorization
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-2">
-                  <FileSignature className="w-4 h-4 text-muted-foreground mt-0.5" />
-                  <div>
-                    <p className="font-medium">Signature</p>
-                    <p className="text-muted-foreground text-xs">
-                      Draw on screen or upload signature file
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
+        {/* Public Card */}
+        <RegistrationCard
+          title="Provincial Health Authorities"
+          description="Government Hospitals, Clinics and Medical Centers"
+          icon={Hospital}
+          href="/registration/public"
+          registrationType="public"
+          latestDraft={latestDraft}
+        />
       </div>
     </div>
   );
