@@ -14,6 +14,7 @@ import { GET_POLICYHOLDERCLAIMS } from "@/lib/graphql/queries";
 import { getCurrentUser } from "aws-amplify/auth";
 import { useEffect, useState } from "react";
 import { ClaimCard } from "@/components/molecules/claim-card";
+import { Separator } from "@/components/ui/separator";
 
 interface PolicyHolderClaim {
   id: number;
@@ -69,6 +70,8 @@ export default function DashboardPage() {
         <LayoutDashboard className="w-6 h-6" />
         Dashboard
       </div>
+
+      {/* <Card className="w-full h-[180px]">test</Card> */}
 
       {/* Stats Cards */}
       <div className="*:data-[slot=card]:shadow-xs grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
@@ -161,6 +164,8 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Separator className="my-8" />
 
       <div className="grid grid-cols-1 gap-4 w-full h-full">
         <Card className="animate-slide-right-fade-in h-full group/pending-claims">
