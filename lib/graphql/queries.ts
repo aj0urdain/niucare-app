@@ -442,3 +442,63 @@ export const DRAFTS_BY_USER_ID = gql`
     }
   }
 `;
+
+export const ADD_OR_UPDATE_DRAFT = gql(`
+mutation AddOrUpdateDraft($draft: DraftInput!) {
+  addOrUpdateDraft(draft: $draft) {
+    id
+    userId
+    public_officer_firstname
+    public_officer_lastname
+    ipa_Certified_Number
+    mb_Registration_Number
+    rn_Expiry
+    applicantsTermsInPractice
+    postal_Section
+    postal_Lot
+    postal_Street
+    postal_Suburb
+    postal_Province
+    business_Phone_Number
+    mobile_Phone_Number
+    email
+    location_Creation_Date
+    practice_Name
+    practice_Section
+    practice_Lot
+    practice_Street
+    practice_Suburb
+    practice_Province
+    location_Phone_Number
+    location_Email
+    applicant_Employment_Status
+    registered_Business_Name
+    ipa_Registration_Number
+    business_Type
+    premises
+    bank
+    branch_Number
+    branch_Name
+    account_Number
+    account_Name
+    medical_Practitioner_firstname
+    medical_Practitioner_lastname
+    medical_Practitioner_Signiture
+    created_Date
+    updated_Date
+    status
+    ipa_Certificate
+    tin_Certificate
+    medical_Certificate
+    luhnRegistrationNumber
+    ptype
+    pbox_Name
+    pbox_Number
+    pbox_Branch
+    pbox_Province
+    bucket
+    reason
+    isPsnaProvider
+  }
+}
+`);

@@ -51,6 +51,7 @@ async function fetchUserProfileData(): Promise<UserProfile> {
   );
   const permissionsData = await permissionsResponse.json();
 
+
   return {
     userId: userDetails.userId,
     username: userDetails.username,
