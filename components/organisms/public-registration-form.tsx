@@ -1430,10 +1430,10 @@ export function PublicRegistrationForm() {
   };
 
   return (
-    <div className="flex w-full gap-4 h-[calc(100vh-theme(spacing.24))]">
+    <div className="flex w-full gap-4 h-[calc(100vh-(--spacing(24)))]">
       <div className="w-1/4 min-w-[250px]">
         <div className="sticky top-4">
-          <div className="rounded-lg border bg-muted text-card-foreground shadow animate-slide-left-fade-in">
+          <div className="rounded-lg border bg-muted text-card-foreground shadow-sm animate-slide-left-fade-in">
             <div className="p-4 flex flex-col gap-4">
               <div className="flex flex-col gap-1">
                 <h3 className="font-bold text-xl">Registration Form</h3>

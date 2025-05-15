@@ -24,6 +24,19 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "@/components/ui/sheet";
+import { toast } from "sonner";
+import { useMutation } from "@apollo/client";
+import { ADD_OR_UPDATE_DRAFT } from "@/lib/graphql/mutations";
+import { DRAFTS_BY_USER_ID } from "@/lib/graphql/queries";
+import { useUserProfileStore } from "@/stores/user-profile-store";
 
 interface DraftStateProps {
   isDisabled: boolean;
@@ -40,7 +53,9 @@ interface RegistrationCardProps {
   href: string;
   registrationType: "private" | "public";
   latestDraft?: {
+    id?: string;
     ptype: "private" | "public";
+    updated_Date: string | number | Date;
   } | null;
 }
 
@@ -109,7 +124,19 @@ export function RegistrationCard({
   registrationType,
 }: RegistrationCardProps) {
   const [headerColor, setHeaderColor] = useState("bg-blue-700");
-  const [isHovering, setIsHovering] = useState(false);
+  const [isTrashButtonHovered, setIsTrashButtonHovered] = useState(false);
+  const [isDeleteSheetOpen, setIsDeleteSheetOpen] = useState(false);
+  const { user } = useUserProfileStore();
+  const [addOrUpdateDraft] = useMutation(ADD_OR_UPDATE_DRAFT, {
+    refetchQueries: [
+      {
+        query: DRAFTS_BY_USER_ID,
+        variables: {
+          userId: user?.userId || "",
+        },
+      },
+    ],
+  });
 
   const isDisabled = latestDraft?.ptype !== registrationType && !!latestDraft;
 
@@ -121,88 +148,185 @@ export function RegistrationCard({
   };
 
   const onClearDraft = () => {
-    // TODO: Implement clear draft functionality
-    console.log("Clear draft clicked");
+    setIsDeleteSheetOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!user?.userId) {
+      toast.error("User ID not found");
+      return;
+    }
+
+    try {
+      await addOrUpdateDraft({
+        variables: {
+          draft: {
+            ptype: null,
+            isPsnaProvider: false,
+            // Set all other fields to null/empty
+            public_officer_firstname: null,
+            public_officer_lastname: null,
+            ipa_Certified_Number: null,
+            mb_Registration_Number: null,
+            rn_Expiry: null,
+            applicantsTermsInPractice: null,
+            postal_Section: null,
+            postal_Lot: null,
+            postal_Street: null,
+            postal_Suburb: null,
+            postal_Province: null,
+            business_Phone_Number: null,
+            mobile_Phone_Number: null,
+            email: null,
+            location_Creation_Date: null,
+            practice_Name: null,
+            practice_Section: null,
+            practice_Lot: null,
+            practice_Street: null,
+            practice_Suburb: null,
+            practice_Province: null,
+            location_Phone_Number: null,
+            location_Email: null,
+            applicant_Employment_Status: null,
+            registered_Business_Name: null,
+            ipa_Registration_Number: null,
+            business_Type: null,
+            premises: null,
+            bank: null,
+            branch_Number: null,
+            branch_Name: null,
+            account_Number: null,
+            account_Name: null,
+            medical_Practitioner_firstname: null,
+            medical_Practitioner_lastname: null,
+            medical_Practitioner_Signiture: null,
+            ipa_Certificate: null,
+            tin_Certificate: null,
+            medical_Certificate: null,
+            luhnRegistrationNumber: null,
+            pbox_Name: null,
+            pbox_Number: null,
+            pbox_Branch: null,
+            pbox_Province: null,
+            bucket: null,
+            reason: null,
+          },
+        },
+      });
+      toast.success("Draft deleted successfully");
+      setIsDeleteSheetOpen(false);
+    } catch (error) {
+      console.error("Error deleting draft:", error);
+      toast.error("Failed to delete draft");
+    }
   };
 
   const renderDraftState = (props: DraftStateProps) => {
-    const { isDisabled, hasDraft, draftType, ptype } = props;
+    const { isDisabled, hasDraft, draftType, ptype, isHovering } = props;
 
-    if (isDisabled) {
+    if (!hasDraft) {
       return (
-        <>
-          <Ban className="w-4 h-4 text-destructive" />
-          <p className="text-destructive text-xs font-semibold">Disabled</p>
-        </>
+        <p className="text-muted-foreground text-xs font-semibold flex items-center gap-1 border border-muted-foreground/20 rounded-md px-2 py-1">
+          <Clock className="w-4 h-4" />
+          <span>~10 minutes</span>
+        </p>
       );
     }
 
-    if (hasDraft && draftType === ptype) {
+    if (isDisabled) {
       return (
-        <>
-          <CornerDownLeft className="w-4 h-4 text-white" />
-          <p className="text-white text-xs flex items-center gap-1 font-semibold bg-blue-700 px-2 py-1 rounded transition-all duration-300 group-hover:bg-transparent group-hover:text-muted-foreground">
-            <FilePen className="w-3.5 h-3.5" />
-            <span className="group-hover:hidden">Active Draft</span>
-            <span className="hidden group-hover:inline">
-              {isHovering ? "Delete Draft" : "Resume Draft"}
-            </span>
-          </p>
-        </>
+        <p
+          className={cn(
+            "text-destructive text-sm flex items-center gap-1 font-semibold px-2 py-1 rounded transition-all border border-transparent duration-300"
+          )}
+        >
+          <Ban className="w-4 h-4" />
+          Disabled
+        </p>
       );
     }
 
     return (
       <>
-        <Clock className="w-4 h-4 text-muted-foreground" />
-        <p className="text-muted-foreground text-xs font-semibold">
-          ~10 minutes
+        <p
+          className={cn(
+            "text-white text-sm flex items-center gap-1 font-semibold px-2 py-1 rounded transition-all border border-transparent duration-300",
+            isHovering
+              ? "group-hover:bg-destructive/20 group-hover:border-destructive text-destructive animate-pulse"
+              : "bg-blue-700 group-hover:bg-transparent group-hover:border-blue-700 group-hover:animate-pulse group-hover:text-blue-700"
+          )}
+        >
+          {isHovering ? (
+            <Trash2 className="w-3.5 h-3.5 pr-0.5 animate-slide-left-fade-in text-destructive" />
+          ) : (
+            <>
+              <CornerDownLeft className="hidden group-hover:inline w-3.5 h-3.5 animate-slide-left-fade-in text-blue-700" />
+              <FilePen className="inline group-hover:hidden w-3.5 h-3.5 animate-slide-left-fade-in" />
+            </>
+          )}
+
+          <span className="inline group-hover:hidden animate-slide-right-fade-in">
+            Active
+          </span>
+          <span
+            className={cn(
+              "hidden group-hover:inline",
+              isHovering ? "text-destructive" : "group-hover:text-blue-700"
+            )}
+          >
+            {isHovering ? "Delete" : "Resume"}
+          </span>
+          <span>Draft</span>
         </p>
       </>
     );
   };
 
   return (
-    <div className="flex flex-col -space-y-16 gap-0 group transition-all duration-300 hover:gap-8 w-full">
+    <div
+      className={cn(
+        "flex flex-col -space-y-16 gap-0 group transition-all duration-300 hover:gap-8 w-full",
+        isDisabled && "cursor-not-allowed opacity-20 hover:opacity-30"
+      )}
+    >
       {draftState.hasDraft && draftState.draftType === draftState.ptype && (
         <div
           className={cn(
-            "w-full h-24 rounded-xl flex items-center justify-between px-6 transition-colors duration-300",
+            "w-full h-24 rounded-xl flex items-center justify-between px-6 transition-colors duration-300 animate-slide-up-fade-in",
             headerColor
           )}
         >
           <p
-            key={isHovering ? "delete-draft" : "active-draft"}
+            key={isTrashButtonHovered ? "delete-draft" : "active-draft"}
             className="text-background animate-slide-left-fade-in text-lg font-bold group-hover:-mt-8 transition-all duration-300"
           >
-            {isHovering ? "Delete Draft?" : "Active Draft"}
+            {isTrashButtonHovered ? "Delete Draft?" : "Active Draft"}
           </p>
           <Button
             variant="ghost"
             size="icon"
-            className="gap-2 group-hover:-mt-8 transition-all duration-300 bg-white border-2 border-destructive/20 hover:bg-destructive/10 h-7 w-7 p-1"
+            className="gap-2 group/trash-button group-hover:-mt-8 transition-all cursor-pointer duration-300 bg-white border-2 border-destructive/20 hover:bg-destructive/10 h-7 w-7 p-1 hover:border-background"
             onMouseEnter={() => {
               setHeaderColor("bg-red-900");
-              setIsHovering(true);
+              setIsTrashButtonHovered(true);
             }}
             onMouseLeave={() => {
               setHeaderColor("bg-blue-700");
-              setIsHovering(false);
+              setIsTrashButtonHovered(false);
             }}
             onClick={onClearDraft}
           >
-            <Trash2 className="w-3 h-3 text-destructive group-hover:animate-shake-once" />
+            <Trash2 className="w-3 h-3 text-destructive group-hover/trash-button:animate-shake-twice group-hover/trash-button:text-background" />
           </Button>
         </div>
       )}
       <Link href={href} className={cn(isDisabled && "pointer-events-none")}>
         <Card
           className={cn(
-            "transition-colors cursor-pointer animate-slide-left-fade-in",
-            isDisabled && "opacity-40"
+            "transition-colors cursor-pointer animate-slide-left-fade-in hover:bg-muted"
           )}
         >
-          <CardHeader className="flex flex-row items-center justify-between gap-4">
+          <CardHeader className="flex items-center flex-row justify-between">
             <div className="flex flex-row items-center gap-4">
               <Icon className="h-8 w-8" />
               <div className="flex flex-col gap-1">
@@ -210,8 +334,25 @@ export function RegistrationCard({
                 <CardDescription>{description}</CardDescription>
               </div>
             </div>
-            <div className="flex flex-row items-center gap-2 px-3 py-1.5 rounded-md">
-              {renderDraftState({ ...draftState, isHovering })}
+            <div className="flex flex-col gap-1 rounded-md items-end justify-start">
+              {renderDraftState({
+                ...draftState,
+                isHovering: isTrashButtonHovered,
+              })}
+              {latestDraft &&
+                latestDraft.updated_Date &&
+                registrationType == latestDraft.ptype && (
+                  <p className="text-muted-foreground text-xs pr-2">
+                    {new Date(latestDraft.updated_Date).toLocaleDateString(
+                      "en-US",
+                      {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      }
+                    )}
+                  </p>
+                )}
             </div>
           </CardHeader>
           <Separator className="" />
@@ -248,6 +389,29 @@ export function RegistrationCard({
           </CardContent>
         </Card>
       </Link>
+
+      <Sheet open={isDeleteSheetOpen} onOpenChange={setIsDeleteSheetOpen}>
+        <SheetContent
+          side="top"
+          className="max-w-xl mx-auto min-h-fit max-h-[90vh] rounded-b-xl animate-in slide-in-from-top duration-500"
+        >
+          <SheetHeader>
+            <SheetTitle>You are about to delete your current draft</SheetTitle>
+            <SheetDescription>
+              Are you sure you want to delete this draft? This action cannot be
+              undone.
+            </SheetDescription>
+          </SheetHeader>
+          <SheetFooter className="flex flex-row gap-2 justify-end mt-6">
+            <Button variant="ghost" onClick={() => setIsDeleteSheetOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              Delete
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
