@@ -35,7 +35,7 @@ export function NavMain({
             <SidebarMenuButton
               disabled={item.disabled}
               asChild
-              isActive={pathname === item.url}
+              isActive={pathname.startsWith(item.url)}
               className="transition-all duration-150 hover:text-[#810101] data-[active=true]:text-[#810101] data-[active=true]:font-bold"
             >
               <Link href={item.url}>

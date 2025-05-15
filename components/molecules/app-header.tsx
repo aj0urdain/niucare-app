@@ -2,12 +2,11 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import {
   Breadcrumb,
   BreadcrumbItem,
-  BreadcrumbLink,
   BreadcrumbList,
-  BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { ThemeSwitcher } from "@/components/molecules/theme-switcher";
@@ -62,8 +61,8 @@ export function AppHeader() {
     <header
       ref={headerRef}
       className={cn(
-        "sticky top-0 z-40 w-full bg-background/95 backdrop-blur-sm transition-all duration-200",
-        isSticky ? "h-16 border-b shadow-sm" : "h-14"
+        "sticky top-0 z-40 w-full bg-background/95 backdrop-blur-xs transition-all duration-200",
+        isSticky ? "h-16 border-b shadow-xs" : "h-14"
       )}
     >
       <div className="flex h-full items-center justify-between gap-2 w-full mx-auto max-w-6xl">
@@ -84,18 +83,28 @@ export function AppHeader() {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="/">Niucare</BreadcrumbLink>
+                <Link
+                  href="/"
+                  className="text-sm font-medium transition-colors hover:text-foreground/80"
+                >
+                  Niucare
+                </Link>
               </BreadcrumbItem>
               {breadcrumbs.map((breadcrumb, index) => (
                 <React.Fragment key={breadcrumb.url}>
                   <BreadcrumbSeparator className="hidden md:block" />
                   <BreadcrumbItem>
                     {index === breadcrumbs.length - 1 ? (
-                      <BreadcrumbPage>{breadcrumb.label}</BreadcrumbPage>
-                    ) : (
-                      <BreadcrumbLink href={breadcrumb.url}>
+                      <span className="text-sm font-medium">
                         {breadcrumb.label}
-                      </BreadcrumbLink>
+                      </span>
+                    ) : (
+                      <Link
+                        href={breadcrumb.url}
+                        className="text-sm font-medium transition-colors hover:text-foreground/80"
+                      >
+                        {breadcrumb.label}
+                      </Link>
                     )}
                   </BreadcrumbItem>
                 </React.Fragment>
