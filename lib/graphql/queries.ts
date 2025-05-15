@@ -292,7 +292,7 @@ query GetRegistration($userId: String!) {
 `);
 
 export const GET_USER_FULL_REGISTRATION = gql(`
-query GetUserRegistration($userId: String!) {
+query GetUserFullRegistration($userId: String!) {
     registrationByUserId(userId:$userId)
     {
       id
@@ -344,6 +344,7 @@ query GetUserRegistration($userId: String!) {
       pbox_Province
       pbox_Number
       bucket
+      ptype
    }
 }
 `);
@@ -395,9 +396,14 @@ export const GET_POLICY_HOLDER_BY_EMPLOYEE_NO = gql`
     policyHolderByEmployeeNo(employeeNo: $employeeNo) {
       id
       employeeNo
+      cardNumber
       name
       gender
       dateOfBirth
+      classification
+      salaryFn
+      salaryYear
+      amount
     }
   }
 `;
@@ -420,6 +426,8 @@ export const DRAFTS_BY_USER_ID = gql`
       registered_Business_Name
       tin_Certificate
       ipa_Registration_Number
+      ipa_Certified_Number
+      premises
       business_Type
       practice_Name
       ptype
@@ -439,13 +447,34 @@ export const DRAFTS_BY_USER_ID = gql`
       pbox_Province
       isPsnaProvider
       updated_Date
+      mobile_Phone_Number
+      applicantsTermsInPractice
+      mb_Registration_Number
+      rn_Expiry
     }
   }
 `;
 
-export const ADD_OR_UPDATE_DRAFT = gql(`
-mutation AddOrUpdateDraft($draft: DraftInput!) {
-  addOrUpdateDraft(draft: $draft) {
+export const GET_POLICYHOLDER_BY_EMPLOYEE_NO = gql(`
+query GetPolicyHolderByEmployeeNo($employeeNo: String!) {
+  policyHolderByEmployeeNo(employeeNo: $employeeNo) {
+    id
+    employeeNo
+    cardNumber
+    name
+    gender
+    dateOfBirth
+    classification
+    salaryFn
+    salaryYear
+    amount
+  }
+}
+`);
+
+export const GET_DRAFT_BY_USER_ID = gql(`
+query GetDraftByUserId($userId: String!) {
+  draftByUserId(userId: $userId) {
     id
     userId
     public_officer_firstname
@@ -499,6 +528,20 @@ mutation AddOrUpdateDraft($draft: DraftInput!) {
     bucket
     reason
     isPsnaProvider
+  }
+}
+`);
+
+export const GET_BANK = gql(`
+query GetBank($policyHolderId: Int!) {
+  bank(policyHolderId: $policyHolderId) {
+    id
+    name
+    branch_Number
+    branch_Name
+    account_Number
+    account_Name
+    policyHolderId
   }
 }
 `);

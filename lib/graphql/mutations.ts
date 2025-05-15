@@ -59,3 +59,32 @@ mutation AddOrUpdateDraft($draft: DraftInput!) {
   }
 }
 `);
+
+export const ADD_OR_UPDATE_REGISTRATION = gql(`
+mutation AddOrUpdateRegistration($reg: RegistrationInput!) {
+  addOrUpdateRegistration(registration: $reg) {
+    id
+    luhnRegistrationNumber
+  }
+}
+`);
+
+export const UPDATE_CLAIM_STATUS = gql(`
+mutation UpdateClaimStatus($id: Int!, $status: String!, $reason: String!) {
+  updateClaimStatus(id: $id, status: $status, reason: $reason) {
+    id
+    policyholderId
+    employeeNo
+    providerId
+    providerRegNumber
+    label
+    amount
+    description
+    status
+    documents
+    reason
+    created
+    userBucket
+  }
+}
+`);
