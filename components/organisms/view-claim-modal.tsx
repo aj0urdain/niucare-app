@@ -5,6 +5,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   FileDown,
@@ -45,6 +53,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import { useQuery } from "@apollo/client";
 import { GET_POLICY_HOLDER_BY_EMPLOYEE_NO } from "@/lib/graphql/queries";
+import { useUserProfileStore } from "@/stores/user-profile-store";
 
 interface ViewClaimModalProps {
   claim: Claim | null;
@@ -62,6 +71,12 @@ const ViewClaimModalContent = ({
   const [activeTab, setActiveTab] = useState<"overview" | "details" | "files">(
     "overview"
   );
+  const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+
+  const { user } = useUserProfileStore();
+
+  const canApproveClaim = user?.permissions?.canApproveRegistration;
 
   const { data: policyHolderData, loading: policyHolderLoading } = useQuery(
     GET_POLICY_HOLDER_BY_EMPLOYEE_NO,
@@ -111,7 +126,7 @@ const ViewClaimModalContent = ({
 
   if (!claim) return null;
 
-  // For demo purposes - you can replace this with actual files data
+  // For demo purposes
   const files = ["medical_report.pdf", "prescription.pdf", "receipt.pdf"];
 
   function formatEmployeeDetails(claim: Claim) {
@@ -131,11 +146,22 @@ Amount: ${new Intl.NumberFormat("en-US", {
 Description: ${claim.description}`;
   }
 
+  const handleRejectClaim = () => {
+    if (!rejectionReason.trim()) {
+      toast.error("Please provide a reason for rejection");
+      return;
+    }
+    // TODO: Implement claim rejection with reason
+    toast.error("Claim rejected");
+    setRejectionDialogOpen(false);
+    setRejectionReason("");
+  };
+
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-w-xl mx-auto h-full min-h-[90vh] max-h-[90vh] rounded-t-[1rem]"
+        className="max-w-xl mx-auto h-full min-h-[90vh] max-h-[90vh] rounded-t-2xl"
       >
         <SheetHeader>
           <SheetTitle className="flex items-center gap-4 pb-4">
@@ -589,6 +615,69 @@ Description: ${claim.description}`;
             </div>
           </TabsContent>
         </Tabs>
+
+        {canApproveClaim && claim.status === "pending" && (
+          <div className="mt-6 border-t pt-4">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1 bg-green-500/10 hover:bg-green-500/20 text-green-700 border-green-500/50"
+                onClick={() => {
+                  // TODO: Implement claim approval
+                  toast.success("Claim approved successfully");
+                }}
+              >
+                <CircleCheckBig className="h-4 w-4 mr-2" />
+                Approve Claim
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-700 border-red-500/50"
+                onClick={() => setRejectionDialogOpen(true)}
+              >
+                <XCircle className="h-4 w-4 mr-2" />
+                Reject Claim
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <Dialog
+          open={rejectionDialogOpen}
+          onOpenChange={setRejectionDialogOpen}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reject Claim</DialogTitle>
+              <DialogDescription>
+                Please provide a reason for rejecting this claim. This
+                information will be visible to the employee.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Textarea
+                placeholder="Enter rejection reason..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setRejectionDialogOpen(false);
+                  setRejectionReason("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleRejectClaim}>
+                Reject Claim
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </SheetContent>
     </Sheet>
   );

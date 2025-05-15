@@ -10,37 +10,32 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { InfoIcon as InfoCircle } from "lucide-react";
-
-interface Claim {
-  id: number;
-  employeeNumber: string;
-  claim: string;
-  amount: number;
-  description: string;
-  status: "Approved" | "Rejected";
-}
+import { Claim } from "@/lib/graphql/types";
 
 const claims: Claim[] = [
   {
     id: 80,
-    employeeNumber: "10022495",
-    claim: "Optical",
+    policyholderId: 1,
+    employeeNo: "10022495",
+    label: "Optical",
     amount: 150,
     description: "eye test",
     status: "Rejected",
   },
   {
     id: 78,
-    employeeNumber: "00726281",
-    claim: "Post-Hospitalization",
+    policyholderId: 2,
+    employeeNo: "00726281",
+    label: "Post-Hospitalization",
     amount: 250,
     description: "testing",
     status: "Rejected",
   },
   {
     id: 77,
-    employeeNumber: "10180387",
-    claim: "Dental Services",
+    policyholderId: 3,
+    employeeNo: "10180387",
+    label: "Dental Services",
     amount: 200,
     description: "",
     status: "Approved",
@@ -67,8 +62,8 @@ export function ClaimsTable() {
           {claims.map((claim) => (
             <TableRow key={claim.id}>
               <TableCell>{claim.id}</TableCell>
-              <TableCell>{claim.employeeNumber}</TableCell>
-              <TableCell>{claim.claim}</TableCell>
+              <TableCell>{claim.employeeNo}</TableCell>
+              <TableCell>{claim.label}</TableCell>
               <TableCell>{claim.amount}</TableCell>
               <TableCell>{claim.description}</TableCell>
               <TableCell className="flex items-center gap-2">

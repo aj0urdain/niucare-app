@@ -154,11 +154,11 @@ export function NewClaimEmbeddedForm({
     }
   };
 
-  const [addClaimQuery, { loading: addClaimLoading, error: addClaimError }] =
-    useMutation(ADD_POLICYHOLDERCLAIM);
+  const [addClaimQuery] = useMutation(ADD_POLICYHOLDERCLAIM);
 
-  const [verifyClaimQuery, { loading: isVerifyingClaimType, error }] =
-    useLazyQuery(GET_VERIFY_CLAIM, {
+  const [verifyClaimQuery, { loading: isVerifyingClaimType }] = useLazyQuery(
+    GET_VERIFY_CLAIM,
+    {
       fetchPolicy: "network-only",
       errorPolicy: "all",
       onCompleted: (data) => {
@@ -185,7 +185,8 @@ export function NewClaimEmbeddedForm({
         console.error("Error details:", error.graphQLErrors);
         console.error("Network error:", error.networkError);
       },
-    });
+    }
+  );
 
   const claimTypeOptions = useMemo(() => {
     if (!catalogsData?.catalogs) return [];
