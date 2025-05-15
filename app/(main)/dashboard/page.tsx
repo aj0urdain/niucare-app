@@ -74,7 +74,7 @@ export default function DashboardPage() {
       {/* <Card className="w-full h-[180px]">test</Card> */}
 
       {/* Stats Cards */}
-      <div className="*:data-[slot=card]:shadow-xs grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card">
+      <div className="data-[slot=card]:*:shadow-2xs grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 data-[slot=card]:*:bg-linear-to-t data-[slot=card]:*:from-primary/5 data-[slot=card]:*:to-card dark:data-[slot=card]:*:bg-card">
         <Card className="@container/card transition-all duration-300 hover:bg-primary/5 hover:border-primary/20 max-h-48 overflow-hidden group/total-claims">
           <CardHeader className="relative">
             <div className="text-muted-foreground/75">
