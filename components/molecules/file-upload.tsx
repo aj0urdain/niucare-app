@@ -1,41 +1,417 @@
-import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { uploadData, getUrl } from "aws-amplify/storage";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import {
+  FileUp,
+  Loader2,
+  FileCheck,
+  FileDown,
+  Trash2,
+  Hand,
+  Grab,
+} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Button } from "../ui/button";
+import { cn } from "@/lib/utils";
+import { uploadFileToS3, getS3FileUrl } from "@/lib/aws-upload";
 
-interface FileUploadProps {
-  value: File[];
-  onChange: (files: File[]) => void;
-  accept?: string;
-  multiple?: boolean;
-}
+type FileUploadProps = {
+  value?: string | null;
+  onChange: (url: string | null) => void;
+  onUploadComplete?: () => void;
+  title?: string;
+  limit?: number;
+  accept?: string[] | string;
+  isSignatureUpload?: boolean;
+  ptype?: string;
+};
 
 export function FileUpload({
+  value,
   onChange,
+  onUploadComplete,
+  title = "Upload File",
+  limit = 1,
   accept,
-  multiple = false,
+  isSignatureUpload = false,
+  ptype,
 }: FileUploadProps) {
-  const [fileList, setFileList] = useState<string[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isDeleteHovered, setIsDeleteHovered] = useState(false);
+  const [isDownloadHovered, setIsDownloadHovered] = useState(false);
+  const [isCardHovered, setIsCardHovered] = useState(false);
+  const [showHand, setShowHand] = useState(true);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    onChange(files);
-    setFileList(files.map((f) => f.name));
+  const fileLabel = limit === 1 ? "file" : "file(s)";
+
+  // Set up interval for hand/grab icon animation
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isDragging) {
+      interval = setInterval(() => {
+        setShowHand((prev) => !prev);
+      }, 500); // Toggle every 500ms
+    }
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [isDragging]);
+
+  // For signature preview, always get the deterministic URL
+  useEffect(() => {
+    const fetchPreview = async () => {
+      if (isSignatureUpload && ptype && value) {
+        const timestamp = Date.now();
+        const url = await getS3FileUrl(
+          `${ptype}-registration-signature-${timestamp}.png`,
+          "private"
+        );
+        setPreviewUrl(url);
+      } else if (value && value.includes("@")) {
+        // fallback for non-signature uploads
+        setPreviewUrl(null);
+      } else {
+        setPreviewUrl(null);
+      }
+    };
+    fetchPreview();
+  }, [isSignatureUpload, ptype, value]);
+
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement> | React.DragEvent<HTMLDivElement>
+  ) => {
+    let files: FileList | null = null;
+    if ("dataTransfer" in event) {
+      files = event.dataTransfer.files;
+    } else {
+      files = event.target.files;
+    }
+    if (!files || files.length === 0) return;
+
+    const filesToUpload = Array.from(files).slice(0, limit);
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      let file = filesToUpload[0];
+      let uploadedFileName = file.name;
+      if (isSignatureUpload && ptype) {
+        // Always use deterministic name with timestamp and private folder
+        const timestamp = Date.now();
+        uploadedFileName = `${ptype}-registration-signature-${timestamp}.png`;
+        file = new File([file], uploadedFileName, {
+          type: file.type,
+        });
+        await uploadFileToS3(file, "private", uploadedFileName);
+        onChange(uploadedFileName); // Save just the filename
+      } else {
+        await uploadData({
+          path: ({ identityId }) => `private/${identityId}/${file.name}`,
+          data: file,
+          options: {
+            onProgress: ({ transferredBytes, totalBytes }) => {
+              if (totalBytes) {
+                const progress = Math.round(
+                  (transferredBytes / totalBytes) * 100
+                );
+                setUploadProgress(progress);
+              }
+            },
+          },
+        });
+        onChange(`${file.name}@private-registration-form.tsx`);
+      }
+      toast.success("File uploaded successfully");
+      if (onUploadComplete) {
+        onUploadComplete();
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload file");
+    }
+    setIsUploading(false);
+    setUploadProgress(0);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragging(false);
+    handleFileChange(event);
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  // Helper to get fresh download URL and open it
+  const handleDownload = async (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (isSignatureUpload && ptype) {
+      // Always use deterministic name and private folder
+      const url = await getS3FileUrl(
+        `${ptype}-registration-signature.png`,
+        "private"
+      );
+      window.open(url, "_blank");
+    } else if (value && value.includes("@")) {
+      const fileName = value.split("@")[0];
+      try {
+        const { url } = await getUrl({
+          path: ({ identityId }) => `private/${identityId}/${fileName}`,
+        });
+        window.open(url.toString(), "_blank");
+      } catch {
+        toast.error("Failed to get download link");
+      }
+    }
   };
 
   return (
-    <div className="grid gap-2">
-      <Input
-        type="file"
-        onChange={handleFileChange}
-        accept={accept}
-        multiple={multiple}
-      />
-      {fileList.length > 0 && (
-        <ul className="text-sm text-muted-foreground">
-          {fileList.map((fileName, index) => (
-            <li key={index}>{fileName}</li>
-          ))}
-        </ul>
-      )}
+    <div className="flex flex-col gap-2 items-start w-full">
+      <Label className="text-sm font-medium pl-2 text-muted-foreground">
+        {title}
+      </Label>
+      <Card className="w-full max-w-md">
+        <CardContent className="p-4">
+          {isSignatureUpload && previewUrl ? (
+            <div
+              className={`flex flex-col items-center justify-center h-32 w-full rounded-md transition-colors select-none relative
+                border-2 border-green-500/20 bg-muted`}
+              style={{
+                borderStyle: "solid",
+                borderWidth: "2px",
+                cursor: "pointer",
+              }}
+              onClick={handleDownload}
+              onMouseEnter={() => setIsCardHovered(true)}
+              onMouseLeave={() => setIsCardHovered(false)}
+            >
+              <div className="absolute top-2 right-2 z-20">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onChange(null);
+                  }}
+                  className="p-2 rounded hover:bg-red-200 cursor-pointer animate-slide-right-fade-in"
+                  onMouseEnter={() => setIsDeleteHovered(true)}
+                  onMouseLeave={() => setIsDeleteHovered(false)}
+                >
+                  <Trash2 className="w-5 h-5 text-red-500" />
+                </Button>
+              </div>
+              <div className="flex flex-col gap-2 items-center justify-center w-full h-full">
+                <img
+                  src={previewUrl}
+                  alt="Signature preview"
+                  className="max-h-24 object-contain border rounded bg-white"
+                  style={{ maxWidth: "100%" }}
+                />
+                <span className="text-sm font-medium text-center truncate w-full max-w-2/3 text-blue-600 underline cursor-pointer">
+                  {`${ptype}-registration-signature.png`}
+                </span>
+              </div>
+            </div>
+          ) : value && value.includes("@") ? (
+            <div
+              className={`flex flex-col items-center justify-center h-32 w-full rounded-md transition-colors select-none relative
+                border-2
+                ${
+                  isDeleteHovered
+                    ? "bg-red-100 border-red-500"
+                    : isDownloadHovered
+                    ? "border-blue-500"
+                    : "border-green-500/20 bg-muted"
+                }`}
+              style={{
+                borderStyle: "solid",
+                borderWidth: "2px",
+                cursor: "pointer",
+              }}
+              onClick={handleDownload}
+              onMouseEnter={() => setIsCardHovered(true)}
+              onMouseLeave={() => setIsCardHovered(false)}
+            >
+              {isCardHovered && (
+                <div className="absolute top-2 right-2 z-20">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onChange(null);
+                    }}
+                    className="p-2 rounded hover:bg-red-200 cursor-pointer animate-slide-right-fade-in"
+                    onMouseEnter={() => setIsDeleteHovered(true)}
+                    onMouseLeave={() => setIsDeleteHovered(false)}
+                  >
+                    <Trash2 className="w-5 h-5 text-red-500" />
+                  </Button>
+                </div>
+              )}
+              <div
+                className="flex flex-col gap-2 items-center justify-center w-full h-full"
+                onMouseEnter={() => setIsDownloadHovered(true)}
+                onMouseLeave={() => setIsDownloadHovered(false)}
+              >
+                {isDeleteHovered ? (
+                  <>
+                    <div className="animate-slide-left-fade-in flex gap-2 flex-col items-center justify-center">
+                      <Trash2 className="h-10 w-10 text-destructive animate-shake-twice" />
+                      <p className="text-xs font-medium text-center truncate w-full text-destructive cursor-pointer">
+                        {`Delete ${fileLabel}?`}
+                      </p>
+                    </div>
+                    <span
+                      className={`text-sm font-medium text-center truncate w-full max-w-2/3 text-blue-600 underline cursor-pointer`}
+                      onClick={handleDownload}
+                    >
+                      {value.split("@")[0]}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {isDownloadHovered ? (
+                      <div className="animate-slide-down-fade-in flex gap-2 flex-col items-center justify-center">
+                        <FileDown className="h-10 w-10 animate-bounce text-blue-600" />
+                        <p className="text-xs font-medium text-center truncate w-full text-blue-600 cursor-pointer">
+                          {`Download ${fileLabel}?`}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="animate-slide-up-fade-in flex gap-2 flex-col items-center justify-center">
+                        <FileCheck className="h-10 w-10 text-green-600" />
+                        <p className="text-xs font-normal text-center truncate w-full text-green-600">
+                          {`Uploaded ${fileLabel}!`}
+                        </p>
+                      </div>
+                    )}
+                    <span
+                      className={`text-sm font-medium text-center truncate w-full max-w-2/3 text-blue-600 underline cursor-pointer`}
+                      onClick={handleDownload}
+                    >
+                      {value.split("@")[0]}
+                    </span>
+                  </>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={handleFileChange}
+                disabled={isUploading}
+                multiple={limit > 1}
+                accept={Array.isArray(accept) ? accept.join(",") : accept}
+              />
+            </div>
+          ) : (
+            <div
+              className={`flex flex-col items-center justify-center border-2 h-32 w-full border-dashed rounded-md p-2 cursor-pointer transition-colors
+                ${
+                  isDragging || (isHovered && !isUploading)
+                    ? "border-blue-500 bg-blue-50"
+                    : isUploading
+                    ? "border-gray-300 bg-muted"
+                    : "border-gray-300 bg-muted"
+                }`}
+              onClick={!isUploading ? handleButtonClick : undefined}
+              onDrop={!isUploading ? handleDrop : undefined}
+              onDragOver={!isUploading ? handleDragOver : undefined}
+              onDragLeave={!isUploading ? handleDragLeave : undefined}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+              role="button"
+              tabIndex={0}
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+                  <Progress value={uploadProgress} className="w-full mb-2" />
+                  <span className="text-xs text-muted-foreground">
+                    {uploadProgress}%
+                  </span>
+                </>
+              ) : (
+                <>
+                  <div className="animate-slide-up-fade-in">
+                    {isDragging ? (
+                      <div className="flex items-center justify-center h-10 w-10 mb-2 relative">
+                        <Hand
+                          className={cn(
+                            "h-10 w-10 text-blue-500 absolute transition-opacity duration-300",
+                            showHand ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        <Grab
+                          className={cn(
+                            "h-10 w-10 text-blue-500 absolute transition-opacity duration-300",
+                            showHand ? "opacity-0" : "opacity-100"
+                          )}
+                        />
+                      </div>
+                    ) : (
+                      <FileUp
+                        className={`h-10 w-10 mb-2 text-gray-400 transition-transform ${
+                          isHovered ? "animate-bounce" : ""
+                        }`}
+                      />
+                    )}
+                  </div>
+                  <p
+                    className={cn(
+                      "text-sm text-muted-foreground text-center",
+                      isDragging
+                        ? "animate-slide-left-fade-in text-blue-500"
+                        : isHovered
+                        ? "animate-slide-left-fade-in"
+                        : "animate-slide-right-fade-in"
+                    )}
+                  >
+                    {isDragging
+                      ? "Drop file to upload"
+                      : isHovered
+                      ? `Upload a ${fileLabel} from your device`
+                      : `Click or drop ${fileLabel} here`}
+                  </p>
+                </>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={handleFileChange}
+                disabled={isUploading}
+                multiple={limit > 1}
+                accept={Array.isArray(accept) ? accept.join(",") : accept}
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
