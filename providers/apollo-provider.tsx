@@ -13,18 +13,103 @@ import { fetchAuthSession } from "aws-amplify/auth";
 import { RestLink } from "apollo-link-rest";
 
 // Error handling link
-const errorLink = onError(({ graphQLErrors, networkError }) => {
-  if (graphQLErrors && Array.isArray(graphQLErrors)) {
-    graphQLErrors.forEach(({ message, locations, path }) => {
-      console.error(
-        `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`
-      );
-    });
+const errorLink = onError(
+  ({ graphQLErrors, networkError, operation, forward }) => {
+    if (graphQLErrors) {
+      for (const err of graphQLErrors) {
+        // Log the error details
+        console.error(
+          `[GraphQL error]: Message: ${err.message}, Location: ${err.locations}, Path: ${err.path}`
+        );
+
+        // Handle specific error codes
+        const errorCode = err.extensions?.code;
+        switch (errorCode) {
+          case "UNAUTHENTICATED":
+            // Handle authentication errors
+            console.error("Authentication error - please log in again");
+            // You could trigger a re-authentication flow here
+            break;
+          case "FORBIDDEN":
+            // Handle permission errors
+            console.error(
+              "Permission denied - you do not have access to this resource"
+            );
+            break;
+          case "BAD_USER_INPUT":
+            // Handle validation errors
+            console.error("Invalid input:", err.extensions?.validationErrors);
+            break;
+          case "INTERNAL_SERVER_ERROR":
+            // Handle server errors
+            console.error("Server error occurred:", err.message);
+            break;
+          case "NOT_FOUND":
+            // Handle not found errors
+            console.error("Resource not found:", err.message);
+            break;
+          default:
+            // Handle other GraphQL errors
+            console.error("GraphQL error:", err);
+        }
+
+        // If we have an operation and forward, we can retry the operation
+        if (operation && forward) {
+          // Only retry for certain error types
+          if (
+            ["UNAUTHENTICATED", "INTERNAL_SERVER_ERROR"].includes(
+              errorCode as string
+            )
+          ) {
+            return forward(operation);
+          }
+        }
+      }
+    }
+
+    if (networkError) {
+      // Handle network errors
+      console.error(`[Network error]: ${networkError}`);
+
+      // Check if it's a ServerError (which has statusCode)
+      if ("statusCode" in networkError) {
+        const serverError = networkError as { statusCode: number };
+
+        // Check if it's a 401 Unauthorized error
+        if (serverError.statusCode === 401) {
+          console.error("Session expired - please log in again");
+          // You could trigger a re-authentication flow here
+        }
+
+        // Check if it's a 403 Forbidden error
+        if (serverError.statusCode === 403) {
+          console.error("Access denied - insufficient permissions");
+        }
+
+        // Check if it's a 404 Not Found error
+        if (serverError.statusCode === 404) {
+          console.error("Resource not found");
+        }
+
+        // Check if it's a 500 Server Error
+        if (serverError.statusCode === 500) {
+          console.error("Server error occurred");
+        }
+      }
+
+      // If we have an operation and forward, we can retry the operation
+      if (operation && forward) {
+        // Only retry for certain status codes
+        if ("statusCode" in networkError) {
+          const serverError = networkError as { statusCode: number };
+          if ([500, 503, 504].includes(serverError.statusCode)) {
+            return forward(operation);
+          }
+        }
+      }
+    }
   }
-  if (networkError) {
-    console.error(`[Network error]: ${networkError}`);
-  }
-});
+);
 
 // Auth link to add token to headers
 const authLink = setContext(async (_, { headers }) => {

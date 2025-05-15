@@ -25,6 +25,12 @@ export function configureAmplify() {
           },
         },
       },
+      Storage: {
+        S3: {
+          bucket: process.env.NEXT_PUBLIC_BUCKET_NAME ?? "",
+          region: process.env.NEXT_PUBLIC_AWS_REGION ?? "",
+        },
+      },
     },
     {
       ssr: true,
