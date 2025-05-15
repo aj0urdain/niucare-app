@@ -2,13 +2,20 @@ import { create } from "zustand";
 import { fetchUserAttributes, getCurrentUser } from "aws-amplify/auth";
 import { ApolloClient, FetchPolicy } from "@apollo/client";
 import { GET_USER_REGISTRATION } from "@/lib/graphql/queries";
+import { Registration } from "@/lib/graphql/types";
 
-interface Registration {
-  id: string;
-  ptype: string;
-  status: string;
-  reason: string | null;
-  bucket: string;
+interface UserDetails {
+  userId: string | null;
+  username: string | null;
+  email: string | null;
+}
+
+interface UserAttributes {
+  given_name: string | null;
+  family_name: string | null;
+  phone_number: string | null;
+  phone_number_verified: boolean | null;
+  email_verified: boolean | null;
 }
 
 interface UserProfile {
@@ -31,6 +38,8 @@ interface UserProfile {
     showRegistrationMenu: boolean;
     isPsnaProvider: boolean;
   };
+  userDetails: UserDetails | null;
+  userAttributes: UserAttributes | null;
 }
 
 interface UserProfileStore {
@@ -50,7 +59,6 @@ async function fetchUserProfileData(): Promise<UserProfile> {
     `https://api.staging.niucare.com/api/openfga/check?userId=${userDetails.userId}&permission=Approve_Registration`
   );
   const permissionsData = await permissionsResponse.json();
-
 
   return {
     userId: userDetails.userId,
@@ -72,6 +80,19 @@ async function fetchUserProfileData(): Promise<UserProfile> {
       details: null,
       showRegistrationMenu: false,
       isPsnaProvider: false,
+    },
+    userDetails: {
+      userId: userDetails.userId,
+      username: userDetails.username,
+      email: userDetails.signInDetails?.loginId ?? null,
+    },
+    userAttributes: {
+      given_name: userAttributes.given_name ?? null,
+      family_name: userAttributes.family_name ?? null,
+      phone_number: userAttributes.phone_number ?? null,
+      phone_number_verified:
+        userAttributes.phone_number_verified === "true" ? true : false,
+      email_verified: userAttributes.email_verified === "true" ? true : false,
     },
   };
 }
