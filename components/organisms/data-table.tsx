@@ -24,9 +24,7 @@ import {
 
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-
 import { DataTablePagination } from "@/components/molecules/data-table-pagination";
-
 import { NewClaimModal } from "./new-claim-modal";
 import { ViewClaimModal } from "./view-claim-modal";
 import { Claim } from "@/components/atoms/columns-data";
@@ -122,7 +120,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div>
-      <div className="flex items-end justify-between py-4 gap-4">
+      <div className="flex items-end justify-between py-4">
         <div className="flex items-end justify-end h-full">
           {newClaimButton && <NewClaimModal />}
         </div>

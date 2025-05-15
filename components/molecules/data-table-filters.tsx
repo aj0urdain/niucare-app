@@ -67,7 +67,7 @@ export function DataTableFilters<TData>({
   };
 
   return (
-    <div className="flex items-end justify-end gap-2">
+    <div className="flex items-end justify-end gap-0">
       <ComboBoxResponsive
         id="status"
         label="Status"
@@ -109,8 +109,8 @@ export function DataTableFilters<TData>({
           handleFilterChange("status", value === "all" ? "" : value)
         }
         placeholder="Filter by Status"
-        className="p-0"
-        triggerClassName="max-w-xs"
+        className="p-0 max-w-48"
+        triggerClassName="max-w-48"
       />
       <InputWithLabel
         id="claimId"
