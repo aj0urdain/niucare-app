@@ -1,8 +1,7 @@
 "use client";
 
-import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import { Table } from "@tanstack/react-table";
-import { Filter, Settings2 } from "lucide-react";
+import { Settings2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,33 +10,25 @@ import {
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
 interface DataTableViewOptionsProps<TData> {
   table: Table<TData>;
-  label?: string;
-  labelClassName?: string;
 }
 
 export function DataTableViewOptions<TData>({
   table,
-  label = "Columns",
-  labelClassName = "text-xs font-semibold text-muted-foreground/75 flex items-center gap-1",
 }: DataTableViewOptionsProps<TData>) {
   return (
-    <div className="grid w-fit min-w-40 items-center gap-1.5">
-      <label className={labelClassName}>
-        <Filter className="h-3 w-3" />
-        {label}
-      </label>
+    <div className="grid w-fit min-w-fit items-center gap-1.5">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className="ml-auto flex min-w-40 justify-start"
+            className="ml-auto flex min-w-fit justify-start"
           >
             <Settings2 className="h-4 w-4" />
-            Columns
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent

@@ -18,7 +18,7 @@ export const InputWithLabel = forwardRef<HTMLInputElement, InputWithLabelProps>(
       id,
       labelClassName = "text-xs font-semibold text-muted-foreground/75 flex items-center gap-1",
       containerClassName,
-      className,
+      className = "",
       icon,
       ...props
     },
@@ -37,7 +37,12 @@ export const InputWithLabel = forwardRef<HTMLInputElement, InputWithLabelProps>(
             {label}
           </Label>
         </div>
-        <Input id={id} className={className} ref={ref} {...props} />
+        <Input
+          id={id}
+          className={cn(className, "text-xs max-w-40")}
+          ref={ref}
+          {...props}
+        />
       </div>
     );
   }

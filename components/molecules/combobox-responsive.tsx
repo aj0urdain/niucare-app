@@ -115,13 +115,15 @@ export function ComboBoxResponsive({
         <div className="flex items-center gap-1.5">
           {selectedOption.icon}
           <div className="flex gap-1">
-            <span className="group-hover/trigger:opacity-100 flex items-center text-foreground text-sm transition-opacity duration-200 font-semibold">
+            <span className="group-hover/trigger:opacity-100 flex items-center text-foreground text-xs transition-opacity duration-200 font-semibold">
               {selectedOption.label}
             </span>
           </div>
         </div>
       ) : (
-        placeholder
+        <span className="group-hover/trigger:opacity-100 flex items-center text-foreground text-xs transition-opacity duration-200">
+          {placeholder}
+        </span>
       )}
       <ChevronsDown className="ml-2 h-3 w-3 shrink-0 opacity-50 group-hover/trigger:opacity-100 transition-opacity duration-200" />
     </Button>

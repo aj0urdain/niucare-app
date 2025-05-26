@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { uploadData, getUrl } from "aws-amplify/storage";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -16,6 +16,9 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
 import { uploadFileToS3, getS3FileUrl } from "@/lib/aws-upload";
+import { useUserProfileStore } from "@/stores/user-profile-store";
+import { useLazyQuery } from "@apollo/client";
+import { GET_S3_FILE_ADMIN } from "@/lib/graphql/queries";
 
 type FileUploadProps = {
   value?: string | null;
@@ -26,6 +29,8 @@ type FileUploadProps = {
   accept?: string[] | string;
   isSignatureUpload?: boolean;
   ptype?: string;
+  userBucket?: string;
+  viewOnly?: boolean;
 };
 
 export function FileUpload({
@@ -37,6 +42,8 @@ export function FileUpload({
   accept,
   isSignatureUpload = false,
   ptype,
+  viewOnly = false,
+  userBucket,
 }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -47,9 +54,14 @@ export function FileUpload({
   const [isCardHovered, setIsCardHovered] = useState(false);
   const [showHand, setShowHand] = useState(true);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fileLabel = limit === 1 ? "file" : "file(s)";
+
+  const { user } = useUserProfileStore();
+
+  const [getS3AdminURL, { error: s3FileError }] =
+    useLazyQuery(GET_S3_FILE_ADMIN);
 
   // Set up interval for hand/grab icon animation
   useEffect(() => {
@@ -168,23 +180,61 @@ export function FileUpload({
   // Helper to get fresh download URL and open it
   const handleDownload = async (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    if (isSignatureUpload && ptype) {
-      // Always use deterministic name and private folder
-      const url = await getS3FileUrl(
-        `${ptype}-registration-signature.png`,
-        "private"
-      );
-      window.open(url, "_blank");
-    } else if (value && value.includes("@")) {
-      const fileName = value.split("@")[0];
-      try {
-        const { url } = await getUrl({
-          path: ({ identityId }) => `private/${identityId}/${fileName}`,
-        });
-        window.open(url.toString(), "_blank");
-      } catch {
-        toast.error("Failed to get download link");
+    try {
+      let url: string;
+
+      if (isSignatureUpload && ptype) {
+        // Always use deterministic name and private folder
+        url = await getS3FileUrl(
+          `${ptype}-registration-signature.png`,
+          "private"
+        );
+      } else if (value) {
+        let fileName: string;
+
+        if (value.includes("@")) {
+          fileName = value.split("@")[0];
+        } else {
+          fileName = value;
+        }
+
+        // If user has approval permissions and userBucket is provided, use admin function
+        if (user?.permissions?.canApproveRegistration && userBucket) {
+          const { data } = await getS3AdminURL({
+            variables: {
+              input: {
+                bucket: process.env.NEXT_PUBLIC_BUCKET_NAME,
+                key: `private/${userBucket}/${fileName}`,
+              },
+            },
+          });
+
+          console.log("data", data);
+
+          if (s3FileError) {
+            throw new Error("Failed to get admin file URL");
+          }
+
+          url = data?.signurl?.url;
+        } else {
+          // Otherwise use regular user function
+          const { url: userUrl } = await getUrl({
+            path: ({ identityId }) => `private/${identityId}/${fileName}`,
+          });
+          url = userUrl.toString();
+        }
+      } else {
+        throw new Error("No file to download");
       }
+
+      if (url) {
+        window.open(url, "_blank");
+      } else {
+        throw new Error("No URL available for download");
+      }
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Failed to get download link");
     }
   };
 
@@ -193,9 +243,43 @@ export function FileUpload({
       <Label className="text-sm font-medium pl-2 text-muted-foreground">
         {title}
       </Label>
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md p-0">
         <CardContent className="p-4">
-          {isSignatureUpload && previewUrl ? (
+          {viewOnly && value ? (
+            <div
+              className={`flex flex-col items-center justify-center h-32 w-full rounded-md transition-colors select-none relative
+                border-2 border-green-500/20 bg-muted`}
+              style={{
+                borderStyle: "solid",
+                borderWidth: "2px",
+                cursor: "pointer",
+              }}
+              onClick={handleDownload}
+              onMouseEnter={() => setIsDownloadHovered(true)}
+              onMouseLeave={() => setIsDownloadHovered(false)}
+            >
+              <div className="flex flex-col gap-2 items-center justify-center w-full h-full">
+                {isDownloadHovered ? (
+                  <div className="animate-slide-down-fade-in flex gap-2 flex-col items-center justify-center">
+                    <FileDown className="h-10 w-10 animate-bounce text-blue-600" />
+                    <p className="text-xs font-medium text-center truncate w-full text-blue-600 cursor-pointer">
+                      {`Download ${fileLabel}?`}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="animate-slide-up-fade-in flex gap-2 flex-col items-center justify-center">
+                    <FileCheck className="h-10 w-10 text-green-600" />
+                    <p className="text-xs font-normal text-center truncate w-full text-green-600">
+                      {`Uploaded ${fileLabel}!`}
+                    </p>
+                  </div>
+                )}
+                <span className="text-sm font-medium text-center truncate w-full max-w-2/3 text-blue-600 underline cursor-pointer">
+                  {value.split("@")[0]}
+                </span>
+              </div>
+            </div>
+          ) : isSignatureUpload && previewUrl ? (
             <div
               className={`flex flex-col items-center justify-center h-32 w-full rounded-md transition-colors select-none relative
                 border-2 border-green-500/20 bg-muted`}
@@ -209,19 +293,21 @@ export function FileUpload({
               onMouseLeave={() => setIsCardHovered(false)}
             >
               <div className="absolute top-2 right-2 z-20">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onChange(null);
-                  }}
-                  className="p-2 rounded hover:bg-red-200 cursor-pointer animate-slide-right-fade-in"
-                  onMouseEnter={() => setIsDeleteHovered(true)}
-                  onMouseLeave={() => setIsDeleteHovered(false)}
-                >
-                  <Trash2 className="w-5 h-5 text-red-500" />
-                </Button>
+                {!viewOnly && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onChange(null);
+                    }}
+                    className="p-2 rounded hover:bg-red-200 cursor-pointer animate-slide-right-fade-in"
+                    onMouseEnter={() => setIsDeleteHovered(true)}
+                    onMouseLeave={() => setIsDeleteHovered(false)}
+                  >
+                    <Trash2 className="w-5 h-5 text-red-500" />
+                  </Button>
+                )}
               </div>
               <div className="flex flex-col gap-2 items-center justify-center w-full h-full">
                 <img
@@ -255,7 +341,7 @@ export function FileUpload({
               onMouseEnter={() => setIsCardHovered(true)}
               onMouseLeave={() => setIsCardHovered(false)}
             >
-              {isCardHovered && (
+              {isCardHovered && !viewOnly && (
                 <div className="absolute top-2 right-2 z-20">
                   <Button
                     type="button"
