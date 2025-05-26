@@ -1,7 +1,6 @@
 "use client";
 
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "sonner";
 import { ThemeProvider } from "@/components/atoms/theme-provider";
 import "@aws-amplify/ui-react/styles.css";
@@ -79,7 +78,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning={true}>
+    <html lang="en" suppressHydrationWarning>
       <body className={`bg-background text-foreground`}>
         <TooltipProvider>
           <ThemeProvider
@@ -92,7 +91,6 @@ export default function RootLayout({
               <ApolloWrapper>
                 <UserProfileInitializer />
                 {children}
-                <Toaster />
                 <Sonner />
               </ApolloWrapper>
             </QueryProvider>
