@@ -1,70 +1,88 @@
-"use client";
-
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-
+import { Card, CardTitle, CardHeader, CardContent } from "@/components/ui/card";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { useState, useRef } from "react";
-import { FileUpload } from "@/components/molecules/file-upload";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import SignaturePad from "react-signature-canvas";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
-
-import {
-  FileText,
   Building2,
+  ChevronsRight,
+  UserCheck,
   Landmark,
+  FileText,
   FileSignature,
+  BadgeCheck,
   Check,
   TriangleAlert,
-  BadgeCheck,
-  UserCheck,
-  ChevronsRight,
   ChevronsLeft,
+  Loader2,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { toast } from "sonner";
+import debounce from "lodash/debounce";
+import {
+  Form,
+  FormField,
+  FormItem as FormItemUI,
+  FormLabel as FormLabelUI,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm, UseFormReturn } from "react-hook-form";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "../ui/separator";
+import { cn } from "@/lib/utils";
+import {
+  ADD_OR_UPDATE_DRAFT,
+  ADD_OR_UPDATE_REGISTRATION,
+} from "@/lib/graphql/mutations";
+import { GET_DRAFT_BY_USER_ID } from "@/lib/graphql/queries";
+import { useMutation } from "@apollo/client";
+import { useUserProfileStore } from "@/stores/user-profile-store";
+import { FileUpload } from "@/components/molecules/file-upload";
+import SignatureUpload from "@/components/molecules/signature-upload";
+import { SignaturePreviewCard } from "@/components/molecules/signature-preview-card";
+import { useRouter } from "next/navigation";
 
 const registrationSchema = z.object({
-  // Step 1: Public Officer & Medical Practitioner Details
-  officerFirstName: z
+  // Public Officer Details
+  id: z.string().optional(),
+  userId: z.string().optional(),
+  public_officer_firstname: z
     .string()
     .min(2, "First name must be at least 2 characters"),
-  officerLastName: z.string().min(2, "Last name must be at least 2 characters"),
-  practitionerFirstName: z
-    .string()
-    .min(2, "First name must be at least 2 characters"),
-  practitionerLastName: z
+  public_officer_lastname: z
     .string()
     .min(2, "Last name must be at least 2 characters"),
-  termsInPractice: z.number().min(0, "Must be a positive number"),
-  medicalBoardRegNumber: z.string().min(2, "Registration number is required"),
-  regExpiryDate: z
-    .date()
-    .min(new Date(), "Date must be in the future")
-    .nullable(),
-  poBoxName: z.string().min(2, "P.O Box name is required"),
-  poBoxNumber: z.string().min(1, "P.O Box number is required"),
-  poBoxBranch: z.string().min(2, "P.O Box branch is required"),
-  poBoxProvince: z.enum([
+  mobile_Phone_Number: z.string().regex(/^\d+$/, "Must be a valid number"),
+  medical_Practitioner_firstname: z
+    .string()
+    .min(2, "First name must be at least 2 characters")
+    .optional(),
+  medical_Practitioner_lastname: z
+    .string()
+    .min(2, "Last name must be at least 2 characters")
+    .optional(),
+  applicantsTermsInPractice: z
+    .number()
+    .min(0, "Must be a positive number")
+    .optional(),
+  mb_Registration_Number: z
+    .string()
+    .min(1, "Medical board registration number is required")
+    .optional(),
+  rn_Expiry: z.date().nullable().optional(),
+  pbox_Name: z.string().min(2, "P.O Box name is required"),
+  pbox_Number: z.string().min(1, "P.O Box number is required"),
+  pbox_Branch: z.string().min(2, "P.O Box branch is required"),
+  pbox_Province: z.enum([
     "Central",
     "Chimbu (Simbu)",
     "Eastern Highlands",
@@ -88,21 +106,61 @@ const registrationSchema = z.object({
     "Hela",
     "Jiwaka",
   ]),
-  officerPhone: z.string().regex(/^\d+$/, "Must be a valid number"),
 
-  // Step 2: Business Details
-  serviceName: z.string().min(2, "Service provider name is required"),
-  businessEmail: z.string().email("Invalid email address"),
-  businessPhone: z.string().regex(/^\d+$/, "Must be a valid number"),
-  inceptionDate: z
+  // Business Details
+  practice_Name: z.string().min(2, "Service provider name is required"),
+  email: z.string().email("Invalid email address").optional(),
+  location_Email: z.string().email("Invalid email address").optional(),
+  business_Phone_Number: z
+    .string()
+    .regex(/^\d+$/, "Must be a valid number")
+    .optional(),
+  location_Phone_Number: z
+    .string()
+    .regex(/^\d+$/, "Must be a valid number")
+    .optional(),
+  location_Creation_Date: z
     .date()
     .max(new Date(), "Date must be in the past")
     .nullable(),
-  practiceSection: z.string().min(1, "Practice section is required"),
-  practiceLot: z.string().min(1, "Practice lot is required"),
-  practiceStreet: z.string().min(1, "Practice street is required"),
-  practiceSuburb: z.string().min(1, "Practice suburb is required"),
-  practiceProvince: z.enum([
+  practice_Section: z
+    .string()
+    .min(1, "Practice section is required")
+    .optional(),
+  practice_Lot: z.string().min(1, "Practice lot is required").optional(),
+  practice_Street: z.string().min(1, "Practice street is required").optional(),
+  practice_Suburb: z.string().min(1, "Practice suburb is required").optional(),
+  practice_Province: z
+    .enum([
+      "Central",
+      "Chimbu (Simbu)",
+      "Eastern Highlands",
+      "East New Britain",
+      "East Sepik",
+      "Enga",
+      "Gulf",
+      "Madang",
+      "Manus",
+      "Milne Bay",
+      "Morobe",
+      "New Ireland",
+      "Oro (Northern)",
+      "Bougainville",
+      "Southern Highlands",
+      "Western (Fly)",
+      "Western Highlands",
+      "West New Britain",
+      "Sandaun (West Sepik)",
+      "National Capital District",
+      "Hela",
+      "Jiwaka",
+    ])
+    .optional(),
+  postal_Section: z.string(),
+  postal_Lot: z.string(),
+  postal_Street: z.string(),
+  postal_Suburb: z.string(),
+  postal_Province: z.enum([
     "Central",
     "Chimbu (Simbu)",
     "Eastern Highlands",
@@ -126,20 +184,25 @@ const registrationSchema = z.object({
     "Hela",
     "Jiwaka",
   ]),
-  employmentStatus: z.string().min(1, "Employment status is required"),
-  registeredBusinessName: z
+
+  registered_Business_Name: z
     .string()
-    .min(2, "Registered business name is required"),
-  tinNumber: z.string().min(1, "TIN number is required"),
-  ipaNumber: z.string().min(1, "IPA registration number is required"),
-  businessType: z.enum([
-    "Partnership",
-    "Company",
-    "National Government",
-    "Provincial Government",
-    "District Local Level Government",
-  ]),
-  practiceType: z.enum([
+    .min(2, "Registered business name is required")
+    .optional(),
+  ipa_Registration_Number: z
+    .string()
+    .min(1, "IPA registration number is required"),
+  ipa_Certified_Number: z.string().min(1, "IPA certified number is required"),
+  business_Type: z
+    .enum([
+      "Partnership",
+      "Company",
+      "National Government",
+      "Provincial Government",
+      "District Local Level Government",
+    ])
+    .optional(),
+  premises: z.enum([
     "Hospital - public",
     "Hospital - private",
     "Practice - general practice",
@@ -147,317 +210,657 @@ const registrationSchema = z.object({
     "Educational institution",
     "Residential care facility",
     "Other community health care service",
-    "Mobile",
   ]),
+  ptype: z.enum(["private", "public"]),
 
-  // Step 3: Bank Details
-  bankName: z.enum(["BSP", "KINA BANK", "WESTPAC", "ANZ"]),
-  branchCode: z.string().min(1, "Branch code is required"),
-  branchName: z.string().min(2, "Branch name is required"),
-  accountNumber: z
+  // Bank Details
+  bank: z.enum(["BSP", "KINA BANK", "WESTPAC", "ANZ"]),
+  branch_Number: z.string().min(1, "Branch code is required"),
+  branch_Name: z.string().min(2, "Branch name is required"),
+  account_Number: z
     .string()
     .regex(/^\d+$/, "Must contain only numbers")
     .min(6, "Account number must be at least 6 digits")
     .max(10, "Account number must not exceed 10 digits"),
-  accountName: z.string().min(2, "Account name is required"),
+  account_Name: z.string().min(2, "Account name is required"),
 
-  // Step 4: Documents
-  documents: z.object({
-    ipaCertificate: z.any().optional(),
-    tinCertificate: z.any().optional(),
-    medicalBoardCertificate: z.any().optional(),
-  }),
+  // Documents
+  ipa_Certificate: z.string().optional(),
+  tin_Certificate: z.string(),
+  medical_Certificate: z.string().optional(),
 
-  // Step 5: Signature
+  // Signature
+  medical_Practitioner_Signiture: z.string().optional(),
+
+  // Metadata
+  created_Date: z.date().optional(),
+  updated_Date: z.date().optional(),
+  status: z.string().optional(),
+  luhnRegistrationNumber: z.string().optional(),
+  bucket: z.string().optional(),
+  reason: z.string().optional(),
+  isPsnaProvider: z.boolean().optional(),
+
+  // Signature Type
   signatureType: z.enum(["draw", "upload"]),
-  signature: z.object({
-    drawnSignature: z.string().optional(),
-    uploadedSignature: z.any().optional(),
-  }),
 });
 
-// Add this type before the steps array
-type Step = {
-  title: string;
-  icon: React.ElementType;
-  description: string;
-  subsections: {
-    title: string;
-    fields: string[];
-  }[];
+const FormLabel = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <FormLabelUI className="text-xs font-medium text-gray-700 ml-2">
+      {children}
+    </FormLabelUI>
+  );
 };
 
-const steps: Step[] = [
-  {
-    title: "Officer",
-    icon: UserCheck,
-    description: "Public Officer & Medical Practitioner Details",
-    subsections: [
-      {
-        title: "Public Officer",
-        fields: ["officerFirstName", "officerLastName", "officerPhone"],
-      },
-      {
-        title: "Medical Practitioner",
-        fields: [
-          "practitionerFirstName",
-          "practitionerLastName",
-          "termsInPractice",
-          "medicalBoardRegNumber",
-          "regExpiryDate",
-        ],
-      },
-      {
-        title: "P.O Box",
-        fields: ["poBoxName", "poBoxNumber", "poBoxBranch", "poBoxProvince"],
-      },
-    ],
-  },
-  {
-    title: "Business",
-    icon: Building2,
-    description: "Service Provider Information",
-    subsections: [
-      {
-        title: "Basic Information",
-        fields: [
-          "serviceName",
-          "businessEmail",
-          "businessPhone",
-          "inceptionDate",
-        ],
-      },
-      {
-        title: "Practice Location",
-        fields: [
-          "practiceSection",
-          "practiceLot",
-          "practiceStreet",
-          "practiceSuburb",
-          "practiceProvince",
-          "practiceType",
-          "employmentStatus",
-          "registeredBusinessName",
-          "tinNumber",
-          "ipaNumber",
-          "businessType",
-        ],
-      },
-    ],
-  },
-  {
-    title: "Bank",
-    icon: Landmark,
-    description: "Banking Information",
-    subsections: [
-      {
-        title: "Bank Details",
-        fields: [
-          "bankName",
-          "branchCode",
-          "branchName",
-          "accountNumber",
-          "accountName",
-        ],
-      },
-    ],
-  },
-
-  {
-    title: "Documents",
-    icon: FileText,
-    description: "Required Certificates",
-    subsections: [
-      {
-        title: "IPA Certificate",
-        fields: ["ipaCertificate"],
-      },
-      {
-        title: "TIN Certificate",
-        fields: ["tinCertificate"],
-      },
-      {
-        title: "Medical Board Certificate",
-        fields: ["medicalBoardCertificate"],
-      },
-    ],
-  },
-
-  {
-    title: "Signature",
-    icon: FileSignature,
-    description: "Sign Registration Form",
-    subsections: [
-      {
-        title: "Signature",
-        fields: ["signatureType", "signature"],
-      },
-    ],
-  },
-  {
-    title: "Verify",
-    icon: BadgeCheck,
-    description: "Verify Registration",
-    subsections: [
-      {
-        title: "Verify Details",
-        fields: ["verifyDetails"],
-      },
-    ],
-  },
-];
-
-// Update the helper function to include more detailed validation
-const isSubsectionValid = (
-  form: any,
-  fields: string[],
-  formState: any,
-  currentStep: number,
-  stepIndex: number
-): { isValid: boolean; invalidCount: number; isStarted: boolean } => {
-  let invalidCount = 0;
-  let filledFieldCount = 0;
-
-  for (const field of fields) {
-    const value = form.getValues(field);
-    const error = formState.errors[field];
-
-    // Check if field has any value
-    if (value) {
-      filledFieldCount++;
-    }
-
-    // Check if field is empty or has validation errors
-    if (!value || error) {
-      invalidCount++;
-    }
-
-    // Special handling for nested fields
-    if (field.includes(".")) {
-      const [parent, child] = field.split(".");
-      const parentValue = form.getValues(parent);
-      if (parentValue?.[child]) {
-        filledFieldCount++;
-      }
-      if (!parentValue?.[child]) {
-        invalidCount++;
-      }
-    }
-  }
-
-  return {
-    isValid: invalidCount === 0,
-    invalidCount,
-    // Section is considered started if at least one field has been filled
-    isStarted: filledFieldCount > 0,
-  };
+const FormItem = ({ children }: { children: React.ReactNode }) => {
+  return <FormItemUI className="space-y-1">{children}</FormItemUI>;
 };
 
-// Update the calculateTotalProgress function signature
-const calculateTotalProgress = (
-  form: any,
-  formState: any,
-  steps: Step[]
-): number => {
-  let totalFields = 0;
-  let completedFields = 0;
+const createDebouncedSave = (
+  saveFn: (values: z.infer<typeof registrationSchema>) => void
+) => debounce(saveFn, 2000);
 
-  steps.forEach((step) => {
-    step.subsections.forEach((sub) => {
-      const { invalidCount, isValid } = isSubsectionValid(
-        form,
-        sub.fields,
-        formState,
-        0,
-        0
-      );
-      totalFields += sub.fields.length;
-      if (isValid) {
-        completedFields += sub.fields.length;
-      } else {
-        completedFields += sub.fields.length - invalidCount;
-      }
+type Draft = {
+  id: string;
+  userId: string;
+  public_officer_firstname: string;
+  public_officer_lastname: string;
+  ipa_Certified_Number: string;
+  mb_Registration_Number: string;
+  rn_Expiry: Date;
+  applicantsTermsInPractice: string;
+  postal_Section: string;
+  postal_Lot: string;
+  postal_Street: string;
+  postal_Suburb: string;
+  postal_Province: string;
+  business_Phone_Number: string;
+  mobile_Phone_Number: string;
+  email: string;
+  location_Creation_Date: Date;
+  practice_Name: string;
+  practice_Section: string;
+  practice_Lot: string;
+  practice_Street: string;
+  practice_Suburb: string;
+  practice_Province: string;
+  location_Phone_Number: string;
+  location_Email: string;
+  applicant_Employment_Status: string;
+  registered_Business_Name: string;
+  ipa_Registration_Number: string;
+  business_Type: string;
+  premises: string;
+  bank: string;
+  branch_Number: string;
+  branch_Name: string;
+  account_Number: string;
+  account_Name: string;
+  medical_Practitioner_firstname: string;
+  medical_Practitioner_lastname: string;
+  medical_Practitioner_Signiture: string;
+  created_Date: Date;
+  updated_Date: Date;
+  status: string;
+  ipa_Certificate: string;
+  tin_Certificate: string;
+  medical_Certificate: string;
+  luhnRegistrationNumber: string;
+  ptype: string;
+  pbox_Name: string;
+  pbox_Number: string;
+  pbox_Branch: string;
+  pbox_Province: string;
+  bucket: string;
+  reason: string;
+  isPsnaProvider: boolean;
+};
+
+interface PublicRegistrationFormProps {
+  initialDraft?: Draft;
+}
+
+function PublicRegistrationForm({ initialDraft }: PublicRegistrationFormProps) {
+  const { user } = useUserProfileStore();
+  const [addOrUpdateDraft, { loading: draftLoading, error: draftError }] =
+    useMutation(ADD_OR_UPDATE_DRAFT, {
+      refetchQueries: [
+        {
+          query: GET_DRAFT_BY_USER_ID,
+          variables: {
+            userId: user?.userId,
+          },
+        },
+      ],
+      onCompleted: () => {
+        toast.success("Draft saved successfully");
+      },
     });
-  });
 
-  return Math.round((completedFields / totalFields) * 100);
-};
-
-export function PublicRegistrationForm() {
+  const [
+    addOrUpdateRegistration,
+    // { loading: registrationLoading, error: registrationError },
+  ] = useMutation(ADD_OR_UPDATE_REGISTRATION);
+  const router = useRouter();
   const [step, setStep] = useState(1);
-  const form = useForm<z.infer<typeof registrationSchema>>({
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previousFormValues, setPreviousFormValues] = useState<z.infer<
+    typeof registrationSchema
+  > | null>(null);
+
+  useEffect(() => {
+    console.log("initialDraft below");
+    console.log(initialDraft);
+  }, [initialDraft]);
+
+  useEffect(() => {
+    if (draftError) {
+      toast.error("Failed to save draft: " + draftError.message);
+    }
+  }, [draftError]);
+
+  const form = useForm<
+    z.infer<typeof registrationSchema>,
+    unknown,
+    z.infer<typeof registrationSchema>
+  >({
     resolver: zodResolver(registrationSchema),
     defaultValues: {
-      officerFirstName: "",
-      officerLastName: "",
-      practitionerFirstName: "",
-      practitionerLastName: "",
-      termsInPractice: 0,
-      medicalBoardRegNumber: "",
-      regExpiryDate: null,
-      poBoxName: "",
-      poBoxNumber: "",
-      poBoxBranch: "",
-      poBoxProvince: undefined,
-      officerPhone: "",
-      serviceName: "",
-      businessEmail: "",
-      businessPhone: "",
-      inceptionDate: null,
-      practiceSection: "",
-      practiceLot: "",
-      practiceStreet: "",
-      practiceSuburb: "",
-      practiceProvince: undefined,
-      employmentStatus: "",
-      registeredBusinessName: "",
-      tinNumber: "",
-      ipaNumber: "",
-      businessType: undefined,
-      bankName: undefined,
-      branchCode: "",
-      branchName: "",
-      accountNumber: "",
-      accountName: "",
-      practiceType: undefined,
-      documents: {
-        ipaCertificate: null,
-        tinCertificate: null,
-        medicalBoardCertificate: null,
-      },
-      signatureType: undefined,
-      signature: {
-        drawnSignature: "",
-        uploadedSignature: null,
-      },
+      // Public Officer Details
+      id: initialDraft?.id,
+      userId: initialDraft?.userId,
+      public_officer_firstname: initialDraft?.public_officer_firstname || "",
+      public_officer_lastname: initialDraft?.public_officer_lastname || "",
+      mobile_Phone_Number: initialDraft?.mobile_Phone_Number || "",
+
+      applicantsTermsInPractice: initialDraft?.applicantsTermsInPractice
+        ? parseInt(initialDraft.applicantsTermsInPractice)
+        : 0,
+
+      rn_Expiry: initialDraft?.rn_Expiry
+        ? new Date(initialDraft.rn_Expiry)
+        : null,
+      pbox_Name: initialDraft?.pbox_Name || "",
+      pbox_Number: initialDraft?.pbox_Number || "",
+      pbox_Branch: initialDraft?.pbox_Branch || "",
+      pbox_Province: initialDraft?.pbox_Province as z.infer<
+        typeof registrationSchema
+      >["pbox_Province"],
+
+      // Business Details
+      practice_Name: initialDraft?.practice_Name || "",
+
+      location_Email: initialDraft?.location_Email || "",
+
+      location_Phone_Number: initialDraft?.location_Phone_Number || "",
+      location_Creation_Date: initialDraft?.location_Creation_Date
+        ? new Date(initialDraft.location_Creation_Date)
+        : null,
+
+      postal_Section: initialDraft?.postal_Section || "",
+      postal_Lot: initialDraft?.postal_Lot || "",
+      postal_Street: initialDraft?.postal_Street || "",
+      postal_Suburb: initialDraft?.postal_Suburb || "",
+      postal_Province: initialDraft?.postal_Province as z.infer<
+        typeof registrationSchema
+      >["postal_Province"],
+
+      ipa_Registration_Number: initialDraft?.ipa_Registration_Number || "",
+      ipa_Certified_Number: initialDraft?.ipa_Certified_Number || "",
+
+      premises: initialDraft?.premises as z.infer<
+        typeof registrationSchema
+      >["premises"],
+      ptype: "public",
+
+      // Bank Details
+      bank: initialDraft?.bank as z.infer<typeof registrationSchema>["bank"],
+      branch_Number: initialDraft?.branch_Number || "",
+      branch_Name: initialDraft?.branch_Name || "",
+      account_Number: initialDraft?.account_Number || "",
+      account_Name: initialDraft?.account_Name || "",
+
+      // Documents
+      ipa_Certificate: initialDraft?.ipa_Certificate || "",
+      tin_Certificate: initialDraft?.tin_Certificate || "",
+      medical_Certificate: initialDraft?.medical_Certificate || "",
+
+      // Signature
+      medical_Practitioner_Signiture:
+        initialDraft?.medical_Practitioner_Signiture || "",
+
+      // Metadata
+      created_Date: initialDraft?.created_Date
+        ? new Date(initialDraft.created_Date)
+        : undefined,
+      updated_Date: initialDraft?.updated_Date
+        ? new Date(initialDraft.updated_Date)
+        : undefined,
+      status: initialDraft?.status,
+      luhnRegistrationNumber: initialDraft?.luhnRegistrationNumber,
+      bucket: initialDraft?.bucket,
+      reason: initialDraft?.reason,
+      isPsnaProvider: initialDraft?.isPsnaProvider,
+
+      // Signature Type
+      signatureType: "draw",
     },
   });
 
-  const signaturePadRef = useRef<SignaturePad | null>(null);
+  const saveDraft = useCallback(
+    async (values: z.infer<typeof registrationSchema>) => {
+      if (!user?.userId) return;
+      try {
+        // Exclude signatureType from the values sent to the backend
+        const valuesToSend = { ...values } as Record<string, unknown>;
+        if ("signatureType" in valuesToSend) {
+          delete valuesToSend.signatureType;
+        }
 
-  const onSubmit = async (data: z.infer<typeof registrationSchema>) => {
-    console.log(data);
-    // Handle form submission
+        console.log("valuesToSend", valuesToSend);
+        await addOrUpdateDraft({
+          variables: {
+            draft: {
+              ...valuesToSend,
+              applicantsTermsInPractice:
+                values.applicantsTermsInPractice?.toString() || "0",
+              userId: user.userId,
+              isPsnaProvider: false,
+              status: "DRAFT",
+              ptype: "public",
+              postal_Suburb: values.postal_Suburb || "",
+            },
+          },
+        });
+        console.log("Draft saved successfully");
+        toast.success("Draft saved successfully");
+        setPreviousFormValues(values);
+      } catch (error) {
+        console.error("Error saving draft:", error);
+        toast.error("Failed to save draft");
+      }
+    },
+    [addOrUpdateDraft, user?.userId]
+  );
+
+  const debouncedSaveDraft = useMemo(
+    () => createDebouncedSave(saveDraft),
+    [saveDraft]
+  );
+
+  useEffect(() => {
+    const subscription = form.watch((values) => {
+      if (!previousFormValues) {
+        setPreviousFormValues(values as z.infer<typeof registrationSchema>);
+        return;
+      }
+
+      // Compare current values with previous values
+      const hasChanges = Object.keys(values).some((key) => {
+        const currentValue = values[key as keyof typeof values];
+        const previousValue =
+          previousFormValues[key as keyof typeof previousFormValues];
+
+        // Debug log for postal_Suburb
+        if (key === "postal_Suburb") {
+          console.log("postal_Suburb changed:", {
+            current: currentValue,
+            previous: previousValue,
+            hasChange:
+              JSON.stringify(currentValue) !== JSON.stringify(previousValue),
+          });
+        }
+
+        return JSON.stringify(currentValue) !== JSON.stringify(previousValue);
+      });
+
+      if (hasChanges) {
+        console.log("Form values before save:", values);
+        debouncedSaveDraft(values as z.infer<typeof registrationSchema>);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      debouncedSaveDraft.cancel();
+    };
+  }, [form, previousFormValues, debouncedSaveDraft]);
+
+  const isSubsectionValid = (
+    form: UseFormReturn<z.infer<typeof registrationSchema>>,
+    fields: string[],
+    formState: UseFormReturn<z.infer<typeof registrationSchema>>
+  ): { isValid: boolean; invalidCount: number; isStarted: boolean } => {
+    let invalidCount = 0;
+    let filledFieldCount = 0;
+
+    for (const field of fields) {
+      const value = form.getValues(
+        field as keyof z.infer<typeof registrationSchema>
+      );
+      const error =
+        formState.formState.errors[
+          field as keyof z.infer<typeof registrationSchema>
+        ];
+
+      // Check if field has any value
+      if (value) {
+        filledFieldCount++;
+      }
+
+      // Check if field is empty or has validation errors
+      if (!value || error) {
+        invalidCount++;
+      }
+
+      // Special handling for nested fields
+      if (field.includes(".")) {
+        const [parent, child] = field.split(".");
+        const parentValue = form.getValues(
+          parent as keyof z.infer<typeof registrationSchema>
+        );
+        if (
+          parentValue &&
+          typeof parentValue === "object" &&
+          child in parentValue
+        ) {
+          filledFieldCount++;
+        }
+        if (
+          !parentValue ||
+          typeof parentValue !== "object" ||
+          !(child in parentValue)
+        ) {
+          invalidCount++;
+        }
+      }
+    }
+
+    return {
+      isValid: invalidCount === 0,
+      invalidCount,
+      isStarted: filledFieldCount > 0,
+    };
+  };
+
+  // Update the calculateTotalProgress function signature
+  const calculateTotalProgress = (
+    form: UseFormReturn<z.infer<typeof registrationSchema>>,
+    steps: Step[]
+  ): number => {
+    let totalFields = 0;
+    let completedFields = 0;
+
+    steps.forEach((step) => {
+      step.subsections.forEach((sub) => {
+        const { invalidCount, isValid } = isSubsectionValid(
+          form,
+          sub.fields,
+          form
+        );
+        totalFields += sub.fields.length;
+        if (isValid) {
+          completedFields += sub.fields.length;
+        } else {
+          completedFields += sub.fields.length - invalidCount;
+        }
+      });
+    });
+
+    return Math.round((completedFields / totalFields) * 100);
+  };
+
+  type Step = {
+    title: string;
+    icon: React.ElementType;
+    description: string;
+    subsections: {
+      title: string;
+      fields: string[];
+    }[];
+  };
+
+  const steps: Step[] = [
+    {
+      title: "Officer",
+      icon: UserCheck,
+      description: "Public Officer & Medical Practitioner Details",
+      subsections: [
+        {
+          title: "Public Officer",
+          fields: [
+            "public_officer_firstname",
+            "public_officer_lastname",
+            "mobile_Phone_Number",
+          ],
+        },
+        // {
+        //   title: "Medical Practitioner",
+        //   fields: [
+        //     "medical_Practitioner_firstname",
+        //     "medical_Practitioner_lastname",
+        //     "applicantsTermsInPractice",
+        //     "mb_Registration_Number",
+        //     "rn_Expiry",
+        //   ],
+        // },
+        {
+          title: "P.O Box",
+          fields: ["pbox_Name", "pbox_Number", "pbox_Branch", "pbox_Province"],
+        },
+      ],
+    },
+    {
+      title: "Provincial Health Authority",
+      icon: Building2,
+      description: "Service Provider Information",
+      subsections: [
+        {
+          title: "Basic Information",
+          fields: [
+            "practice_Name",
+            "location_Email",
+            "location_Phone_Number",
+            "location_Creation_Date",
+          ],
+        },
+        {
+          title: "Practice Location",
+          fields: [
+            "postal_Section",
+            "postal_Lot",
+            "postal_Street",
+            "postal_Suburb",
+            "postal_Province",
+            "ipa_Registration_Number",
+            "premises",
+          ],
+        },
+      ],
+    },
+    {
+      title: "Bank",
+      icon: Landmark,
+      description: "Banking Information",
+      subsections: [
+        {
+          title: "Bank Details",
+          fields: [
+            "bank",
+            "branch_Number",
+            "branch_Name",
+            "account_Number",
+            "account_Name",
+          ],
+        },
+      ],
+    },
+    {
+      title: "Documents",
+      icon: FileText,
+      description: "Required Certificates",
+      subsections: [
+        // {
+        //   title: "IPA Certificate",
+        //   fields: ["ipa_Certificate"],
+        // },
+        {
+          title: "TIN Certificate",
+          fields: ["tin_Certificate"],
+        },
+        // {
+        //   title: "Medical Board Certificate",
+        //   fields: ["medical_Certificate"],
+        // },
+      ],
+    },
+    {
+      title: "Signature",
+      icon: FileSignature,
+      description: "Sign Registration Form",
+      subsections: [
+        {
+          title: "Signature",
+          fields: ["medical_Practitioner_Signiture"],
+        },
+      ],
+    },
+    {
+      title: "Verify",
+      icon: BadgeCheck,
+      description: "Verify Registration",
+      subsections: [
+        {
+          title: "Verify Details",
+          fields: ["verifyDetails"],
+        },
+      ],
+    },
+  ];
+
+  const isStepComplete = (stepIndex: number): boolean => {
+    const step = steps[stepIndex];
+    return step.subsections.every((sub) => {
+      const { isValid } = isSubsectionValid(form, sub.fields, form);
+      return isValid;
+    });
+  };
+
+  const canAccessStep = (stepIndex: number): boolean => {
+    // First 4 steps (Officer, Business, Bank, Documents) are always accessible
+    if (stepIndex < 4) return true;
+
+    // For signature step (index 4), check if all previous steps are complete
+    if (stepIndex === 4) {
+      return [0, 1, 2, 3].every((i) => isStepComplete(i));
+    }
+
+    // For verify step (index 5), check if all previous steps AND signature is complete
+
+    if (stepIndex === 5) {
+      return isStepComplete(4);
+    }
+
+    return true;
   };
 
   const nextStep = () => {
-    setStep((prev) => Math.min(prev + 1, 6));
+    if (canAccessStep(step)) {
+      setStep(step + 1);
+    }
   };
 
   const prevStep = () => {
-    setStep((prev) => Math.max(prev - 1, 1));
+    setStep(step - 1);
   };
 
-  const renderStep = () => {
+  const onSubmit = async (values: z.infer<typeof registrationSchema>) => {
+    console.log("Starting form submission...");
+    console.log("Form values:", values);
+
+    if (!user?.userId) {
+      console.error("User not authenticated - no userId found");
+      toast.error("User not authenticated");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      console.log("Setting isSubmitting to true");
+
+      // Format dates to ISO strings
+      const formattedValues = {
+        ...values,
+        signatureType: undefined,
+        id: null,
+        userId: null,
+        applicantsTermsInPractice:
+          values.applicantsTermsInPractice?.toString() || "0",
+        practice_Section: values.practice_Section || null,
+        practice_Lot: values.practice_Lot || null,
+        practice_Street: values.practice_Street || null,
+        practice_Suburb: values.practice_Suburb || null,
+        practice_Province: values.practice_Province || null,
+        business_Phone_Number: values.business_Phone_Number || null,
+        applicant_Employment_Status: null,
+        business_Type: values.business_Type || null,
+        email: values.email || null,
+        status: "pending",
+        ptype: "public",
+        isPsnaProvider: false,
+      };
+
+      console.log("Formatted values for submission:", formattedValues);
+
+      const { data, errors } = await addOrUpdateRegistration({
+        variables: {
+          reg: formattedValues,
+        },
+      });
+
+      console.log("Mutation response:", { data, errors });
+
+      if (errors) {
+        console.error("GraphQL errors:", errors);
+        throw new Error(errors[0].message);
+      }
+
+      if (!data?.addOrUpdateRegistration?.id) {
+        console.error("Registration submission failed - no ID returned");
+        throw new Error("Registration submission failed - no ID returned");
+      }
+
+      console.log("Registration submitted successfully");
+      toast.success("Registration submitted successfully");
+
+      router.push("/registration");
+    } catch (error) {
+      console.error("Error submitting registration:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to submit registration. Please try again.";
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+      console.log("Setting isSubmitting to false");
+    }
+  };
+
+  const renderStep = (
+    step: number,
+    form: UseFormReturn<z.infer<typeof registrationSchema>>
+  ) => {
     switch (step) {
       case 1:
         return (
           <div className="grid gap-4">
-            <h2 className="text-lg font-semibold">Public Officer Details</h2>
+            <h2 className="font-semibold">Public Officer Details</h2>
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="officerFirstName"
+                name="public_officer_firstname"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>First Name</FormLabel>
@@ -470,7 +873,7 @@ export function PublicRegistrationForm() {
               />
               <FormField
                 control={form.control}
-                name="officerLastName"
+                name="public_officer_lastname"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Last Name</FormLabel>
@@ -485,7 +888,7 @@ export function PublicRegistrationForm() {
 
             <FormField
               control={form.control}
-              name="officerPhone"
+              name="mobile_Phone_Number"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Mobile Phone Number</FormLabel>
@@ -497,13 +900,11 @@ export function PublicRegistrationForm() {
               )}
             />
 
-            <h2 className="text-lg font-semibold mt-6">
-              Medical Practitioner Details
-            </h2>
+            {/* <h2 className="font-semibold mt-6">Medical Practitioner Details</h2>
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="practitionerFirstName"
+                name="medical_Practitioner_firstname"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>First Name</FormLabel>
@@ -516,7 +917,7 @@ export function PublicRegistrationForm() {
               />
               <FormField
                 control={form.control}
-                name="practitionerLastName"
+                name="medical_Practitioner_lastname"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Last Name</FormLabel>
@@ -532,74 +933,79 @@ export function PublicRegistrationForm() {
             <div className="grid grid-cols-6 gap-4">
               <FormField
                 control={form.control}
-                name="termsInPractice"
+                name="applicantsTermsInPractice"
                 render={({ field }) => (
-                  <FormItem className="col-span-1">
-                    <FormLabel>Terms in Practice</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="number"
-                        min="0"
-                        onChange={(e) =>
-                          field.onChange(parseInt(e.target.value))
-                        }
-                        placeholder="5"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                  <div className="col-span-2">
+                    <FormItem>
+                      <FormLabel>Terms in Practice</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="number"
+                          min="0"
+                          onChange={(e) =>
+                            field.onChange(parseInt(e.target.value))
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  </div>
                 )}
               />
 
               <FormField
                 control={form.control}
-                name="medicalBoardRegNumber"
+                name="mb_Registration_Number"
                 render={({ field }) => (
-                  <FormItem className="col-span-2">
-                    <FormLabel>Medical Board Registration Number</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="MB12345" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                  <div className="col-span-2">
+                    <FormItem>
+                      <FormLabel>Medical Board Registration Number</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="MB12345" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  </div>
                 )}
               />
 
               <FormField
                 control={form.control}
-                name="regExpiryDate"
+                name="rn_Expiry"
                 render={({ field }) => (
-                  <FormItem className="col-span-3">
-                    <FormLabel>Registration Expiry Date</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="date"
-                        min={new Date().toISOString().split("T")[0]}
-                        value={
-                          field.value instanceof Date
-                            ? field.value.toISOString().split("T")[0]
-                            : ""
-                        }
-                        onChange={(e) => {
-                          const date = e.target.value
-                            ? new Date(e.target.value)
-                            : null;
-                          field.onChange(date);
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                  <div className="col-span-2">
+                    <FormItem>
+                      <FormLabel>Registration Expiry Date</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="date"
+                          min={new Date().toISOString().split("T")[0]}
+                          value={
+                            field.value instanceof Date
+                              ? field.value.toISOString().split("T")[0]
+                              : ""
+                          }
+                          onChange={(e) => {
+                            const date = e.target.value
+                              ? new Date(e.target.value)
+                              : null;
+                            field.onChange(date);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  </div>
                 )}
               />
-            </div>
+            </div> */}
 
-            <h2 className="text-lg font-semibold mt-6">P.O Box Details</h2>
+            <h2 className="font-semibold mt-6">P.O Box Details</h2>
             <FormField
               control={form.control}
-              name="poBoxName"
+              name="pbox_Name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>P.O Box Name</FormLabel>
@@ -614,7 +1020,7 @@ export function PublicRegistrationForm() {
             <div className="grid grid-cols-3 gap-4">
               <FormField
                 control={form.control}
-                name="poBoxNumber"
+                name="pbox_Number"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>P.O Box Number</FormLabel>
@@ -627,7 +1033,7 @@ export function PublicRegistrationForm() {
               />
               <FormField
                 control={form.control}
-                name="poBoxBranch"
+                name="pbox_Branch"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>P.O Box Branch</FormLabel>
@@ -641,7 +1047,7 @@ export function PublicRegistrationForm() {
 
               <FormField
                 control={form.control}
-                name="poBoxProvince"
+                name="pbox_Province"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Province</FormLabel>
@@ -693,11 +1099,11 @@ export function PublicRegistrationForm() {
 
       case 2:
         return (
-          <div className="grid gap-4">
+          <div className="grid gap-4 animate-slide-down-fade-in">
             <h2 className="text-lg font-semibold">Business Details</h2>
             <FormField
               control={form.control}
-              name="serviceName"
+              name="practice_Name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Service Provider/Medical Center Name</FormLabel>
@@ -712,7 +1118,7 @@ export function PublicRegistrationForm() {
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="businessEmail"
+                name="location_Email"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Business Email</FormLabel>
@@ -729,7 +1135,7 @@ export function PublicRegistrationForm() {
               />
               <FormField
                 control={form.control}
-                name="businessPhone"
+                name="location_Phone_Number"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Business Phone Number</FormLabel>
@@ -744,7 +1150,7 @@ export function PublicRegistrationForm() {
 
             <FormField
               control={form.control}
-              name="inceptionDate"
+              name="location_Creation_Date"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Business Inception Date</FormLabel>
@@ -775,7 +1181,7 @@ export function PublicRegistrationForm() {
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="practiceSection"
+                name="postal_Section"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Section</FormLabel>
@@ -788,7 +1194,7 @@ export function PublicRegistrationForm() {
               />
               <FormField
                 control={form.control}
-                name="practiceLot"
+                name="postal_Lot"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Lot</FormLabel>
@@ -804,7 +1210,7 @@ export function PublicRegistrationForm() {
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="practiceStreet"
+                name="postal_Street"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Street</FormLabel>
@@ -815,9 +1221,10 @@ export function PublicRegistrationForm() {
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
-                name="practiceSuburb"
+                name="postal_Suburb"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Suburb</FormLabel>
@@ -830,93 +1237,95 @@ export function PublicRegistrationForm() {
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="practiceProvince"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Province</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a province" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[
-                        "Central",
-                        "Chimbu (Simbu)",
-                        "Eastern Highlands",
-                        "East New Britain",
-                        "East Sepik",
-                        "Enga",
-                        "Gulf",
-                        "Madang",
-                        "Manus",
-                        "Milne Bay",
-                        "Morobe",
-                        "New Ireland",
-                        "Oro (Northern)",
-                        "Bougainville",
-                        "Southern Highlands",
-                        "Western (Fly)",
-                        "Western Highlands",
-                        "West New Britain",
-                        "Sandaun (West Sepik)",
-                        "National Capital District",
-                        "Hela",
-                        "Jiwaka",
-                      ].map((province) => (
-                        <SelectItem key={province} value={province}>
-                          {province}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="postal_Province"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Province</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a province" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[
+                          "Central",
+                          "Chimbu (Simbu)",
+                          "Eastern Highlands",
+                          "East New Britain",
+                          "East Sepik",
+                          "Enga",
+                          "Gulf",
+                          "Madang",
+                          "Manus",
+                          "Milne Bay",
+                          "Morobe",
+                          "New Ireland",
+                          "Oro (Northern)",
+                          "Bougainville",
+                          "Southern Highlands",
+                          "Western (Fly)",
+                          "Western Highlands",
+                          "West New Britain",
+                          "Sandaun (West Sepik)",
+                          "National Capital District",
+                          "Hela",
+                          "Jiwaka",
+                        ].map((province) => (
+                          <SelectItem key={province} value={province}>
+                            {province}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="practiceType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Type of Practice</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select practice type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[
-                        "Hospital - public",
-                        "Hospital - private",
-                        "Practice - general practice",
-                        "Practice - other private practice",
-                        "Educational institution",
-                        "Residential care facility",
-                        "Other community health care service",
-                        "Mobile",
-                      ].map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="premises"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Type of Premises</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select premises type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[
+                          "Hospital - public",
+                          "Hospital - private",
+                          "Practice - general practice",
+                          "Practice - other private practice",
+                          "Educational institution",
+                          "Residential care facility",
+                          "Other community health care service",
+                          "Mobile",
+                        ].map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-            <FormField
+            {/* <FormField
               control={form.control}
-              name="employmentStatus"
+              name="applicant_Employment_Status"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Employment Status for this Location</FormLabel>
@@ -926,11 +1335,11 @@ export function PublicRegistrationForm() {
                   <FormMessage />
                 </FormItem>
               )}
-            />
+            /> */}
 
-            <FormField
+            {/* <FormField
               control={form.control}
-              name="registeredBusinessName"
+              name="registered_Business_Name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Registered Business Name</FormLabel>
@@ -940,12 +1349,12 @@ export function PublicRegistrationForm() {
                   <FormMessage />
                 </FormItem>
               )}
-            />
+            /> */}
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="tinNumber"
+                name="ipa_Certified_Number"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>TIN Number</FormLabel>
@@ -958,7 +1367,7 @@ export function PublicRegistrationForm() {
               />
               <FormField
                 control={form.control}
-                name="ipaNumber"
+                name="ipa_Registration_Number"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>IPA Registration Number</FormLabel>
@@ -971,9 +1380,9 @@ export function PublicRegistrationForm() {
               />
             </div>
 
-            <FormField
+            {/* <FormField
               control={form.control}
-              name="businessType"
+              name="business_Type"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Business Type</FormLabel>
@@ -1001,7 +1410,7 @@ export function PublicRegistrationForm() {
                   <FormMessage />
                 </FormItem>
               )}
-            />
+            /> */}
           </div>
         );
 
@@ -1011,7 +1420,7 @@ export function PublicRegistrationForm() {
             <h2 className="text-lg font-semibold">Bank Details</h2>
             <FormField
               control={form.control}
-              name="bankName"
+              name="bank"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Bank Name</FormLabel>
@@ -1038,7 +1447,7 @@ export function PublicRegistrationForm() {
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="branchCode"
+                name="branch_Number"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Branch Code</FormLabel>
@@ -1049,9 +1458,10 @@ export function PublicRegistrationForm() {
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
-                name="branchName"
+                name="branch_Name"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Branch Name</FormLabel>
@@ -1066,7 +1476,7 @@ export function PublicRegistrationForm() {
 
             <FormField
               control={form.control}
-              name="accountNumber"
+              name="account_Number"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Account Number</FormLabel>
@@ -1075,6 +1485,7 @@ export function PublicRegistrationForm() {
                       {...field}
                       type="text"
                       placeholder="1234567890"
+                      minLength={6}
                       maxLength={10}
                     />
                   </FormControl>
@@ -1085,7 +1496,7 @@ export function PublicRegistrationForm() {
 
             <FormField
               control={form.control}
-              name="accountName"
+              name="account_Name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Account Name</FormLabel>
@@ -1101,62 +1512,88 @@ export function PublicRegistrationForm() {
 
       case 4:
         return (
-          <div className="grid gap-4">
+          <div className="flex flex-col gap-4">
             <h2 className="text-lg font-semibold">Required Documents</h2>
 
-            <FormField
-              control={form.control}
-              name="documents.ipaCertificate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>IPA Certificate</FormLabel>
-                  <FormControl>
-                    <FileUpload
-                      value={field.value}
-                      onChange={field.onChange}
-                      accept=".pdf,.jpg,.jpeg,.png"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4 space-y-4">
+              {/* <FormField
+                control={form.control}
+                name="ipa_Certificate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <FileUpload
+                        title="IPA Certificate"
+                        value={field.value || null}
+                        onChange={(value) => {
+                          field.onChange(value);
+                          const values = form.getValues();
+                          saveDraft(values);
+                        }}
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onUploadComplete={() => {
+                          const values = form.getValues();
+                          saveDraft(values);
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              /> */}
 
-            <FormField
-              control={form.control}
-              name="documents.tinCertificate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>TIN Certificate</FormLabel>
-                  <FormControl>
-                    <FileUpload
-                      value={field.value}
-                      onChange={field.onChange}
-                      accept=".pdf,.jpg,.jpeg,.png"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="tin_Certificate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <FileUpload
+                        title="TIN Certificate"
+                        value={field.value || null}
+                        onChange={(value) => {
+                          field.onChange(value);
+                          const values = form.getValues();
+                          saveDraft(values);
+                        }}
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onUploadComplete={() => {
+                          const values = form.getValues();
+                          saveDraft(values);
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="documents.medicalBoardCertificate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Medical Board Registration Certificate</FormLabel>
-                  <FormControl>
-                    <FileUpload
-                      value={field.value}
-                      onChange={field.onChange}
-                      accept=".pdf,.jpg,.jpeg,.png"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              {/* <FormField
+                control={form.control}
+                name="medical_Certificate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <FileUpload
+                        title="Medical Board Registration Certificate"
+                        value={field.value || null}
+                        onChange={(value) => {
+                          field.onChange(value);
+                          const values = form.getValues();
+                          saveDraft(values);
+                        }}
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onUploadComplete={() => {
+                          const values = form.getValues();
+                          saveDraft(values);
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              /> */}
+            </div>
           </div>
         );
 
@@ -1164,276 +1601,405 @@ export function PublicRegistrationForm() {
         return (
           <div className="grid gap-4">
             <h2 className="text-lg font-semibold">Signature</h2>
-
-            <FormField
-              control={form.control}
-              name="signatureType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Signature Type</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select signature type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draw">Sign on Screen</SelectItem>
-                      <SelectItem value="upload">Upload File</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {form.watch("signatureType") === "draw" ? (
-              <FormField
-                control={form.control}
-                name="signature.drawnSignature"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Draw Signature</FormLabel>
-                    <FormControl>
-                      <div className="border rounded-md p-4">
-                        <SignaturePad
-                          ref={(ref) => {
-                            if (ref) {
-                              signaturePadRef.current = ref;
-                            }
-                          }}
-                          canvasProps={{
-                            className:
-                              "signature-canvas w-full h-[200px] border",
-                          }}
-                          onEnd={() => {
-                            if (signaturePadRef.current) {
-                              const dataUrl =
-                                signaturePadRef.current.toDataURL();
-                              field.onChange(dataUrl);
-                            }
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="mt-2"
-                          onClick={() => {
-                            if (signaturePadRef.current) {
-                              signaturePadRef.current.clear();
-                              field.onChange("");
-                            }
-                          }}
-                        >
-                          Clear
-                        </Button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            {draftLoading ? (
+              <div className="flex flex-col items-center gap-2 w-full">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="text-xs text-muted-foreground">
+                  Saving signature...
+                </span>
+              </div>
+            ) : form.watch("medical_Practitioner_Signiture") ? (
+              <SignaturePreviewCard
+                filename={form.watch("medical_Practitioner_Signiture") || ""}
+                onDelete={() => {
+                  form.setValue("medical_Practitioner_Signiture", "");
+                  saveDraft(form.getValues());
+                }}
+                userBucket={form.watch("bucket")}
               />
             ) : (
-              <FormField
-                control={form.control}
-                name="signature.uploadedSignature"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Upload Signature</FormLabel>
-                    <FormControl>
-                      <FileUpload
-                        value={field.value}
-                        onChange={field.onChange}
-                        accept=".jpg,.jpeg,.png"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="flex items-center gap-6">
+                <div className="flex-1">
+                  <FormField
+                    control={form.control}
+                    name="medical_Practitioner_Signiture"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <SignatureUpload
+                            title="Draw Signature"
+                            value={field.value}
+                            onUpload={(value) => {
+                              field.onChange(value);
+                              const values = form.getValues();
+                              saveDraft(values);
+                            }}
+                            ptype="public"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="flex items-center mt-4">
+                  <span className="text-sm text-muted-foreground">OR</span>
+                </div>
+                <div className="flex-1">
+                  <FormField
+                    control={form.control}
+                    name="medical_Practitioner_Signiture"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <FileUpload
+                            title="Upload Signature"
+                            value={field.value || null}
+                            onChange={(value) => {
+                              field.onChange(value);
+                              const values = form.getValues();
+                              saveDraft(values);
+                            }}
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            onUploadComplete={() => {
+                              const values = form.getValues();
+                              saveDraft(values);
+                            }}
+                            isSignatureUpload
+                            ptype="public"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
             )}
           </div>
         );
 
       case 6:
+        const values = form.getValues();
         return (
-          <div className="grid gap-6">
-            <h2 className="text-lg font-semibold">Verify Your Information</h2>
-
-            <section className="grid gap-4">
-              <h3 className="font-medium">Public Officer Details</h3>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+          <div className="max-w-2xl mx-auto space-y-8">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <UserCheck className="w-5 h-5 text-primary" />
+                <h2 className="text-lg font-semibold">
+                  Public Officer Details
+                </h2>
+              </div>
+              <div className="p-6 bg-muted rounded-lg space-y-6">
                 <div>
-                  <span className="text-muted-foreground">Name:</span>
-                  <p>{`${form.getValues("officerFirstName")} ${form.getValues(
-                    "officerLastName"
-                  )}`}</p>
+                  <h3 className="text-sm font-medium mb-3 text-muted-foreground">
+                    Public Officer
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Name:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {values.public_officer_firstname}{" "}
+                        {values.public_officer_lastname}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Mobile:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {values.mobile_Phone_Number}
+                      </span>
+                    </div>
+                  </div>
                 </div>
+                <Separator />
                 <div>
-                  <span className="text-muted-foreground">Phone:</span>
-                  <p>{form.getValues("officerPhone")}</p>
+                  <h3 className="text-sm font-medium mb-3 text-muted-foreground">
+                    P.O Box Details
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Name:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {values.pbox_Name}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Number:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {values.pbox_Number}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Branch:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {values.pbox_Branch}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Province:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {values.pbox_Province}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </section>
+            </div>
 
-            <section className="grid gap-4">
-              <h3 className="font-medium">Medical Practitioner Details</h3>
-              <div className="grid grid-cols-3 gap-x-4 gap-y-2 text-sm">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-primary" />
+                <h2 className="text-lg font-semibold">
+                  Service Provider Details
+                </h2>
+              </div>
+              <div className="p-6 bg-muted rounded-lg space-y-6">
                 <div>
-                  <span className="text-muted-foreground">Name:</span>
-
-                  <p>{`${form.getValues(
-                    "practitionerFirstName"
-                  )} ${form.getValues("practitionerLastName")}`}</p>
+                  <h3 className="text-sm font-medium mb-3 text-muted-foreground">
+                    Basic Information
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Practice Name:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {values.practice_Name}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Email:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {values.location_Email}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Phone:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {values.location_Phone_Number}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Creation Date:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {values.location_Creation_Date?.toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
                 </div>
+                <Separator />
                 <div>
-                  <span className="text-muted-foreground">
-                    Terms in Practice:
-                  </span>
-                  <p>{form.getValues("termsInPractice")} years</p>
+                  <h3 className="text-sm font-medium mb-3 text-muted-foreground">
+                    Practice Location
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Section:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {values.postal_Section}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Lot:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {values.postal_Lot}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Street:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {values.postal_Street}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Suburb:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {values.postal_Suburb}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Province:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {values.postal_Province}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Premises Type:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {values.premises}
+                      </span>
+                    </div>
+                  </div>
                 </div>
+                <Separator />
                 <div>
-                  <span className="text-muted-foreground">
-                    Medical Board Registration:
-                  </span>
-                  <p>{form.getValues("medicalBoardRegNumber")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">
-                    Registration Expiry:
-                  </span>
-                  <p>{form.getValues("regExpiryDate")?.toLocaleDateString()}</p>
+                  <h3 className="text-sm font-medium mb-3 text-muted-foreground">
+                    Registration Information
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        IPA Registration:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {values.ipa_Registration_Number}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        TIN Number:
+                      </span>
+                      <span className="text-sm font-medium">
+                        {values.ipa_Certified_Number}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </section>
+            </div>
 
-            <section className="grid gap-4">
-              <h3 className="font-medium">P.O Box Details</h3>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Name:</span>
-                  <p>{form.getValues("poBoxName")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Number:</span>
-                  <p>{form.getValues("poBoxNumber")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Branch:</span>
-                  <p>{form.getValues("poBoxBranch")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Province:</span>
-                  <p>{form.getValues("poBoxProvince")}</p>
-                </div>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Landmark className="w-5 h-5 text-primary" />
+                <h2 className="text-lg font-semibold">Bank Details</h2>
               </div>
-            </section>
-
-            <section className="grid gap-4">
-              <h3 className="font-medium">Business Details</h3>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground">
-                    Service Provider Name:
+              <div className="p-6 bg-muted rounded-lg space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Bank:</span>
+                  <span className="text-sm font-medium">{values.bank}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Branch:</span>
+                  <span className="text-sm font-medium">
+                    {values.branch_Name} ({values.branch_Number})
                   </span>
-                  <p>{form.getValues("serviceName")}</p>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Business Type:</span>
-                  <p>{form.getValues("businessType")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Practice Type:</span>
-                  <p>{form.getValues("practiceType")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Email:</span>
-                  <p>{form.getValues("businessEmail")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Phone:</span>
-                  <p>{form.getValues("businessPhone")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Inception Date:</span>
-                  <p>{form.getValues("inceptionDate")?.toLocaleDateString()}</p>
-                </div>
-              </div>
-            </section>
-
-            <section className="grid gap-4">
-              <h3 className="font-medium">Bank Details</h3>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Bank Name:</span>
-                  <p>{form.getValues("bankName")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Branch:</span>
-                  <p>{form.getValues("branchName")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Account Number:</span>
-                  <p>{form.getValues("accountNumber")}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Account Name:</span>
-                  <p>{form.getValues("accountName")}</p>
-                </div>
-              </div>
-            </section>
-
-            <section className="grid gap-4">
-              <h3 className="font-medium">Documents & Signature</h3>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground">
-                    IPA Certificate:
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Account Number:
                   </span>
-                  <p>
-                    {form.getValues("documents.ipaCertificate")
-                      ? "Uploaded"
-                      : "Not uploaded"}
-                  </p>
+                  <span className="text-sm font-medium">
+                    {values.account_Number}
+                  </span>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Account Name:
+                  </span>
+                  <span className="text-sm font-medium">
+                    {values.account_Name}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-primary" />
+                <h2 className="text-lg font-semibold">Documents</h2>
+              </div>
+              <div className="p-6 bg-muted rounded-lg space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">
                     TIN Certificate:
                   </span>
-                  <p>
-                    {form.getValues("documents.tinCertificate")
-                      ? "Uploaded"
-                      : "Not uploaded"}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">
-                    Medical Board Certificate:
+                  <span className="text-sm font-medium">
+                    {values.tin_Certificate ? "Uploaded" : "Not uploaded"}
                   </span>
-                  <p>
-                    {form.getValues("documents.medicalBoardCertificate")
-                      ? "Uploaded"
-                      : "Not uploaded"}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Signature Type:</span>
-                  <p>{form.getValues("signatureType")}</p>
                 </div>
               </div>
-            </section>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <FileSignature className="w-5 h-5 text-primary" />
+                <h2 className="text-lg font-semibold">Signature</h2>
+              </div>
+              <div className="p-6 bg-muted rounded-lg space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">Status:</span>
+                  <span className="text-sm font-medium">
+                    {values.medical_Practitioner_Signiture
+                      ? "Signed"
+                      : "Not signed"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-4 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setStep(5)}
+                disabled={isSubmitting}
+              >
+                Back
+              </Button>
+              <Button
+                type="submit"
+                onClick={() => {
+                  console.log("Submit button clicked");
+                  console.log("Form validation state:", form.formState);
+                  console.log("Form errors:", form.formState.errors);
+                  form.handleSubmit(onSubmit)();
+                }}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <span className="animate-spin mr-2">⏳</span>
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit Registration"
+                )}
+              </Button>
+            </div>
           </div>
         );
+
+      default:
+        return <div>Step 1</div>;
     }
   };
 
   return (
-    <div className="flex w-full gap-4 h-[calc(100vh-(--spacing(24)))]">
-      <div className="w-1/4 min-w-[250px]">
-        <div className="sticky top-4">
-          <div className="rounded-lg border bg-muted text-card-foreground shadow-sm animate-slide-left-fade-in">
+    <div className="flex w-full gap-4 min-h-full h-fit">
+      {/* Control Panel */}
+      <div className="w-1/4 min-w-[250px] h-fit sticky top-[4.5rem]">
+        <div className="">
+          <Card className="rounded-lg bg-muted text-card-foreground shadow-sm animate-slide-left-fade-in p-0">
             <div className="p-4 flex flex-col gap-4">
               <div className="flex flex-col gap-1">
                 <h3 className="font-bold text-xl">Registration Form</h3>
@@ -1441,7 +2007,7 @@ export function PublicRegistrationForm() {
                   <ChevronsRight className="w-3 h-3 text-muted-foreground" />
                   <Building2 className="w-3 h-3 text-muted-foreground" />
                   <h4 className="text-sm font-medium">
-                    Provincial Health Authorities
+                    Provincial Health Authority
                   </h4>
                 </div>
               </div>
@@ -1451,12 +2017,10 @@ export function PublicRegistrationForm() {
               <div className="space-y-2">
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>Progress</span>
-                  <span>
-                    {calculateTotalProgress(form, form.formState, steps)}%
-                  </span>
+                  <span>{calculateTotalProgress(form, steps)}%</span>
                 </div>
                 <Progress
-                  value={calculateTotalProgress(form, form.formState, steps)}
+                  value={calculateTotalProgress(form, steps)}
                   className="h-2 transition-all duration-300"
                 />
               </div>
@@ -1466,128 +2030,151 @@ export function PublicRegistrationForm() {
               </p>
               <Separator className="my-1" />
 
-              <div className="space-y-0">
-                {steps.map((s, i) => (
-                  <button
-                    key={s.title}
-                    onClick={() => setStep(i + 1)}
-                    className={cn(
-                      "flex w-full items-start gap-3 rounded-md p-2 text-sm transition-colors",
-                      step === i + 1
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted",
-                      step > i + 1 && "text-muted-foreground"
-                    )}
-                  >
-                    <div className="flex flex-col items-start gap-2 w-full">
-                      <div className="text-sm font-semibold flex items-center gap-1 w-full">
-                        <s.icon className="w-3.5 h-3.5" />
-                        {s.title}
-                      </div>
+              <div className="space-y-2">
+                {steps.map((s, i) => {
+                  const isAccessible = canAccessStep(i);
+                  const isVerifyStep = i === 5;
+                  const shouldShow = !isVerifyStep || isAccessible;
 
-                      <div className="flex flex-col items-start w-full space-y-1">
-                        {s.subsections.map((sub) => {
-                          const { isValid, invalidCount, isStarted } =
-                            isSubsectionValid(
-                              form,
-                              sub.fields,
-                              form.formState,
-                              step,
-                              i + 1
+                  if (!shouldShow) return null;
+
+                  const isActive = step === i + 1;
+
+                  return (
+                    <Button
+                      key={s.title}
+                      onClick={() => isAccessible && setStep(i + 1)}
+                      variant="ghost"
+                      className={cn(
+                        "flex w-full items-start gap-3 h-fit rounded-md p-2 text-sm transition-colors duration-300 cursor-pointer",
+                        isActive
+                          ? "bg-primary text-primary-foreground hover:bg-primary/95 hover:text-primary-foreground/95"
+                          : "hover:bg-muted-foreground/20",
+                        !isAccessible && "opacity-50 cursor-not-allowed",
+                        step > i + 1 && "text-muted-foreground"
+                      )}
+                      disabled={!isAccessible}
+                    >
+                      <div className="flex flex-col items-start gap-2 w-full">
+                        <div className="text-sm font-semibold flex items-center gap-1 w-full">
+                          <s.icon className="w-3.5 h-3.5" />
+                          {s.title}
+                        </div>
+
+                        <div className="flex flex-col items-start w-full space-y-1">
+                          {s.subsections.map((sub) => {
+                            const { isValid, invalidCount, isStarted } =
+                              isSubsectionValid(form, sub.fields, form);
+
+                            const showWarning =
+                              (step > i + 1 || (step < i + 1 && isStarted)) &&
+                              !isValid;
+
+                            // If this is the active step, add text-background to the subsection
+                            const subsectionClass = cn(
+                              "text-xs text-muted-foreground flex items-center justify-between w-full text-left",
+                              isActive && "text-background/75"
                             );
 
-                          const showWarning =
-                            (step > i + 1 || (step < i + 1 && isStarted)) &&
-                            !isValid;
-
-                          return (
-                            <div
-                              key={sub.title}
-                              className="text-xs text-muted-foreground flex items-center justify-between w-full text-left"
-                            >
-                              <div className="flex items-center gap-1">
-                                {sub.title}
-                              </div>
-                              <div className="text-xs font-normal flex items-center gap-1">
-                                {isValid ? (
-                                  <Check className="w-3.5 h-3.5 text-green-500" />
-                                ) : (
-                                  <>
-                                    {showWarning && (
-                                      <TriangleAlert className="w-3.5 h-3.5 text-amber-500" />
-                                    )}
-                                    <span
-                                      className={cn(
-                                        showWarning
-                                          ? "text-amber-500"
-                                          : "text-muted-foreground"
+                            return (
+                              <div key={sub.title} className={subsectionClass}>
+                                <div className="flex items-center gap-1">
+                                  {sub.title}
+                                </div>
+                                <div className="text-xs font-normal flex items-center gap-1">
+                                  {isValid ? (
+                                    <Check className="w-3.5 h-3.5 text-green-500" />
+                                  ) : (
+                                    <>
+                                      {showWarning && (
+                                        <TriangleAlert className="w-3.5 h-3.5 text-amber-500" />
                                       )}
-                                    >
-                                      {invalidCount}
-                                    </span>
-                                  </>
-                                )}
+                                      <span
+                                        className={cn(
+                                          showWarning
+                                            ? "text-amber-500"
+                                            : "text-muted-foreground"
+                                        )}
+                                      >
+                                        {invalidCount}
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                ))}
+                    </Button>
+                  );
+                })}
               </div>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 
-      <div className="flex flex-col w-full">
-        <Card className="flex flex-col animate-slide-right-fade-in">
-          <CardContent className="p-6 flex flex-col h-full">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold">{steps[step - 1].title}</h1>
+      {/* Form Container */}
+      <Card className="w-3/4 h-fit animate-slide-right-fade-in">
+        <CardHeader>
+          <CardTitle className="font-bold flex items-center justify-between">
+            <div className="flex items-center justify-between w-full">
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                {steps[step - 1].title}
+              </h1>
               <div className="flex justify-between items-center gap-2">
                 {step > 1 && (
                   <Button
                     type="button"
                     onClick={prevStep}
                     variant="ghost"
-                    className="gap-1"
+                    className="gap-1 cursor-pointer animate-slide-right-fade-in"
+                    key={steps[step - 2].title}
+                    disabled={step === 1}
                   >
                     <ChevronsLeft className="w-3 h-3" />
-                    {steps[step - 2].title}
+                    <p
+                      key={steps[step - 2].title}
+                      className="text-sm font-medium"
+                    >
+                      {steps[step - 2].title}
+                    </p>
                   </Button>
                 )}
-                <div className="ml-auto">
-                  {step < 6 ? (
-                    <Button type="button" variant="default" onClick={nextStep}>
+                {step < 6 && (
+                  <div className="ml-auto">
+                    <Button
+                      type="button"
+                      variant="default"
+                      onClick={nextStep}
+                      disabled={step === 6}
+                      key={steps[step].title}
+                      className="gap-1 cursor-pointer animate-slide-left-fade-in"
+                    >
                       <ChevronsRight className="w-3 h-3" />
-                      {steps[step].title}
+                      <p key={steps[step].title} className="font-bold">
+                        {steps[step].title}
+                      </p>
                     </Button>
-                  ) : (
-                    <Button type="submit" onClick={form.handleSubmit(onSubmit)}>
-                      Submit
-                    </Button>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
-            <Separator className="my-6" />
-
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                key={step}
-                className="flex flex-col animate-slide-left-fade-in"
-              >
-                <ScrollArea className="h-full max-h-[calc(100vh-260px)] w-full">
-                  {renderStep()}
-                </ScrollArea>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pb-8">
+          <Form {...form}>
+            <ScrollArea className="h-[calc(100vh-16rem)] max-h-fit">
+              <div className="animate-slide-down-fade-in" key={step}>
+                {renderStep(step, form)}
+              </div>
+            </ScrollArea>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
+
+export default PublicRegistrationForm;

@@ -47,7 +47,7 @@ import { GET_DRAFT_BY_USER_ID } from "@/lib/graphql/queries";
 import { useMutation } from "@apollo/client";
 import { useUserProfileStore } from "@/stores/user-profile-store";
 import { FileUpload } from "@/components/molecules/file-upload";
-import SignatureUpload from "@/components/molecules/SignatureUpload";
+import SignatureUpload from "@/components/molecules/signature-upload";
 import { SignaturePreviewCard } from "@/components/molecules/signature-preview-card";
 import { useRouter } from "next/navigation";
 
@@ -756,6 +756,8 @@ function PrivateRegistrationForm({
         status: "pending",
         ptype: "private",
         isPsnaProvider: false,
+        reason: values.reason,
+        practice_Suburb: values.practice_Suburb,
       };
 
       const { data, errors } = await addOrUpdateRegistration({
@@ -1554,6 +1556,7 @@ function PrivateRegistrationForm({
                   form.setValue("medical_Practitioner_Signiture", "");
                   saveDraft(form.getValues());
                 }}
+                userBucket={form.watch("bucket")}
               />
             ) : (
               <div className="flex items-center gap-6">
@@ -1996,7 +1999,7 @@ function PrivateRegistrationForm({
       {/* Control Panel */}
       <div className="w-1/4 min-w-[250px] h-fit sticky top-[4.5rem]">
         <div className="">
-          <Card className="rounded-lg bg-muted text-card-foreground shadow-sm animate-slide-left-fade-in">
+          <Card className="rounded-lg bg-muted text-card-foreground shadow-sm animate-slide-left-fade-in p-0">
             <div className="p-4 flex flex-col gap-4">
               <div className="flex flex-col gap-1">
                 <h3 className="font-bold text-xl">Registration Form</h3>

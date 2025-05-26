@@ -23,7 +23,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -56,6 +56,7 @@ interface RegistrationCardProps {
     id?: string;
     ptype: "private" | "public";
     updated_Date: string | number | Date;
+    reason?: string;
   } | null;
 }
 
@@ -138,7 +139,12 @@ export function RegistrationCard({
     ],
   });
 
+  useEffect(() => {
+    console.log("latestDraft", latestDraft);
+  }, [latestDraft]);
+
   const isDisabled = latestDraft?.ptype !== registrationType && !!latestDraft;
+  const isRejected = !!latestDraft?.reason;
 
   const draftState: DraftStateProps = {
     isDisabled,
@@ -222,7 +228,7 @@ export function RegistrationCard({
   };
 
   const renderDraftState = (props: DraftStateProps) => {
-    const { isDisabled, hasDraft, draftType, ptype, isHovering } = props;
+    const { isDisabled, hasDraft, isHovering } = props;
 
     if (!hasDraft) {
       return (
@@ -293,14 +299,18 @@ export function RegistrationCard({
         <div
           className={cn(
             "w-full h-24 rounded-xl flex items-center justify-between px-6 transition-colors duration-300 animate-slide-up-fade-in",
-            headerColor
+            isRejected ? "bg-red-900" : headerColor
           )}
         >
           <p
             key={isTrashButtonHovered ? "delete-draft" : "active-draft"}
             className="text-background animate-slide-left-fade-in text-lg font-bold group-hover:-mt-8 transition-all duration-300"
           >
-            {isTrashButtonHovered ? "Delete Draft?" : "Active Draft"}
+            {isTrashButtonHovered
+              ? "Delete Draft?"
+              : isRejected
+              ? "Rejected Registration"
+              : "Active Draft"}
           </p>
           <Button
             variant="ghost"
@@ -311,7 +321,7 @@ export function RegistrationCard({
               setIsTrashButtonHovered(true);
             }}
             onMouseLeave={() => {
-              setHeaderColor("bg-blue-700");
+              setHeaderColor(isRejected ? "bg-red-900" : "bg-blue-700");
               setIsTrashButtonHovered(false);
             }}
             onClick={onClearDraft}
