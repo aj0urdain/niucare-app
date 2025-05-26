@@ -1,4 +1,11 @@
 import { uploadData, getUrl } from "aws-amplify/storage";
+import { GET_S3_FILE_ADMIN } from "@/lib/graphql/queries";
+import { ApolloClient, InMemoryCache } from "@apollo/client";
+
+const client = new ApolloClient({
+  uri: process.env.NEXT_PUBLIC_API_URL,
+  cache: new InMemoryCache(),
+});
 
 /**
  * Uploads a file to S3 in the specified folder (e.g., 'private' or 'documents').
@@ -40,4 +47,39 @@ export async function getS3FileUrl(
     path: ({ identityId }) => `${folder}/${identityId}/${fileName}`,
   });
   return url.toString();
+}
+
+/**
+ * Gets a signed URL for admin access to a file in S3.
+ * This uses the backend's S3 signing functionality to generate a pre-signed URL.
+ */
+export async function getS3FileAdmin(
+  userBucket: string,
+  fileName: string
+): Promise<string> {
+  try {
+    const key = `private/${userBucket}/${fileName}`;
+
+    console.log("key", key);
+    console.log("bucket", process.env.NEXT_PUBLIC_BUCKET_NAME);
+
+    const { data } = await client.query({
+      query: GET_S3_FILE_ADMIN,
+      variables: {
+        bucket: process.env.NEXT_PUBLIC_BUCKET_NAME,
+        key,
+      },
+    });
+
+    console.log("data", data);
+
+    if (!data) {
+      throw new Error("Failed to get signed URL");
+    }
+
+    return data.getS3FileAdmin.url;
+  } catch (error) {
+    console.error("Error getting signed URL:", error);
+    throw error;
+  }
 }

@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,7 +40,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation } from "@apollo/client";
 import { DELETE_CLAIM, GET_POLICYHOLDERCLAIMS } from "@/lib/graphql/queries";
 import { useUserProfileStore } from "@/stores/user-profile-store";
@@ -58,6 +57,7 @@ export type Claim = {
   amount: number;
   description: string;
   viewFiles: string;
+  userBucket: string;
 };
 
 const ActionsCell = ({ claim }: { claim: Claim }) => {
@@ -323,11 +323,13 @@ export const columns: ColumnDef<Claim>[] = [
           icon: CircleCheckBig,
           className:
             "bg-green-900/25 text-green-800 dark:text-green-400 font-semibold border border-green-700/50",
+          message: "",
         },
         pending: {
           icon: CircleDashed,
           className:
             "bg-yellow-900/25 text-yellow-800 border font-semibold dark:text-yellow-400 border-yellow-700/50",
+          message: "",
         },
         rejected: {
           icon: XCircle,
@@ -349,7 +351,9 @@ export const columns: ColumnDef<Claim>[] = [
           )}
         >
           <Icon className="h-3 w-3" />
-          {status.charAt(0).toUpperCase() + status.slice(1)}
+          <span className="text-xs font-semibold">
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+          </span>
         </Button>
       );
 
@@ -360,7 +364,7 @@ export const columns: ColumnDef<Claim>[] = [
               <TooltipTrigger asChild>{button}</TooltipTrigger>
               <TooltipContent
                 side="right"
-                className="text-xs bg-destructive text-destructive-foreground"
+                // className="text-xs bg-accent text-accent-foreground"
               >
                 {message}
               </TooltipContent>

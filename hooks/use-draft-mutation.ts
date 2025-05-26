@@ -24,7 +24,7 @@ export function useDraftMutation() {
       });
     },
   });
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout>(undefined);
 
   const debouncedMutation = debounce(
     async (draftData: Omit<DraftInput, "userId">) => {

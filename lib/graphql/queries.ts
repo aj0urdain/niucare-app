@@ -224,7 +224,7 @@ mutation UpdateRegistrationStatus($id:String!, $status:String!, $reason:String){
      status
   }
 }
-    `);
+`);
 
 export const DELETE_CLAIM = gql(`
 mutation DeleteClaim($id:Int!){
@@ -345,6 +345,7 @@ query GetUserFullRegistration($userId: String!) {
       pbox_Number
       bucket
       ptype
+      reason
    }
 }
 `);
@@ -417,11 +418,18 @@ export const DRAFTS_BY_USER_ID = gql`
       email
       business_Phone_Number
       location_Creation_Date
+      location_Phone_Number
+      location_Email
       practice_Section
       practice_Lot
       practice_Street
       practice_Suburb
       practice_Province
+      postal_Section
+      postal_Lot
+      postal_Street
+      postal_Suburb
+      postal_Province
       applicant_Employment_Status
       registered_Business_Name
       tin_Certificate
@@ -451,6 +459,7 @@ export const DRAFTS_BY_USER_ID = gql`
       applicantsTermsInPractice
       mb_Registration_Number
       rn_Expiry
+      reason
     }
   }
 `;
@@ -543,5 +552,37 @@ query GetBank($policyHolderId: Int!) {
     account_Name
     policyHolderId
   }
+}
+`);
+
+export const GET_DASHBOARD_CLAIMS = gql`
+  query GetDashboardStatClaims(
+    $userId: String
+    $startDate: String
+    $endDate: String
+  ) {
+    dashboardStatClaims(
+      userId: $userId
+      startDate: $startDate
+      endDate: $endDate
+    )
+      @rest(
+        path: "/dashboard/claimstat?userId={args.userId}&startDate={args.startDate}&endDate={args.endDate}"
+        method: "GET"
+      ) {
+      result
+    }
+  }
+`;
+
+export const GET_S3_FILE_ADMIN = gql(`
+fragment FileBucket on REST {
+bucket: String,
+key: String
+}
+query getS3FileAdmin ($input:FileBucket!){
+    signurl(input:$input) @rest(path:"/amazon/signurl", method:"POST"){
+    url
+    }
 }
 `);
