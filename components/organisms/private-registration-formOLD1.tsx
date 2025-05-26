@@ -214,7 +214,7 @@ const registrationSchema = z.object({
 export const PrivateRegistrationForm = () => {
   const [addOrUpdateDraft, { loading }] = useMutation(ADD_OR_UPDATE_DRAFT);
   const user = useUserProfileStore((state) => state.user);
-  const initialValues = useRef<z.infer<typeof registrationSchema>>();
+  const initialValues = useRef<z.infer<typeof registrationSchema>>(undefined);
 
   const form = useForm<z.infer<typeof registrationSchema>>({
     resolver: zodResolver(registrationSchema),
