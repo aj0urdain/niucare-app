@@ -13,7 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   FileDown,
   UserRoundSearch,
@@ -25,14 +24,12 @@ import {
   XCircle,
   CircleDashed,
   Component,
-  ClipboardCopy,
   Info,
   ClipboardList,
   ChevronDown,
+  ChevronsRight,
 } from "lucide-react";
 import { Claim } from "@/components/atoms/columns-data";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
@@ -46,14 +43,18 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  TooltipProvider,
 } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useRef, useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import { GET_POLICY_HOLDER_BY_EMPLOYEE_NO } from "@/lib/graphql/queries";
 import { useUserProfileStore } from "@/stores/user-profile-store";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { InfoCard } from "@/components/molecules/info-card";
+import { FileUpload } from "@/components/molecules/file-upload";
 
 interface ViewClaimModalProps {
   claim: Claim | null;
@@ -73,10 +74,29 @@ const ViewClaimModalContent = ({
   );
   const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const { user } = useUserProfileStore();
 
   const canApproveClaim = user?.permissions?.canApproveRegistration;
+
+  // Parse the viewFiles string into an array with error handling
+  const files = useMemo(() => {
+    if (!claim?.viewFiles) return [];
+    try {
+      const parsed = JSON.parse(claim.viewFiles);
+      // Ensure we have an array
+      return Array.isArray(parsed) ? parsed : [parsed];
+    } catch (error) {
+      console.error("Error parsing viewFiles:", error);
+      return [];
+    }
+  }, [claim?.viewFiles]);
+
+  // Log the raw claim data
+  useEffect(() => {
+    console.log("Raw claim data:", claim);
+  }, [claim]);
 
   const { data: policyHolderData, loading: policyHolderLoading } = useQuery(
     GET_POLICY_HOLDER_BY_EMPLOYEE_NO,
@@ -90,14 +110,25 @@ const ViewClaimModalContent = ({
 
   // Sync URL with modal state
   useEffect(() => {
+    const currentParams = new URLSearchParams(window.location.search);
+    const currentId = currentParams.get("id");
+    const currentTab = currentParams.get("sheetTab");
+
     if (open && claim) {
-      const params = new URLSearchParams();
-      params.set("id", claim.id);
-      if (activeTab !== "overview") {
-        params.set("sheetTab", activeTab);
+      // Only update if values are different
+      if (
+        currentId !== claim.id ||
+        (activeTab !== "overview" && currentTab !== activeTab)
+      ) {
+        const params = new URLSearchParams();
+        params.set("id", claim.id);
+        if (activeTab !== "overview") {
+          params.set("sheetTab", activeTab);
+        }
+        router.push(`?${params.toString()}`);
       }
-      router.push(`?${params.toString()}`);
-    } else {
+    } else if (!open && currentId) {
+      // Only clear if there's actually something to clear
       router.push("?");
     }
   }, [open, claim, activeTab, router]);
@@ -114,533 +145,450 @@ const ViewClaimModalContent = ({
     }
   }, [searchParams]);
 
-  // Update URL when tab changes
-  const handleTabChange = (tab: "overview" | "details" | "files") => {
-    setActiveTab(tab);
-  };
-
   // Update URL when modal state changes
   const handleOpenChange = (open: boolean) => {
     onOpenChange(open);
   };
 
-  if (!claim) return null;
-
-  // For demo purposes
-  const files = ["medical_report.pdf", "prescription.pdf", "receipt.pdf"];
-
-  function formatEmployeeDetails(claim: Claim) {
-    return `Employee Number: ${claim.employeeNumber}
-Employee Name: ${policyHolder?.name || "N/A"}
-Gender: ${policyHolder?.gender === "M" ? "Male" : "Female"}
-Date of Birth: ${policyHolder?.dateOfBirth || "N/A"}`;
-  }
-
-  function formatClaimDetails(claim: Claim) {
-    return `Claim ID: ${claim.claimId}
-Claim Type: ${claim.claimType}
-Amount: ${new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "PGK",
-    }).format(claim.amount)}
-Description: ${claim.description}`;
-  }
-
-  const handleRejectClaim = () => {
-    if (!rejectionReason.trim()) {
-      toast.error("Please provide a reason for rejection");
-      return;
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element && scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector(
+        "[data-radix-scroll-area-viewport]"
+      );
+      if (scrollContainer) {
+        const offset = element.offsetTop - 20;
+        scrollContainer.scrollTo({
+          top: offset,
+          behavior: "smooth",
+        });
+      }
     }
-    // TODO: Implement claim rejection with reason
-    toast.error("Claim rejected");
-    setRejectionDialogOpen(false);
-    setRejectionReason("");
   };
+
+  if (!claim) return null;
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent
         side="bottom"
-        className="max-w-xl mx-auto h-full min-h-[90vh] max-h-[90vh] rounded-t-2xl"
+        className="max-w-xl mx-auto h-[90vh] min-h-[90vh] max-h-[90vh] rounded-t-2xl flex flex-col p-0"
       >
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-4 pb-4">
+        <SheetHeader
+          className={cn(
+            "px-6 pt-6 pb-4 shrink-0 rounded-t-2xl",
+            claim.status === "pending" && "bg-yellow-100",
+            claim.status === "approved" && "bg-green-100",
+            claim.status === "rejected" && "bg-red-100"
+          )}
+        >
+          <SheetTitle className="flex items-center gap-4 py-0 text-base">
             <div
               className={cn(
-                "px-3 py-1.5 text-xs font-semibold rounded-md",
+                "px-3 py-1.5 text-xs rounded-md bg-primary/10 text-primary border capitalize border-primary/20 flex items-center gap-1.5",
                 claim.status === "approved" &&
-                  "bg-green-900/25 text-green-800 dark:text-green-400 border border-green-700/50",
+                  "bg-green-900/25 text-green-800 dark:text-green-400 border-green-700/50",
                 claim.status === "rejected" &&
-                  "bg-red-900/25 text-red-800 dark:text-red-400 border border-red-700/50",
+                  "bg-red-900/25 text-red-800 dark:text-red-400 border-red-700/50",
                 claim.status === "pending" &&
-                  "bg-yellow-900/25 text-yellow-800 dark:text-yellow-400 border border-yellow-700/50"
+                  "bg-yellow-900/25 text-yellow-800 dark:text-yellow-400 border-yellow-700/50"
               )}
             >
-              {claim.status.charAt(0).toUpperCase() + claim.status.slice(1)}
+              {claim.status === "pending" ? (
+                <CircleDashed className="h-3 w-3 animate-spin-slow" />
+              ) : claim.status === "approved" ? (
+                <CircleCheckBig className="h-3 w-3" />
+              ) : claim.status === "rejected" ? (
+                <XCircle className="h-3 w-3" />
+              ) : (
+                <CircleDashed className="h-3 w-3 animate-spin-slow" />
+              )}
+              {claim.status}
             </div>
-            <div className="w-1 h-1 bg-muted-foreground rounded-full" />
-            Claim ID: {claim.claimId}
+            <div className="w-1 h-1 bg-muted-foreground rounded-full animate-pulse" />
+            <div className="px-3 py-1.5 text-xs rounded-md bg-transparent text-primary border capitalize border-primary/20 flex items-center gap-1">
+              <p className="font-semibold">{claim.claimType}</p>
+              <p className="font-normal">Claim</p>
+              <ChevronsRight className="h-3 w-3" />
+              <p>{claim.claimId}</p>
+            </div>
           </SheetTitle>
         </SheetHeader>
 
-        <Tabs
-          value={activeTab}
-          onValueChange={(value) =>
-            handleTabChange(value as "overview" | "details" | "files")
-          }
-        >
-          <TabsList className="grid grid-cols-3 w-fit">
-            <TabsTrigger value="overview" className="flex items-center gap-1">
-              <Info className="h-3.5 w-3.5" />
-              <span className="text-xs">Overview</span>
-            </TabsTrigger>
-            <TabsTrigger value="details" className="flex items-center gap-1">
-              <ClipboardList className="h-3.5 w-3.5" />
-              <span className="text-xs">Details</span>
-            </TabsTrigger>
-            <TabsTrigger value="files" className="flex items-center gap-1">
-              <FileDown className="h-3.5 w-3.5" />
-              <span className="text-xs">Files</span>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="mt-4">
-            <div className="flex flex-col gap-4 h-full items-center justify-center">
-              {/* Employee Information Card */}
-              <Card className="relative bg-muted w-full flex flex-col animate-slide-left-fade-in">
-                <UserRoundSearch className="absolute right-4 top-4 h-32 w-32 rotate-12 opacity-5" />
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold w-fit">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="grid gap-2">
-                          <div className="flex items-center gap-1 text-muted-foreground font-semibold text-sm">
-                            <IdCard className="h-5 w-5" />
-                            <span className="">{claim.employeeNumber}</span>
-                          </div>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">Employee ID</TooltipContent>
-                    </Tooltip>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-2 flex-1">
-                  <div className="grid gap-2">
-                    <div className="font-bold text-3xl">
-                      {policyHolderLoading ? (
-                        <div className="animate-pulse bg-muted-foreground/20 h-8 w-48 rounded" />
-                      ) : (
-                        policyHolder?.name || "N/A"
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-0.5 text-muted-foreground font-medium text-xs">
-                      {policyHolder?.gender === "M" ? (
-                        <>
-                          <Mars className="h-4 w-4" />
-                          <span className="font-medium text-sm uppercase">
-                            Male
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <Venus className="h-4 w-4" />
-                          <span className="">Female</span>
-                        </>
-                      )}
-                    </div>
-                    <div className="w-0.5 h-0.5 bg-muted-foreground rounded-full" />
-                    <div className="flex items-center gap-1 text-muted-foreground font-medium text-xs">
-                      <Cake className="h-4 w-4 text-muted-foreground" />
-                      <span className="">
-                        {policyHolder?.dateOfBirth
-                          ? new Date(
-                              policyHolder.dateOfBirth
-                            ).toLocaleDateString()
-                          : "N/A"}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Arrow Column */}
-              <div className="animate-slide-up-fade-in">
-                <div className="flex justify-center gap-2 w-fit animate-pulse">
-                  <ChevronDown className="h-6 w-6 text-muted-foreground opacity-20" />
-                  <ChevronDown className="h-6 w-6 text-muted-foreground opacity-40" />
-                  <ChevronDown className="h-6 w-6 text-muted-foreground opacity-60" />
-                  <ChevronDown className="h-6 w-6 text-muted-foreground opacity-80" />
-                  <ChevronDown className="h-6 w-6 text-muted-foreground" />
-                </div>
-              </div>
-
-              {/* Claim Details Card */}
-              <Card
-                className={cn(
-                  "relative w-full flex flex-col border-2 border-muted-foreground animate-slide-right-fade-in",
-                  claim.status === "approved" &&
-                    "bg-green-500/30 border-green-500",
-                  claim.status === "rejected" && "bg-red-500/30 border-red-500",
-                  claim.status === "pending" &&
-                    "bg-yellow-500/30 border-yellow-500"
-                )}
-              >
-                {/* Status Icon Background */}
-                {claim.status === "approved" && (
-                  <CircleCheckBig className="absolute right-4 top-4 h-32 w-32 rotate-12 opacity-5" />
-                )}
-                {claim.status === "rejected" && (
-                  <XCircle className="absolute right-4 top-4 h-32 w-32 rotate-12 opacity-5" />
-                )}
-                {claim.status === "pending" && (
-                  <CircleDashed className="absolute right-4 top-4 h-32 w-32 opacity-5 animate-spin [animation-duration:8s]" />
-                )}
-
-                <CardHeader>
-                  <CardTitle
-                    className={cn(
-                      "text-lg font-semibold w-fit flex items-center gap-1",
-                      claim.status === "approved" &&
-                        "text-green-800 dark:text-green-400",
-                      claim.status === "rejected" &&
-                        "text-red-800 dark:text-red-400",
-                      claim.status === "pending" &&
-                        "text-yellow-800 dark:text-yellow-400"
-                    )}
-                  >
-                    <Component className="h-4 w-4" />
-                    <span className="text-ellipsis line-clamp-1">
-                      {claim.claimType}
-                    </span>
-                  </CardTitle>
-                  <CardDescription
-                    className={cn(
-                      "text-sm",
-                      claim.status === "approved" &&
-                        "text-green-800/60 dark:text-green-400/60",
-                      claim.status === "rejected" &&
-                        "text-red-800/60 dark:text-red-400/60",
-                      claim.status === "pending" &&
-                        "text-yellow-800/60 dark:text-yellow-400/60"
-                    )}
-                  >
-                    {claim.description || "No description provided."}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4 flex-1">
-                  <div className="flex gap-2">
-                    {files.map((file, index) => (
-                      <Tooltip key={index}>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                          >
-                            <FileDown className="h-4 w-4" />
-                            <span className="sr-only">Download {file}</span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">{file}</TooltipContent>
-                      </Tooltip>
-                    ))}
-                  </div>
-                  {/* make the separator the same colour as the border for the respective card */}
-                  <Separator
-                    className={cn(
-                      "my-2",
-                      claim.status === "approved" && "bg-green-500",
-                      claim.status === "rejected" && "bg-red-500",
-                      claim.status === "pending" && "bg-yellow-500"
-                    )}
-                  />
-
-                  <div
-                    className={cn(
-                      "font-bold text-3xl",
-                      claim.status === "approved" &&
-                        "text-green-800 dark:text-green-400",
-                      claim.status === "rejected" &&
-                        "text-red-800 dark:text-red-400",
-                      claim.status === "pending" &&
-                        "text-yellow-800 dark:text-yellow-400 animate-pulse"
-                    )}
-                  >
-                    {new Intl.NumberFormat("en-US", {
-                      style: "currency",
-                      currency: "PGK",
-                    }).format(claim.amount)}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="details" className="mt-4">
-            <div className="flex flex-col gap-4">
-              {/* Employee Details - Left Column */}
-              <Card className="bg-muted animate-slide-left-fade-in">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                  <CardTitle className="font-semibold text-muted-foreground">
-                    Employee Information
-                  </CardTitle>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => {
-                          navigator.clipboard.writeText(
-                            formatEmployeeDetails(claim)
-                          );
-                          toast.success(
-                            "Employee information copied to clipboard"
-                          );
-                        }}
-                      >
-                        <ClipboardCopy className="h-4 w-4" />
-                        <span className="sr-only">Copy employee details</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="left">Copy details</TooltipContent>
-                  </Tooltip>
-                </CardHeader>
-                <CardContent className="grid gap-4">
-                  <div className="flex flex-col gap-0">
-                    <Label
-                      htmlFor="employeeName"
-                      className="text-muted-foreground text-xs pl-1.5"
+        <div className="flex flex-row h-full w-full overflow-hidden px-0 rounded-t-2xl">
+          {/* Sidebar: Navigation Icons */}
+          <Card className="flex flex-col items-center ml-6 gap-4 w-fit px-2 shrink-0 pb-4 h-fit rounded-xl">
+            <div className="flex flex-col items-center gap-2 mt-2">
+              <TooltipProvider>
+                <Tooltip defaultOpen={false}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => scrollToSection("overview-section")}
+                      variant="ghost"
                     >
-                      Employee Name
-                    </Label>
-                    <Input
-                      id="employeeName"
-                      value={policyHolder?.name || "N/A"}
-                      disabled
-                      className="mt-1.5 text-black opacity-100 disabled:opacity-100 disabled:cursor-default disabled:bg-white"
-                    />
+                      <Info className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Overview</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <TooltipProvider>
+                <Tooltip defaultOpen={false}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => scrollToSection("details-section")}
+                      variant="ghost"
+                    >
+                      <ClipboardList className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Details</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <TooltipProvider>
+                <Tooltip defaultOpen={false}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => scrollToSection("files-section")}
+                      variant="ghost"
+                    >
+                      <FileDown className="h-5 w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Files</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+
+            {canApproveClaim && claim.status === "pending" && (
+              <>
+                <Separator className="w-full my-1 bg-primary/20" />
+                <div className="flex flex-col items-center gap-2">
+                  <TooltipProvider>
+                    <Tooltip defaultOpen={false}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={() => {
+                            // TODO: Implement claim approval
+                            toast.success("Claim approved successfully");
+                          }}
+                          className="bg-green-600/50 border-green-800 border hover:bg-green-700 transition-colors flex items-center justify-center group/accept-button"
+                        >
+                          <CircleCheckBig className="h-6 w-6 text-green-900 group-hover/accept-button:text-green-100" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        <p>Approve</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <TooltipProvider>
+                    <Tooltip defaultOpen={false}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={() => setRejectionDialogOpen(true)}
+                          className="bg-red-600/50 border-red-800 border hover:bg-red-700 transition-colors flex items-center justify-center group/reject-button"
+                        >
+                          <XCircle className="h-6 w-6 text-red-900 group-hover/reject-button:text-red-100" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        <p>Reject</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </>
+            )}
+          </Card>
+
+          {/* Main Content Area */}
+          <div className="flex-1 flex flex-col min-w-0 h-full min-h-0">
+            <ScrollArea
+              ref={scrollAreaRef}
+              className="flex-1 min-h-0 px-6 overflow-y-auto"
+            >
+              <div className="pb-6">
+                {/* Overview Section */}
+                <div id="overview-section" className="space-y-4">
+                  <h2 className="text-lg font-semibold flex items-center gap-2 pl-4">
+                    <Info className="h-5 w-5" />
+                    Overview
+                  </h2>
+                  <Card className="relative bg-muted w-full flex flex-col animate-slide-left-fade-in">
+                    <UserRoundSearch className="absolute right-4 top-4 h-32 w-32 rotate-12 opacity-5" />
+                    <CardHeader>
+                      <CardTitle className="text-lg font-semibold w-fit">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="grid gap-2">
+                              <div className="flex items-center gap-1 text-muted-foreground font-semibold text-sm">
+                                <IdCard className="h-5 w-5" />
+                                <span className="">{claim.employeeNumber}</span>
+                              </div>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="right">
+                            Employee ID
+                          </TooltipContent>
+                        </Tooltip>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-2 flex-1">
+                      <div className="grid gap-2">
+                        <div className="font-bold text-3xl">
+                          {policyHolderLoading ? (
+                            <div className="animate-pulse bg-muted-foreground/20 h-8 w-48 rounded" />
+                          ) : (
+                            policyHolder?.name || "N/A"
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-0.5 text-muted-foreground font-medium text-xs">
+                          {policyHolder?.gender === "M" ? (
+                            <>
+                              <Mars className="h-4 w-4" />
+                              <span className="font-medium text-sm uppercase">
+                                Male
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <Venus className="h-4 w-4" />
+                              <span className="">Female</span>
+                            </>
+                          )}
+                        </div>
+                        <div className="w-0.5 h-0.5 bg-muted-foreground rounded-full" />
+                        <div className="flex items-center gap-1 text-muted-foreground font-medium text-xs">
+                          <Cake className="h-4 w-4 text-muted-foreground" />
+                          <span className="">
+                            {policyHolder?.dateOfBirth
+                              ? new Date(
+                                  policyHolder.dateOfBirth
+                                ).toLocaleDateString()
+                              : "N/A"}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <div className="animate-slide-up-fade-in">
+                    <div className="flex justify-center gap-2 w-fit animate-pulse">
+                      <ChevronDown className="h-6 w-6 text-muted-foreground opacity-20" />
+                      <ChevronDown className="h-6 w-6 text-muted-foreground opacity-40" />
+                      <ChevronDown className="h-6 w-6 text-muted-foreground opacity-60" />
+                      <ChevronDown className="h-6 w-6 text-muted-foreground opacity-80" />
+                      <ChevronDown className="h-6 w-6 text-muted-foreground" />
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="flex flex-col gap-0">
-                      <Label
-                        htmlFor="employeeNumber"
-                        className="text-muted-foreground text-xs pl-1.5"
-                      >
-                        Employee Number
-                      </Label>
-                      <Input
-                        id="employeeNumber"
-                        value={claim.employeeNumber}
-                        disabled
-                        className="mt-1.5 text-black opacity-100 disabled:opacity-100 disabled:cursor-default disabled:bg-white"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-0">
-                      <Label
-                        htmlFor="employeeGender"
-                        className="text-muted-foreground text-xs pl-1.5"
-                      >
-                        Gender
-                      </Label>
-                      <Input
-                        id="employeeGender"
-                        value={policyHolder?.gender === "M" ? "Male" : "Female"}
-                        disabled
-                        className="mt-1.5 text-black opacity-100 disabled:opacity-100 disabled:cursor-default disabled:bg-white"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-0">
-                      <Label
-                        htmlFor="employeeDob"
-                        className="text-muted-foreground text-xs pl-1.5"
-                      >
-                        Date of Birth
-                      </Label>
-                      <Input
-                        id="employeeDob"
-                        value={
-                          policyHolder?.dateOfBirth
-                            ? new Date(
-                                policyHolder.dateOfBirth
-                              ).toLocaleDateString()
-                            : "N/A"
-                        }
-                        disabled
-                        className="mt-1.5 text-black opacity-100 disabled:opacity-100 disabled:cursor-default disabled:bg-white"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  <Card
+                    className={cn(
+                      "relative w-full flex flex-col border-2 border-muted-foreground animate-slide-right-fade-in",
+                      claim.status === "approved" &&
+                        "bg-green-500/30 border-green-500",
+                      claim.status === "rejected" &&
+                        "bg-red-500/30 border-red-500",
+                      claim.status === "pending" &&
+                        "bg-yellow-500/30 border-yellow-500"
+                    )}
+                  >
+                    {claim.status === "approved" && (
+                      <CircleCheckBig className="absolute right-4 top-4 h-32 w-32 rotate-12 opacity-5" />
+                    )}
+                    {claim.status === "rejected" && (
+                      <XCircle className="absolute right-4 top-4 h-32 w-32 rotate-12 opacity-5" />
+                    )}
+                    {claim.status === "pending" && (
+                      <CircleDashed className="absolute right-4 top-4 h-32 w-32 opacity-5 animate-spin [animation-duration:8s]" />
+                    )}
 
-              {/* Claim Details - Right Column */}
-              <Card className="bg-muted animate-slide-right-fade-in">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                  <CardTitle className="font-semibold text-muted-foreground">
-                    Claim Information
-                  </CardTitle>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => {
-                          navigator.clipboard.writeText(
-                            formatClaimDetails(claim)
-                          );
-                          toast.success(
-                            "Claim information copied to clipboard"
-                          );
-                        }}
+                    <CardHeader>
+                      <CardTitle
+                        className={cn(
+                          "text-lg font-semibold w-fit flex items-center gap-1",
+                          claim.status === "approved" &&
+                            "text-green-800 dark:text-green-400",
+                          claim.status === "rejected" &&
+                            "text-red-800 dark:text-red-400",
+                          claim.status === "pending" &&
+                            "text-yellow-800 dark:text-yellow-400"
+                        )}
                       >
-                        <ClipboardCopy className="h-4 w-4" />
-                        <span className="sr-only">Copy claim details</span>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="left">Copy details</TooltipContent>
-                  </Tooltip>
-                </CardHeader>
-                <CardContent className="grid gap-4">
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="flex flex-col gap-0">
-                      <Label
-                        htmlFor="claimId"
-                        className="text-muted-foreground text-xs pl-1.5"
+                        <Component className="h-4 w-4" />
+                        <span className="text-ellipsis line-clamp-1">
+                          {claim.claimType}
+                        </span>
+                      </CardTitle>
+                      <CardDescription
+                        className={cn(
+                          "text-sm",
+                          claim.status === "approved" &&
+                            "text-green-800/60 dark:text-green-400/60",
+                          claim.status === "rejected" &&
+                            "text-red-800/60 dark:text-red-400/60",
+                          claim.status === "pending" &&
+                            "text-yellow-800/60 dark:text-yellow-400/60"
+                        )}
                       >
-                        Claim ID
-                      </Label>
-                      <Input
-                        id="claimId"
-                        value={claim.claimId}
-                        disabled
-                        className="mt-1.5 text-black opacity-100 disabled:opacity-100 disabled:cursor-default disabled:bg-white"
+                        {claim.description || "No description provided."}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-4 flex-1">
+                      <div className="flex gap-2">
+                        {files.map((file, index) => (
+                          <Tooltip key={index}>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                              >
+                                <FileDown className="h-4 w-4" />
+                                <span className="sr-only">Download {file}</span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom">
+                              {file}
+                            </TooltipContent>
+                          </Tooltip>
+                        ))}
+                      </div>
+                      <Separator
+                        className={cn(
+                          "my-2",
+                          claim.status === "approved" && "bg-green-500",
+                          claim.status === "rejected" && "bg-red-500",
+                          claim.status === "pending" && "bg-yellow-500"
+                        )}
                       />
-                    </div>
-                    <div className="flex flex-col gap-0">
-                      <Label
-                        htmlFor="claimStatus"
-                        className="text-muted-foreground text-xs pl-1.5"
+
+                      <div
+                        className={cn(
+                          "font-bold text-3xl",
+                          claim.status === "approved" &&
+                            "text-green-800 dark:text-green-400",
+                          claim.status === "rejected" &&
+                            "text-red-800 dark:text-red-400",
+                          claim.status === "pending" &&
+                            "text-yellow-800 dark:text-yellow-400 animate-pulse"
+                        )}
                       >
-                        Status
-                      </Label>
-                      <Input
-                        id="claimStatus"
-                        value={
-                          claim.status.charAt(0).toUpperCase() +
-                          claim.status.slice(1)
-                        }
-                        disabled
-                        className="mt-1.5 text-black opacity-100 disabled:opacity-100 disabled:cursor-default disabled:bg-white"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-0">
-                      <Label
-                        htmlFor="claimAmount"
-                        className="text-muted-foreground text-xs pl-1.5"
-                      >
-                        Amount
-                      </Label>
-                      <Input
-                        id="claimAmount"
-                        value={new Intl.NumberFormat("en-US", {
+                        {new Intl.NumberFormat("en-US", {
                           style: "currency",
                           currency: "PGK",
                         }).format(claim.amount)}
-                        disabled
-                        className="mt-1.5 text-black opacity-100 disabled:opacity-100 disabled:cursor-default disabled:bg-white"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-0">
-                    <Label
-                      htmlFor="claimType"
-                      className="text-muted-foreground text-xs pl-1.5"
-                    >
-                      Claim Type
-                    </Label>
-                    <Input
-                      id="claimType"
-                      value={claim.claimType}
-                      disabled
-                      className="mt-1.5 text-black opacity-100 disabled:opacity-100 disabled:cursor-default disabled:bg-white"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-0">
-                    <Label
-                      htmlFor="description"
-                      className="text-muted-foreground text-xs pl-1.5"
-                    >
-                      Description
-                    </Label>
-                    <Textarea
-                      id="description"
-                      value={claim.description}
-                      disabled
-                      className="mt-1.5 h-24 resize-none text-black opacity-100 disabled:opacity-100 disabled:cursor-default disabled:bg-white"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="files" className="mt-4">
-            <div className="grid gap-4">
-              {files.length > 0 ? (
-                files.map((file, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between gap-4 rounded-lg border p-4 animate-slide-down-fade-in"
-                  >
-                    <div className="flex items-center gap-2">
-                      <FileDown className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">File {index + 1}</span>
-                    </div>
-                    <Button size="sm" variant="outline">
-                      Download
-                    </Button>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center text-sm text-muted-foreground">
-                  No files available for this claim.
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
 
-        {canApproveClaim && claim.status === "pending" && (
-          <div className="mt-6 border-t pt-4">
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1 bg-green-500/10 hover:bg-green-500/20 text-green-700 border-green-500/50"
-                onClick={() => {
-                  // TODO: Implement claim approval
-                  toast.success("Claim approved successfully");
-                }}
-              >
-                <CircleCheckBig className="h-4 w-4 mr-2" />
-                Approve Claim
-              </Button>
-              <Button
-                variant="outline"
-                className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-700 border-red-500/50"
-                onClick={() => setRejectionDialogOpen(true)}
-              >
-                <XCircle className="h-4 w-4 mr-2" />
-                Reject Claim
-              </Button>
-            </div>
+                <Separator className="my-8 bg-primary/10" />
+
+                {/* Details Section */}
+                <div id="details-section" className="space-y-4">
+                  <h2 className="text-lg font-semibold flex items-center gap-2 pl-4">
+                    <ClipboardList className="h-5 w-5" />
+                    Details
+                  </h2>
+                  <InfoCard
+                    title="Employee Information"
+                    fields={[
+                      {
+                        label: "Employee Name",
+                        value: policyHolder?.name || "N/A",
+                      },
+                      {
+                        label: "Employee Number",
+                        value: claim.employeeNumber,
+                      },
+                      {
+                        label: "Gender",
+                        value: policyHolder?.gender === "M" ? "Male" : "Female",
+                      },
+                      {
+                        label: "Date of Birth",
+                        value: policyHolder?.dateOfBirth
+                          ? new Date(
+                              policyHolder.dateOfBirth
+                            ).toLocaleDateString()
+                          : "N/A",
+                      },
+                    ]}
+                  />
+
+                  <InfoCard
+                    title="Claim Information"
+                    fields={[
+                      {
+                        label: "Claim ID",
+                        value: claim.claimId,
+                      },
+                      {
+                        label: "Claim Type",
+                        value: claim.claimType,
+                      },
+                      {
+                        label: "Status",
+                        value:
+                          claim.status.charAt(0).toUpperCase() +
+                          claim.status.slice(1),
+                      },
+                      {
+                        label: "Amount",
+                        value: new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: "PGK",
+                        }).format(claim.amount),
+                      },
+                      {
+                        label: "Description",
+                        value: claim.description || "No description provided.",
+                      },
+                    ]}
+                  />
+                </div>
+
+                <Separator className="my-8 bg-primary/10" />
+
+                {/* Files Section */}
+                <div id="files-section" className="space-y-4">
+                  <h2 className="text-lg font-semibold flex items-center gap-2 pl-4">
+                    <FileDown className="h-5 w-5" />
+                    Files
+                  </h2>
+                  <div className="grid grid-cols-2 gap-4">
+                    {files.length > 0 ? (
+                      files.map((file: string, index: number) => (
+                        <FileUpload
+                          key={index}
+                          value={file}
+                          onChange={() => {}}
+                          title={`File ${index + 1}`}
+                          viewOnly={true}
+                          userBucket={claim.userBucket}
+                        />
+                      ))
+                    ) : (
+                      <div className="col-span-2 text-center text-sm text-muted-foreground">
+                        No files available for this claim.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </ScrollArea>
           </div>
-        )}
+        </div>
 
         <Dialog
           open={rejectionDialogOpen}
@@ -672,7 +620,19 @@ Description: ${claim.description}`;
               >
                 Cancel
               </Button>
-              <Button variant="destructive" onClick={handleRejectClaim}>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (!rejectionReason.trim()) {
+                    toast.error("Please provide a reason for rejection");
+                    return;
+                  }
+                  // TODO: Implement claim rejection with reason
+                  toast.error("Claim rejected");
+                  setRejectionDialogOpen(false);
+                  setRejectionReason("");
+                }}
+              >
                 Reject Claim
               </Button>
             </DialogFooter>

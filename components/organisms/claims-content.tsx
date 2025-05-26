@@ -65,6 +65,7 @@ export const ClaimsContent = ({ initialClaimId }: ClaimsContentProps) => {
       employeeNumber: claim.employeeNo,
       description: claim.description,
       viewFiles: claim.documents || "",
+      userBucket: claim.userBucket || "",
     })) || [];
 
   return (
@@ -86,6 +87,8 @@ export const ClaimsContent = ({ initialClaimId }: ClaimsContentProps) => {
         filters={filters}
         onFilterChange={setFilters}
         initialClaimId={initialClaimId}
+        type="claim"
+        visibleFilters={["status", "claimId", "employeeNumber", "claimType"]}
       />
     </div>
   );

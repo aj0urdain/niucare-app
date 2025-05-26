@@ -67,17 +67,13 @@ export function NewClaimModal() {
 
   return (
     <Sheet open={open} onOpenChange={handleSheetClose}>
-      <Button
-        onClick={() => setOpen(true)}
-        className="font-semibold"
-        variant="default"
-      >
-        <FilePlus className="w-4 h-4" />
-        New Claim
+      <Button onClick={() => setOpen(true)} variant="default" size="lg">
+        <FilePlus className="w-5 h-5" />
+        <span className="font-semibold">New Claim</span>
       </Button>
       <SheetContent
         side="top"
-        className="max-w-xl mx-auto min-h-fit max-h-[90vh] rounded-b-xl flex flex-col h-full"
+        className="max-w-xl mx-auto min-h-fit max-h-[90vh] rounded-b-xl flex flex-col h-full p-4"
       >
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">

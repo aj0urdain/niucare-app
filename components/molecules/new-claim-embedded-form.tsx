@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "../ui/card";
 import { ComboBoxResponsive } from "./combobox-responsive";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type JSX } from "react";
 import { useLazyQuery, useQuery, useMutation } from "@apollo/client";
 import {
   GET_CATALOGS,

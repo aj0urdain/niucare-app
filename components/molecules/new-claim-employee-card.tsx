@@ -73,7 +73,11 @@ export function NewClaimEmployeeCard() {
 
   return (
     <Card
-      className={`h-fit min-h-[200px] border rounded-xl p-4 flex gap-4 ${
+      className={`h-fit min-h-[200px] border rounded-xl p-4 ${
+        user?.registration?.isPsnaProvider
+          ? "flex flex-row gap-0"
+          : "flex flex-col gap-4"
+      } ${
         employeeData
           ? "animate-border-flash-green bg-green-50/50"
           : isInvalid
@@ -81,7 +85,13 @@ export function NewClaimEmployeeCard() {
           : ""
       }`}
     >
-      <div className="flex flex-col items-start justify-between w-full">
+      <div
+        className={
+          user?.registration?.isPsnaProvider
+            ? "flex flex-col items-start justify-between flex-1 pr-4"
+            : "flex flex-col items-start justify-between w-full"
+        }
+      >
         <CardHeader className="p-0">
           <CardTitle className="text-sm font-semibold text-muted-foreground flex flex-col gap-1.5">
             <div className="flex gap-2 w-full">
@@ -217,12 +227,15 @@ export function NewClaimEmployeeCard() {
 
       {user?.registration?.isPsnaProvider && (
         <>
-          <Separator orientation="vertical" className="h-full mx-2" />
+          <Separator
+            orientation="vertical"
+            className="h-auto w-px bg-muted-foreground/20 mx-0"
+          />
 
-          <div className="flex relative flex-col items-start justify-between w-full">
+          <div className="flex relative flex-col items-start justify-between flex-1 pl-4">
             <Landmark className="absolute top-0 right-0 w-24 h-24 opacity-10" />
-            <CardHeader className="p-0">
-              <CardTitle className="text-xs font-semibold text-muted-foreground/75 flex items-center gap-1">
+            <CardHeader className="p-0 w-full">
+              <CardTitle className="text-xs font-semibold text-muted-foreground/75 flex items-center gap-1 w-full">
                 <Landmark className="w-3 h-3" />
                 Bank Details
               </CardTitle>

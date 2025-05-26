@@ -34,8 +34,8 @@ export function ClaimCard({ claim }: ClaimCardProps) {
       onClick={() => router.push(`/claims?id=${claim.id}`)}
     >
       <CircleDashed className="absolute top-4 right-4 w-20 h-20 text-muted-foreground/5 group-hover/claim-card:animate-spin-slow" />
-      <CardHeader className="p-4">
-        <CardTitle className="text-xs text-muted-foreground/50 flex items-center justify-between gap-1.5">
+      <CardHeader className="">
+        <CardTitle className="text-xs text-muted-foreground/50 flex items-center justify-between">
           <div className="flex items-center gap-1">
             <IdCard className="w-4 h-4" />
             <p className="text-xs">
