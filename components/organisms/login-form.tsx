@@ -351,7 +351,7 @@ const LoginFormContent = () => {
                   control={form.control}
                   name="email"
                   render={({ field }) => (
-                    <FormItem className={cn("space-y-1")}>
+                    <FormItem>
                       <FormLabel
                         className={cn("text-xs font-normal opacity-60 ml-1")}
                       >
@@ -373,7 +373,7 @@ const LoginFormContent = () => {
                   control={form.control}
                   name="password"
                   render={({ field }) => (
-                    <FormItem className={cn("space-y-1")}>
+                    <FormItem className="-space-y-2">
                       <div className="flex items-center justify-between">
                         <FormLabel
                           className={cn("text-xs font-normal opacity-60 ml-1")}
@@ -383,7 +383,7 @@ const LoginFormContent = () => {
                         {!isSignUp && (
                           <Button
                             variant="link"
-                            className="px-0 font-normal text-xs"
+                            className={cn("text-xs! px-0", "hover:underline")}
                             onClick={() => router.push("/forgot-password")}
                           >
                             Forgot password?
