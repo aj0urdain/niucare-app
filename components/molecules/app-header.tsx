@@ -112,9 +112,8 @@ export function AppHeader() {
             </BreadcrumbList>
           </Breadcrumb>
         </div>
-        <div>
-          <ThemeSwitcher />
-        </div>
+
+        <ThemeSwitcher />
       </div>
     </header>
   );

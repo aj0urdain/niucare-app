@@ -28,7 +28,7 @@ export function NavMain({
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>{title}</SidebarGroupLabel>
+      <SidebarGroupLabel className="text-white/50">{title}</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
           <SidebarMenuItem key={item.title}>
@@ -36,7 +36,7 @@ export function NavMain({
               disabled={item.disabled}
               asChild
               isActive={pathname.startsWith(item.url)}
-              className="transition-all duration-150 hover:text-[#810101] data-[active=true]:text-[#810101] data-[active=true]:font-bold"
+              className="transition-all duration-150 text-white data-[active=true]:text-[#810101] data-[active=true]:font-bold data-[active=true]:bg-white data-[hover=true]:bg-white dark:data-[hover=true]:bg-white"
             >
               <Link href={item.url}>
                 <item.icon />

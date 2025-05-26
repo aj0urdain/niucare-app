@@ -37,17 +37,19 @@ export function AdminNav() {
       <NavigationMenuList>
         {items.map((item) => (
           <NavigationMenuItem key={item.href}>
-            <Link href={item.href} legacyBehavior passHref>
+            <Link href={item.href} passHref>
               <NavigationMenuLink
+                asChild
                 className={cn(
                   navigationMenuTriggerStyle(),
                   "flex items-center gap-2",
                   pathname === item.href && "bg-accent text-accent-foreground"
                 )}
               >
-                {item.icon}
-
-                {item.title}
+                <span className="flex items-center gap-2">
+                  {item.icon}
+                  {item.title}
+                </span>
               </NavigationMenuLink>
             </Link>
           </NavigationMenuItem>
