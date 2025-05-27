@@ -42,6 +42,7 @@ export default function DashboardPage() {
     from: new Date(new Date().setDate(new Date().getDate() - 7)),
     to: new Date(),
   });
+  const [disableDashboardData, setDisableDashboardData] = useState(true);
 
   const isRegistrationAcknowledged =
     user?.registration?.status?.toLowerCase() === "acknowledged";
@@ -72,11 +73,9 @@ export default function DashboardPage() {
         startDate: format(dateRange.from, "yyyy-MM-dd"),
         endDate: format(dateRange.to, "yyyy-MM-dd"),
       },
-      skip: !user?.userId,
+      skip: !user?.userId || disableDashboardData,
     }
   );
-
-  console.log(dashboardData);
 
   const pendingClaims: PolicyHolderClaim[] =
     data?.policyHolderClaims?.slice(0, 5) || [];

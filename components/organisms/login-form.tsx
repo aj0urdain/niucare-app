@@ -26,6 +26,7 @@ import { PasswordInput } from "@/components/atoms/password-input";
 import { toast } from "sonner";
 import { signIn, getCurrentUser, signUp } from "aws-amplify/auth";
 import { useQueryClient } from "@tanstack/react-query";
+import { VerifyEmailForm } from "@/components/molecules/verify-email-form";
 
 type SignUpData = {
   email: string;
@@ -75,7 +76,13 @@ const LoginFormContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isSignUp = searchParams.get("mode") === "sign-up";
+  const isVerify = searchParams.get("mode") === "verify";
   const queryClient = useQueryClient();
+  const [verificationData, setVerificationData] = useState<{
+    email: string;
+    password: string;
+  } | null>(null);
+
   const form = useForm<SignUpData | SignInData>({
     resolver: zodResolver(isSignUp ? signUpSchema : signInSchema),
     defaultValues: {
@@ -127,7 +134,11 @@ const LoginFormContent = () => {
         toast.success("Account created successfully", {
           description: "Please check your email for verification instructions",
         });
-        router.push("/auth?mode=sign-in");
+        setVerificationData({
+          email: signUpData.email,
+          password: signUpData.password,
+        });
+        router.push("?mode=verify", { scroll: false });
       } else {
         const signInData = data as SignInData;
         const { isSignedIn, nextStep } = await signIn({
@@ -170,6 +181,16 @@ const LoginFormContent = () => {
       }
     }
   };
+
+  if (isVerify && verificationData) {
+    return (
+      <VerifyEmailForm
+        email={verificationData.email}
+        password={verificationData.password}
+        onBack={() => router.push("?mode=sign-in", { scroll: false })}
+      />
+    );
+  }
 
   return (
     <Form {...form}>

@@ -62,10 +62,6 @@ export function ComboBoxResponsive({
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const selectedOption = options.find((option) => option.value === value);
 
-  React.useEffect(() => {
-    console.log("Selected Option:", selectedOption);
-  }, [selectedOption]);
-
   const OptionList = React.useCallback(
     function OptionList() {
       return (
