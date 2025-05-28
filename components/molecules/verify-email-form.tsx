@@ -77,22 +77,19 @@ export function VerifyEmailForm({
                 maxLength={6}
                 value={code}
                 onChange={(value) => setCode(value)}
-                render={({ slots }) => (
-                  <>
-                    <InputOTPGroup>
-                      {slots.slice(0, 3).map((slot, index) => (
-                        <InputOTPSlot key={index} {...slot} index={index} />
-                      ))}
-                    </InputOTPGroup>
-                    <InputOTPSeparator />
-                    <InputOTPGroup>
-                      {slots.slice(3).map((slot, index) => (
-                        <InputOTPSlot key={index} {...slot} index={index + 3} />
-                      ))}
-                    </InputOTPGroup>
-                  </>
-                )}
-              />
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                </InputOTPGroup>
+                <InputOTPSeparator />
+                <InputOTPGroup>
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                </InputOTPGroup>
+              </InputOTP>
             </div>
 
             <Button type="submit" disabled={isLoading || code.length !== 6}>

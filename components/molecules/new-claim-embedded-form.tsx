@@ -319,30 +319,30 @@ export function NewClaimEmbeddedForm({
 
   function renderWarningStep() {
     return (
-      <div className="min-h-fit h-full w-full flex flex-col gap-6 mt-6 animate-slide-down-fade-in">
-        <Card className="bg-warning-foreground/75 border-warning border-2 flex flex-col">
-          <CardTitle className="p-6 flex flex-col gap-2">
-            <CardHeader className="flex flex-row items-center gap-2 h-fit p-0">
+      <div className="min-h-fit h-full w-full flex flex-col gap-6 animate-slide-down-fade-in">
+        <Card className="bg-warning/20 border-warning flex flex-col">
+          <CardTitle className="flex flex-col gap-2">
+            <CardHeader className="flex flex-row items-center gap-2 h-fit">
               <AlertTriangle className="w-6 h-6" />
               Existing Claim!
             </CardHeader>
-            <CardDescription className="text-sm font-normal">
+            <CardDescription className="text-sm font-normal px-6">
               This member has tried to claim the same benefit in the past 90
               days. Please check the previous claim submission and ensure you
               are not attempting to submit a duplicate.
             </CardDescription>
           </CardTitle>
-          <Separator className="w-1/2 mx-auto mb-6" />
-          <CardContent className="text-xs">
+          {/* <Separator className="w-1/2 mx-auto mb-6" /> */}
+          <CardContent>
             <div className="flex flex-col gap-2">
               <div className="flex flex-row gap-2 justify-between w-full px-4">
-                <p>
+                <p className="text-xs">
                   <span className="font-bold">Claim ID</span>{" "}
                   {claimTypeVerifyResponse?.previousClaimId}
                 </p>
 
                 {/* Date */}
-                <p>
+                <p className="text-xs">
                   {/* Show date in readable format */}
                   <span className="font-bold">Record Date</span>{" "}
                   {new Date(
@@ -351,9 +351,9 @@ export function NewClaimEmbeddedForm({
                 </p>
               </div>
 
-              <Card className="w-full h-fit min-h-fit">
+              <Card className="w-full h-fit min-h-fit p-0">
                 <CardContent className="flex flex-row gap-2 items-center justify-center p-4">
-                  <div className="w-1/2">
+                  <div className="w-1/2 flex flex-col gap-2">
                     <div className="flex flex-row gap-1 items-center">
                       {/* Claim Type */}
                       <Component className="w-3 h-3" />
@@ -371,7 +371,7 @@ export function NewClaimEmbeddedForm({
                   <Separator orientation="vertical" className="my-2" />
                   <div className="w-1/2">
                     {/* Previous Amount */}
-                    <p className="">
+                    <p className="text-sm">
                       {claimTypeVerifyResponse?.previousClaimDescription}
                     </p>
                     {/* Render 3 buttons with files from lucide as the icon */}
@@ -642,7 +642,7 @@ export function NewClaimEmbeddedForm({
             </Button>
             <Button
               variant="default"
-              className="bg-warning hover:bg-warning-foreground hover:text-primary-background text-primary-background font-semibold border border-warning-foreground hover:border-warning"
+              className="bg-warning hover:bg-warning/50 hover:text-primary-background text-primary-background border border-warning hover:border-warning transition-all duration-300"
               onClick={() => setWarningAccepted(true)}
             >
               Proceed?
@@ -802,7 +802,7 @@ export function NewClaimEmbeddedForm({
 
   return (
     <Card className="w-full h-full border-dotted animate-slide-down-fade-in">
-      <CardHeader className="border-b border-muted">
+      <CardHeader className="">
         <CardTitle className="flex items-center justify-between gap-1">
           {currentState.header()}
           <div className="flex gap-2">
@@ -823,7 +823,7 @@ export function NewClaimEmbeddedForm({
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="mt-6">{currentState.content()}</CardContent>
+      <CardContent className="">{currentState.content()}</CardContent>
       <CardFooter className="justify-end items-end gap-2">
         {currentState.navigation()}
       </CardFooter>
