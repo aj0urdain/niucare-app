@@ -53,17 +53,17 @@ const data = {
     },
     {
       title: "Registrations",
-      url: "/admin/registrations",
+      url: "/registrations",
       icon: FilePen,
     },
     {
       title: "Claims",
-      url: "/admin/claims",
+      url: "/claims",
       icon: FileHeart,
     },
     {
       title: "Update Policy Holders",
-      url: "/admin/update-policy-holders",
+      url: "/update-policy-holders",
       icon: FileUp,
     },
   ],
