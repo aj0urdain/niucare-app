@@ -13,7 +13,7 @@ const ClaimsContentWrapper = () => {
 
 const Claims = () => {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<></>}>
       <ClaimsContentWrapper />
     </Suspense>
   );

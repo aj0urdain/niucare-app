@@ -49,8 +49,12 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState, Suspense, useRef, useMemo } from "react";
-import { useQuery } from "@apollo/client";
-import { GET_POLICY_HOLDER_BY_EMPLOYEE_NO } from "@/lib/graphql/queries";
+import { useQuery, useMutation } from "@apollo/client";
+import {
+  GET_POLICY_HOLDER_BY_EMPLOYEE_NO,
+  GET_POLICYHOLDERCLAIMS,
+} from "@/lib/graphql/queries";
+import { UPDATE_CLAIM_STATUS } from "@/lib/graphql/mutations";
 import { useUserProfileStore } from "@/stores/user-profile-store";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { InfoCard } from "@/components/molecules/info-card";
@@ -73,12 +77,27 @@ const ViewClaimModalContent = ({
     "overview"
   );
   const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
+  const [approvalDialogOpen, setApprovalDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const { user } = useUserProfileStore();
 
   const canApproveClaim = user?.permissions?.canApproveRegistration;
+
+  const [updateClaimStatus] = useMutation(UPDATE_CLAIM_STATUS, {
+    onCompleted: (data) => {
+      if (data.updateClaimStatus.status === "Approved") {
+        toast.success("Claim approved successfully");
+      } else {
+        toast.success("Claim rejected successfully");
+      }
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update claim status");
+    },
+    refetchQueries: [GET_POLICYHOLDERCLAIMS],
+  });
 
   // Parse the viewFiles string into an array with error handling
   const files = useMemo(() => {
@@ -163,6 +182,43 @@ const ViewClaimModalContent = ({
           behavior: "smooth",
         });
       }
+    }
+  };
+
+  const handleApproveClaim = async () => {
+    try {
+      await updateClaimStatus({
+        variables: {
+          id: parseInt(claim?.id || "0"),
+          status: "Approved",
+          reason: "",
+        },
+      });
+      setApprovalDialogOpen(false);
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error approving claim:", error);
+    }
+  };
+
+  const handleRejectClaim = async () => {
+    try {
+      if (!rejectionReason.trim()) {
+        toast.error("Please provide a reason for rejection");
+        return;
+      }
+      await updateClaimStatus({
+        variables: {
+          id: parseInt(claim?.id || "0"),
+          status: "Rejected",
+          reason: rejectionReason.trim(),
+        },
+      });
+      setRejectionDialogOpen(false);
+      setRejectionReason("");
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error rejecting claim:", error);
     }
   };
 
@@ -274,10 +330,7 @@ const ViewClaimModalContent = ({
                     <Tooltip defaultOpen={false}>
                       <TooltipTrigger asChild>
                         <Button
-                          onClick={() => {
-                            // TODO: Implement claim approval
-                            toast.success("Claim approved successfully");
-                          }}
+                          onClick={() => setApprovalDialogOpen(true)}
                           className="bg-green-600/50 border-green-800 border hover:bg-green-700 transition-colors flex items-center justify-center group/accept-button"
                         >
                           <CircleCheckBig className="h-6 w-6 text-green-900 group-hover/accept-button:text-green-100" />
@@ -620,20 +673,34 @@ const ViewClaimModalContent = ({
               >
                 Cancel
               </Button>
-              <Button
-                variant="destructive"
-                onClick={() => {
-                  if (!rejectionReason.trim()) {
-                    toast.error("Please provide a reason for rejection");
-                    return;
-                  }
-                  // TODO: Implement claim rejection with reason
-                  toast.error("Claim rejected");
-                  setRejectionDialogOpen(false);
-                  setRejectionReason("");
-                }}
-              >
+              <Button variant="destructive" onClick={handleRejectClaim}>
                 Reject Claim
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={approvalDialogOpen} onOpenChange={setApprovalDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Approve Claim</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to approve this claim?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setApprovalDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="default"
+                className="bg-green-600 hover:bg-green-700"
+                onClick={handleApproveClaim}
+              >
+                Approve Claim
               </Button>
             </DialogFooter>
           </DialogContent>
