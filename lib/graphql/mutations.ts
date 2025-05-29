@@ -56,6 +56,7 @@ mutation AddOrUpdateDraft($draft: DraftInput!) {
     tin_Certificate
     updated_Date
     userId
+    registrationId
   }
 }
 `);

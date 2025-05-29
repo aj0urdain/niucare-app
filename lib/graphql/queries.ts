@@ -460,6 +460,7 @@ export const DRAFTS_BY_USER_ID = gql`
       mb_Registration_Number
       rn_Expiry
       reason
+      registrationId
     }
   }
 `;
@@ -537,6 +538,7 @@ query GetDraftByUserId($userId: String!) {
     bucket
     reason
     isPsnaProvider
+    registrationId
   }
 }
 `);
