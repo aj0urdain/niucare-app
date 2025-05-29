@@ -192,7 +192,7 @@ const registrationSchema = z.object({
   bucket: z.string().optional(),
   reason: z.string().optional(),
   isPsnaProvider: z.boolean().optional(),
-
+  registrationId: z.string().optional(),
   // Signature Type
   signatureType: z.enum(["draw", "upload"]),
 });
@@ -259,6 +259,7 @@ type Draft = {
   tin_Certificate: string;
   medical_Certificate: string;
   luhnRegistrationNumber: string;
+  registrationId: string;
   ptype: string;
   pbox_Name: string;
   pbox_Number: string;
@@ -311,6 +312,22 @@ function PrivateRegistrationForm({
       toast.error("Failed to save draft: " + draftError.message);
     }
   }, [draftError]);
+
+  useEffect(() => {
+    if (registrationError) {
+      toast.error("Registration error: " + registrationError.message);
+    }
+  }, [registrationError]);
+
+  useEffect(() => {
+    if (registrationLoading) {
+      toast.loading("Submitting registration...", {
+        id: "registration-submission",
+      });
+    } else {
+      toast.dismiss("registration-submission");
+    }
+  }, [registrationLoading]);
 
   const form = useForm<
     z.infer<typeof registrationSchema>,
@@ -401,6 +418,9 @@ function PrivateRegistrationForm({
 
       // Signature Type
       signatureType: "draw",
+
+      // Registration ID
+      registrationId: initialDraft?.registrationId,
     },
   });
 
@@ -423,6 +443,7 @@ function PrivateRegistrationForm({
               isPsnaProvider: false,
               status: "DRAFT",
               ptype: "private",
+              registrationId: initialDraft?.registrationId,
             },
           },
         });
@@ -434,7 +455,7 @@ function PrivateRegistrationForm({
         toast.error("Failed to save draft");
       }
     },
-    [addOrUpdateDraft, user?.userId]
+    [addOrUpdateDraft, user?.userId, initialDraft?.registrationId]
   );
 
   const debouncedSaveDraft = useMemo(
@@ -731,6 +752,10 @@ function PrivateRegistrationForm({
   };
 
   const onSubmit = async (values: z.infer<typeof registrationSchema>) => {
+    console.log("Form submission started");
+    console.log("User ID:", user?.userId);
+    console.log("Raw form values:", values);
+
     if (!user?.userId) {
       toast.error("User not authenticated");
       return;
@@ -743,7 +768,8 @@ function PrivateRegistrationForm({
       const formattedValues = {
         ...values,
         signatureType: undefined,
-        id: null,
+        registrationId: undefined,
+        id: values.registrationId,
         userId: null,
         applicantsTermsInPractice: values.applicantsTermsInPractice.toString(),
         postal_Section: null,
@@ -760,14 +786,18 @@ function PrivateRegistrationForm({
         practice_Suburb: values.practice_Suburb,
       };
 
+      console.log("Formatted values being sent to mutation:", formattedValues);
+
       const { data, errors } = await addOrUpdateRegistration({
         variables: {
           reg: formattedValues,
         },
       });
 
+      console.log("Mutation response:", { data, errors });
+
       if (errors) {
-        console.error("errors", errors);
+        console.error("Mutation errors:", errors);
         throw new Error(errors[0].message);
       }
 
@@ -776,8 +806,11 @@ function PrivateRegistrationForm({
         throw new Error("Registration submission failed - no ID returned");
       }
 
+      console.log(
+        "Registration successful, ID:",
+        data.addOrUpdateRegistration.id
+      );
       toast.success("Registration submitted successfully");
-
       router.push("/registration");
     } catch (error) {
       console.error("Error submitting registration:", error);
@@ -1973,12 +2006,12 @@ function PrivateRegistrationForm({
               </Button>
               <Button
                 type="submit"
-                onClick={form.handleSubmit(onSubmit)}
+                onClick={() => form.handleSubmit(onSubmit)()}
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
                   <>
-                    <span className="animate-spin mr-2">⏳</span>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Submitting...
                   </>
                 ) : (

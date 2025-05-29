@@ -86,6 +86,7 @@ interface SubmittedRegistrationProps {
     ipa_Registration_Number: string;
     ipa_Certified_Number: string;
     applicant_Employment_Status: string;
+    id: string;
   };
 }
 
@@ -209,6 +210,7 @@ export function SubmittedRegistration({
             created_Date: new Date().toISOString(),
             updated_Date: new Date().toISOString(),
             isPsnaProvider: false,
+            registrationId: registration.id,
             __typename: undefined,
           },
         },

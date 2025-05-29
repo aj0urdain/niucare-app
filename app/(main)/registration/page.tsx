@@ -97,9 +97,11 @@ export default function RegistrationPage() {
 
   // Get the most recent registration if available
   const mostRecentRegistration = registrationData?.registrationByUserId?.[0];
+  console.log("mostRecentRegistration:", mostRecentRegistration);
 
   // Get the most recent draft if available
   const latestDraft = draftsData?.draftByUserId?.[0];
+  console.log("latestDraft:", latestDraft);
 
   console.log("latestDraft", latestDraft);
 

@@ -243,6 +243,9 @@ const registrationSchema = z.object({
 
   // Signature Type
   signatureType: z.enum(["draw", "upload"]),
+
+  // Registration ID
+  registrationId: z.string().optional(),
 });
 
 const FormLabel = ({ children }: { children: React.ReactNode }) => {
@@ -315,6 +318,7 @@ type Draft = {
   bucket: string;
   reason: string;
   isPsnaProvider: boolean;
+  registrationId: string;
 };
 
 interface PublicRegistrationFormProps {
@@ -445,6 +449,9 @@ function PublicRegistrationForm({ initialDraft }: PublicRegistrationFormProps) {
 
       // Signature Type
       signatureType: "draw",
+
+      // Registration ID
+      registrationId: initialDraft?.registrationId,
     },
   });
 
@@ -789,11 +796,13 @@ function PublicRegistrationForm({ initialDraft }: PublicRegistrationFormProps) {
       setIsSubmitting(true);
       console.log("Setting isSubmitting to true");
 
+      console.log("values.registrationId:", values.registrationId);
+
       // Format dates to ISO strings
       const formattedValues = {
         ...values,
         signatureType: undefined,
-        id: null,
+        id: values.registrationId,
         userId: null,
         applicantsTermsInPractice:
           values.applicantsTermsInPractice?.toString() || "0",
@@ -809,6 +818,7 @@ function PublicRegistrationForm({ initialDraft }: PublicRegistrationFormProps) {
         status: "pending",
         ptype: "public",
         isPsnaProvider: false,
+        postal_Suburb: values.postal_Suburb || null,
       };
 
       console.log("Formatted values for submission:", formattedValues);

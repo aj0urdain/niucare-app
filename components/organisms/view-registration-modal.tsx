@@ -22,6 +22,7 @@ import {
 import { useEffect, useState, useRef } from "react";
 import { useQuery, useMutation } from "@apollo/client";
 import {
+  GET_REGISTRATIONS,
   GET_USER_FULL_REGISTRATION,
   UPDATE_REGISTRATION_STATUS,
 } from "@/lib/graphql/queries";
@@ -121,6 +122,10 @@ const ViewRegistrationModalContent = ({
         query: GET_USER_FULL_REGISTRATION,
         variables: { userId: registration?.userId },
       },
+      {
+        query: GET_REGISTRATIONS,
+        variables: { province: "", type: "", status: "" },
+      },
     ],
   });
 
@@ -215,7 +220,7 @@ const ViewRegistrationModalContent = ({
   };
 
   const handleConfirmAccept = async () => {
-    if (!registration?.registrationId) {
+    if (!registration?.id) {
       toast.error("Registration ID not found");
       return;
     }
@@ -223,15 +228,16 @@ const ViewRegistrationModalContent = ({
     try {
       await updateRegistrationStatus({
         variables: {
-          id: registration.registrationId,
+          id: registration.id,
           status: "Approved",
           reason: "",
         },
       });
 
       setShowAcceptDialog(false);
+
       toast.success("Registration accepted successfully", {
-        description: `Registration ${registration.registrationId} has been approved.`,
+        description: `Registration ${registration.id} has been approved.`,
         duration: 5000,
       });
     } catch (error) {
@@ -245,7 +251,7 @@ const ViewRegistrationModalContent = ({
   };
 
   const handleConfirmReject = async () => {
-    if (!registration?.registrationId) {
+    if (!registration?.id) {
       toast.error("Registration ID not found");
       return;
     }
@@ -257,7 +263,7 @@ const ViewRegistrationModalContent = ({
     try {
       await updateRegistrationStatus({
         variables: {
-          id: registration.registrationId,
+          id: registration.id,
           status: "Rejected",
           reason: rejectionReason.trim(),
         },
@@ -266,7 +272,7 @@ const ViewRegistrationModalContent = ({
       setShowRejectDialog(false);
       setRejectionReason("");
       toast.error("Registration rejected", {
-        description: `Registration ${registration.registrationId} has been rejected.`,
+        description: `Registration ${registration.id} has been rejected.`,
         duration: 5000,
       });
     } catch (error) {
