@@ -33,6 +33,13 @@ import { DataTableFilters } from "@/components/molecules/data-table-filters";
 import { useState, useEffect } from "react";
 import { ViewRegistrationModal } from "./view-registration-modal";
 
+/**
+ * Interface for filter values used in the data table
+ * @property status - Filter by claim status
+ * @property claimId - Filter by claim ID
+ * @property employeeNumber - Filter by employee number
+ * @property claimType - Filter by claim type
+ */
 interface FilterValues {
   status: string;
   claimId: string;
@@ -40,6 +47,23 @@ interface FilterValues {
   claimType: string;
 }
 
+/**
+ * Props for the DataTable component
+ * @template TData - Data type (Claim or Registration)
+ * @template TValue - Value type for columns
+ * @property columns - Column definitions for the table
+ * @property data - Array of data to display
+ * @property newClaimButton - Show new claim button (optional)
+ * @property loading - Loading state (optional)
+ * @property filters - Current filter values
+ * @property onFilterChange - Callback for filter changes
+ * @property hideFilters - Hide filter controls (optional)
+ * @property hidePagination - Hide pagination controls (optional)
+ * @property rowLimit - Limit number of rows displayed (optional)
+ * @property initialClaimId - Initial claim ID to open in modal (optional)
+ * @property type - Table type ("claim" or "registration")
+ * @property visibleFilters - Array of visible filter keys (optional)
+ */
 interface DataTableProps<TData extends Claim | Registration, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -55,6 +79,22 @@ interface DataTableProps<TData extends Claim | Registration, TValue> {
   visibleFilters?: string[];
 }
 
+/**
+ * DataTable Component
+ *
+ * Generic table component for displaying claims or registrations with support for filtering, sorting, pagination, and modals.
+ * Handles row selection, modal opening, and filter state management.
+ *
+ * @template TData - Data type (Claim or Registration)
+ * @template TValue - Value type for columns
+ * @param {DataTableProps<TData, TValue>} props - Component props
+ * @returns {JSX.Element} The rendered data table
+ *
+ * @example
+ * ```tsx
+ * <DataTable columns={columns} data={claims} filters={filters} onFilterChange={setFilters} type="claim" />
+ * ```
+ */
 export function DataTable<TData extends Claim | Registration, TValue>({
   columns,
   data,
