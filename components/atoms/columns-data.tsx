@@ -1,3 +1,14 @@
+/**
+ * File: components/atoms/columns-data.tsx
+ * Description: Data table column definitions and cell components for claims management
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This module provides column definitions and specialized cell components for the claims
+ * data table. It includes functionality for viewing, managing, and interacting with
+ * individual claims through a dropdown menu interface.
+ */
+
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
@@ -45,6 +56,21 @@ import { useMutation } from "@apollo/client";
 import { DELETE_CLAIM, GET_POLICYHOLDERCLAIMS } from "@/lib/graphql/queries";
 import { useUserProfileStore } from "@/stores/user-profile-store";
 
+/**
+ * Claim type definition representing a single claim record
+ * @property {string} id - Unique identifier for the claim
+ * @property {('pending'|'approved'|'rejected'|'all')} status - Current status of the claim
+ * @property {string} claimId - External claim identifier
+ * @property {string} employeeNumber - Employee's identification number
+ * @property {string} employeeName - Full name of the employee
+ * @property {string} employeeGender - Employee's gender
+ * @property {string} employeeDob - Employee's date of birth
+ * @property {string} claimType - Type of claim being made
+ * @property {number} amount - Monetary value of the claim
+ * @property {string} description - Detailed description of the claim
+ * @property {string} viewFiles - URL or reference to claim files
+ * @property {string} userBucket - Storage bucket identifier for user files
+ */
 export type Claim = {
   id: string;
   status: "pending" | "approved" | "rejected" | "all";
@@ -60,6 +86,26 @@ export type Claim = {
   userBucket: string;
 };
 
+/**
+ * ActionsCell Component
+ *
+ * Provides a dropdown menu of actions for individual claims including:
+ * - Copy claim/employee IDs
+ * - View claim details
+ * - View claim files
+ * - Delete claim (for pending claims only)
+ *
+ * Features:
+ * - Contextual actions based on claim status
+ * - Confirmation dialog for destructive actions
+ * - Toast notifications for user feedback
+ * - Clipboard integration
+ * - Navigation handling
+ *
+ * @param props - Component props
+ * @param props.claim - The claim record to display actions for
+ * @returns {JSX.Element} Dropdown menu with claim actions
+ */
 const ActionsCell = ({ claim }: { claim: Claim }) => {
   const router = useRouter();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -251,6 +297,19 @@ const ActionsCell = ({ claim }: { claim: Claim }) => {
   );
 };
 
+/**
+ * FilesCell Component
+ *
+ * Displays a paperclip icon for claims that have associated files.
+ * Features:
+ * - Conditional rendering based on file presence
+ * - Visual indicator for file attachments
+ * - Consistent styling with design system
+ *
+ * @param props - Component props
+ * @param props.claim - The claim record to check for files
+ * @returns {JSX.Element | null} Paperclip icon if files exist, null otherwise
+ */
 const FilesCell = ({ claim }: { claim: Claim }) => {
   if (!claim.viewFiles || claim.viewFiles.trim() === "") {
     return null;
@@ -263,6 +322,27 @@ const FilesCell = ({ claim }: { claim: Claim }) => {
   );
 };
 
+/**
+ * Column Definitions for Claims Data Table
+ *
+ * Defines the structure and behavior of each column in the claims data table.
+ * Features:
+ * - Sortable columns
+ * - Custom cell renderers
+ * - Status indicators with tooltips
+ * - Formatted currency display
+ * - Action menu integration
+ *
+ * Column Structure:
+ * 1. Status - Visual indicator of claim status with tooltips
+ * 2. Claim ID - Unique identifier for the claim
+ * 3. Employee Number - Employee's identification number
+ * 4. Amount - Formatted currency value in PGK
+ * 5. Files - Visual indicator for attached files
+ * 6. Actions - Dropdown menu for claim operations
+ *
+ * @type {ColumnDef<Claim>[]}
+ */
 export const columns: ColumnDef<Claim>[] = [
   // {
   //   id: "select",
@@ -350,12 +430,7 @@ export const columns: ColumnDef<Claim>[] = [
           {message ? (
             <Tooltip>
               <TooltipTrigger asChild>{button}</TooltipTrigger>
-              <TooltipContent
-                side="right"
-                // className="text-xs bg-accent text-accent-foreground"
-              >
-                {message}
-              </TooltipContent>
+              <TooltipContent side="right">{message}</TooltipContent>
             </Tooltip>
           ) : (
             button
@@ -430,16 +505,14 @@ export const columns: ColumnDef<Claim>[] = [
       return <DataTableColumnHeader column={column} title="Files" />;
     },
     cell: ({ row }) => {
-      const claim = row.original;
-      return <FilesCell claim={claim} />;
+      return <FilesCell claim={row.original} />;
     },
   },
 
   {
     id: "actions",
     cell: ({ row }) => {
-      const claim = row.original;
-      return <ActionsCell claim={claim} />;
+      return <ActionsCell claim={row.original} />;
     },
   },
 ];

@@ -1,3 +1,14 @@
+/**
+ * File: components/atoms/admin-columns.tsx
+ * Description: Column definitions for the admin provider data table
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This module provides column definitions and cell renderers for the admin provider
+ * data table. It includes dropdown menus for actions, formatted text display,
+ * and consistent styling across all columns.
+ */
+
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
@@ -13,6 +24,33 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DataTableColumnHeader } from "@/components/molecules/data-table-column-header";
 
+/**
+ * Provider type definition
+ * Represents a single provider record in the admin table
+ *
+ * @property {string} id - Unique identifier for the provider
+ * @property {string} registrationId - Provider's registration identifier
+ * @property {string} email - Provider's email address
+ * @property {string} firstName - Provider's first name
+ * @property {string} lastName - Provider's last name
+ * @property {string} practiceName - Name of the medical practice
+ * @property {string} province - Province where the practice is located
+ * @property {('private'|'public')} type - Type of provider
+ * @property {string} [phone] - Optional phone number
+ * @property {string} [medicalBoardRegNumber] - Optional medical board registration number
+ * @property {number} [termsInPractice] - Optional years in practice
+ * @property {string} [regExpiryDate] - Optional registration expiry date
+ * @property {string} [businessType] - Optional business type
+ * @property {string} [tinNumber] - Optional tax identification number
+ * @property {string} [ipaNumber] - Optional IPA number
+ * @property {string} [bankName] - Optional bank name
+ * @property {string} [accountNumber] - Optional bank account number
+ * @property {string} [accountName] - Optional bank account name
+ * @property {string} [branchName] - Optional bank branch name
+ * @property {boolean} [ipaCertificate] - Optional IPA certificate status
+ * @property {boolean} [tinCertificate] - Optional TIN certificate status
+ * @property {boolean} [medicalBoardCertificate] - Optional medical board certificate status
+ */
 export type Provider = {
   id: string;
   registrationId: string;
@@ -38,6 +76,35 @@ export type Provider = {
   medicalBoardCertificate?: boolean;
 };
 
+/**
+ * Column Definitions for Admin Provider Data Table
+ *
+ * Defines the structure and behavior of each column in the provider data table.
+ * Features:
+ * - Dropdown menu for actions
+ * - Formatted text display
+ * - Consistent styling
+ * - Sortable columns
+ * - Responsive design
+ *
+ * Column Structure:
+ * 1. Registration ID - Provider's registration identifier
+ * 2. Email - Provider's email address
+ * 3. First Name - Provider's first name
+ * 4. Last Name - Provider's last name
+ * 5. Practice Name - Name of the medical practice
+ * 6. Province - Location information
+ * 7. Type - Provider type (private/public)
+ * 8. Actions - Dropdown menu for provider operations
+ *
+ * Action Menu Options:
+ * - Copy provider ID
+ * - View details
+ * - View documents
+ * - Edit provider
+ *
+ * @type {ColumnDef<Provider>[]}
+ */
 export const columns: ColumnDef<Provider>[] = [
   {
     accessorKey: "registrationId",

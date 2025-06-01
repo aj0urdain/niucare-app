@@ -1,3 +1,14 @@
+/**
+ * File: components/atoms/admin-registration-columns.tsx
+ * Description: Column definitions for the admin registration data table
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This module provides column definitions and cell renderers for the admin registration
+ * data table. It includes status indicators, formatted text display, and consistent
+ * styling across all columns.
+ */
+
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
@@ -17,6 +28,21 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 
+/**
+ * Registration type definition
+ * Represents a single registration record in the admin table
+ *
+ * @property {string} id - Unique identifier for the registration
+ * @property {string} userId - User's unique identifier
+ * @property {string} registrationId - External registration identifier
+ * @property {string} email - User's email address
+ * @property {string} firstName - User's first name
+ * @property {string} lastName - User's last name
+ * @property {string} practiceName - Name of the medical practice
+ * @property {string} province - Province where the practice is located
+ * @property {string} type - Type of registration
+ * @property {('pending'|'approved'|'rejected'|'acknowledged')} status - Current status of the registration
+ */
 export type Registration = {
   id: string;
   userId: string;
@@ -30,6 +56,34 @@ export type Registration = {
   status: "pending" | "approved" | "rejected" | "acknowledged";
 };
 
+/**
+ * Column Definitions for Admin Registration Data Table
+ *
+ * Defines the structure and behavior of each column in the registration data table.
+ * Features:
+ * - Status indicators with tooltips
+ * - Formatted text display
+ * - Consistent styling
+ * - Sortable columns
+ * - Responsive design
+ *
+ * Column Structure:
+ * 1. Status - Visual indicator with tooltips
+ * 2. Type - Registration type
+ * 3. Registration ID - Unique identifier
+ * 4. First Name - User's first name
+ * 5. Last Name - User's last name
+ * 6. Practice Name - Medical practice name
+ * 7. Province - Location information
+ *
+ * Status Configurations:
+ * - Approved: Green with checkmark
+ * - Pending: Yellow with dashed circle
+ * - Rejected: Red with X
+ * - Acknowledged: Blue with thumbs up
+ *
+ * @type {ColumnDef<Registration>[]}
+ */
 export const columns: ColumnDef<Registration>[] = [
   {
     accessorKey: "status",
@@ -100,12 +154,7 @@ export const columns: ColumnDef<Registration>[] = [
           {message ? (
             <Tooltip>
               <TooltipTrigger asChild>{button}</TooltipTrigger>
-              <TooltipContent
-                side="right"
-                // className="text-xs bg-accent text-accent-foreground"
-              >
-                {message}
-              </TooltipContent>
+              <TooltipContent side="right">{message}</TooltipContent>
             </Tooltip>
           ) : (
             button
