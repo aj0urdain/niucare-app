@@ -1,3 +1,13 @@
+/**
+ * File: components/molecules/data-table-column-toggle.tsx
+ * Description: Column visibility toggle component for data tables
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides a dropdown menu for toggling column visibility in data tables.
+ * It allows users to show/hide columns and customize their view of the data.
+ */
+
 "use client";
 
 import { Table } from "@tanstack/react-table";
@@ -13,10 +23,37 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+/**
+ * Props for the DataTableViewOptions component
+ * @template TData - The type of data in the table
+ */
 interface DataTableViewOptionsProps<TData> {
   table: Table<TData>;
 }
 
+/**
+ * DataTableViewOptions Component
+ *
+ * A component that provides a dropdown menu for toggling column visibility in data tables.
+ *
+ * Features:
+ * - Column visibility toggle
+ * - Checkbox-based selection
+ * - Responsive design
+ * - Keyboard navigation
+ * - Screen reader support
+ * - Dynamic column titles
+ *
+ * @param props - Component props
+ * @returns {JSX.Element} Column visibility toggle dropdown
+ *
+ * @example
+ * ```tsx
+ * <DataTableViewOptions
+ *   table={table}
+ * />
+ * ```
+ */
 export function DataTableViewOptions<TData>({
   table,
 }: DataTableViewOptionsProps<TData>) {

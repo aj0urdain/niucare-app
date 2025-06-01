@@ -1,3 +1,14 @@
+/**
+ * File: components/atoms/date-range-selector.tsx
+ * Description: Date range selection component with preset and custom range options
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides a flexible date range selection interface with both preset
+ * ranges and custom date selection capabilities. It integrates with the application's
+ * design system and provides a consistent user experience for date range filtering.
+ */
+
 "use client";
 
 import * as React from "react";
@@ -20,13 +31,54 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+/**
+ * DateRange type definition
+ * @property {Date} from - Start date of the range
+ * @property {Date} to - End date of the range
+ */
 type DateRange = {
   from: Date;
   to: Date;
 };
 
+/**
+ * PresetRange type definition
+ * Defines the available preset date range options
+ * @typedef {'7days' | '1month' | '6months' | '1year' | 'custom'} PresetRange
+ */
 type PresetRange = "7days" | "1month" | "6months" | "1year" | "custom";
 
+/**
+ * DateRangeSelector Component
+ *
+ * A flexible date range selection component that combines preset ranges with
+ * custom date selection capabilities.
+ *
+ * Features:
+ * - Preset range options (7 days, 1 month, 6 months, 1 year)
+ * - Custom date range selection with calendar
+ * - Responsive design
+ * - Keyboard navigation support
+ * - Accessible date selection
+ * - Formatted date display
+ *
+ * Usage:
+ * ```tsx
+ * function MyComponent() {
+ *   const handleRangeChange = (range: DateRange) => {
+ *     console.log('Date range:', range);
+ *   };
+ *
+ *   return (
+ *     <DateRangeSelector onRangeChange={handleRangeChange} />
+ *   );
+ * }
+ * ```
+ *
+ * @param props - Component props
+ * @param props.onRangeChange - Callback function called when date range changes
+ * @returns {JSX.Element} Date range selector with preset and custom options
+ */
 export function DateRangeSelector({
   onRangeChange,
 }: {
@@ -39,6 +91,10 @@ export function DateRangeSelector({
     to: new Date(),
   });
 
+  /**
+   * Handles preset range selection
+   * @param value - Selected preset range option
+   */
   const handlePresetChange = (value: PresetRange) => {
     setSelectedRange(value);
     const today = new Date();
@@ -77,6 +133,10 @@ export function DateRangeSelector({
     onRangeChange(range);
   };
 
+  /**
+   * Handles custom date range selection
+   * @param range - Selected custom date range
+   */
   const handleCustomRangeChange = (range: DateRange) => {
     setCustomRange(range);
     onRangeChange(range);

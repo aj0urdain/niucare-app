@@ -1,3 +1,17 @@
+/**
+ * File: components/molecules/data-table-pagination.tsx
+ * Description: Pagination component for data tables with page size selection and navigation
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides pagination controls for data tables with the following features:
+ * - Page size selection
+ * - Page navigation (first, previous, next, last)
+ * - Row count display
+ * - Selected rows count
+ * - Responsive design
+ */
+
 import { Table } from "@tanstack/react-table";
 import {
   ChevronLeft,
@@ -15,10 +29,38 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+/**
+ * Props for the DataTablePagination component
+ * @template TData - The type of data in the table
+ */
 interface DataTablePaginationProps<TData> {
   table: Table<TData>;
 }
 
+/**
+ * DataTablePagination Component
+ *
+ * A pagination component for data tables that provides page size selection and navigation controls.
+ *
+ * Features:
+ * - Page size selection (10, 20, 30, 40, 50 rows)
+ * - Page navigation (first, previous, next, last)
+ * - Row count display
+ * - Selected rows count
+ * - Responsive design
+ * - Keyboard navigation
+ * - Screen reader support
+ *
+ * @param props - Component props
+ * @returns {JSX.Element} Pagination controls for data tables
+ *
+ * @example
+ * ```tsx
+ * <DataTablePagination
+ *   table={table}
+ * />
+ * ```
+ */
 export function DataTablePagination<TData>({
   table,
 }: DataTablePaginationProps<TData>) {

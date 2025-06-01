@@ -1,5 +1,19 @@
+/**
+ * File: components/molecules/signature-preview-card.tsx
+ * Description: Signature preview card component for displaying uploaded signatures.
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides signature preview functionality with:
+ * - Signature image display
+ * - Download support
+ * - Delete support
+ * - Responsive design
+ * - Accessibility features
+ */
+
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Trash2, Loader2 } from "lucide-react";
 import { getS3FileUrl } from "@/lib/aws-upload";
@@ -14,6 +28,35 @@ interface SignaturePreviewCardProps {
   viewOnly?: boolean;
 }
 
+/**
+ * SignaturePreviewCard Component
+ *
+ * Displays a preview of an uploaded signature with download and delete options.
+ *
+ * Features:
+ * - Signature image display
+ * - Download support
+ * - Delete support
+ * - Responsive design
+ * - Accessibility features
+ *
+ * @param {Object} props - Component props
+ * @param {string} props.filename - Name of the signature file
+ * @param {function} props.onDelete - Function to handle signature deletion
+ * @param {string} props.userBucket - Bucket name for admin access
+ * @param {boolean} props.viewOnly - Flag to indicate if the card is in view-only mode
+ * @returns {JSX.Element} Signature preview card component
+ *
+ * @example
+ * ```tsx
+ * <SignaturePreviewCard
+ *   filename="signature.png"
+ *   onDelete={() => console.log("Delete")}
+ *   userBucket="user-bucket-name"
+ *   viewOnly={false}
+ * />
+ * ```
+ */
 export function SignaturePreviewCard({
   filename,
   onDelete,

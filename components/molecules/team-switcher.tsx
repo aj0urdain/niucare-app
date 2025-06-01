@@ -19,6 +19,24 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
+/**
+ * TeamSwitcher Component
+ *
+ * Provides team switching functionality with team information display.
+ *
+ * Features:
+ * - Team selection
+ * - Team information display
+ * - Responsive design
+ * - Accessibility features
+ *
+ * @returns {JSX.Element} Team switcher component
+ *
+ * @example
+ * ```tsx
+ * <TeamSwitcher />
+ * ```
+ */
 export function TeamSwitcher({
   teams,
 }: {

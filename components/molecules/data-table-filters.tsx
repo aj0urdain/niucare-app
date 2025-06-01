@@ -1,3 +1,19 @@
+/**
+ * File: components/molecules/data-table-filters.tsx
+ * Description: Data table filters component for filtering and managing table data.
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides filtering capabilities for data tables, including:
+ * - Status filtering
+ * - Type filtering
+ * - Province filtering
+ * - Claim ID filtering
+ * - Employee number filtering
+ * - Claim type filtering
+ * - Column visibility toggle
+ */
+
 import { Table } from "@tanstack/react-table";
 import {
   CirclePlus,
@@ -16,13 +32,25 @@ import { useQuery } from "@apollo/client";
 import { GET_CATALOGS } from "@/lib/graphql/queries";
 import React, { useEffect } from "react";
 
+/**
+ * FilterValues interface
+ *
+ * Defines the structure for filter values used in the data table.
+ */
 interface FilterValues {
   status: string;
   claimId: string;
   employeeNumber: string;
   claimType: string;
+  type?: string;
+  province?: string;
 }
 
+/**
+ * CatalogOption interface
+ *
+ * Defines the structure for catalog options used in dropdowns.
+ */
 export interface CatalogOption {
   id: string;
   group: number;
@@ -30,6 +58,11 @@ export interface CatalogOption {
   __typename: string;
 }
 
+/**
+ * DataTableFiltersProps interface
+ *
+ * Props for the DataTableFilters component.
+ */
 interface DataTableFiltersProps<TData> {
   table: Table<TData>;
   onFilterChange: (filters: FilterValues) => void;
@@ -37,6 +70,38 @@ interface DataTableFiltersProps<TData> {
   visibleFilters: string[];
 }
 
+/**
+ * DataTableFilters Component
+ *
+ * Provides filtering capabilities for data tables with multiple filter types.
+ *
+ * Features:
+ * - Status filtering
+ * - Type filtering
+ * - Province filtering
+ * - Claim ID filtering
+ * - Employee number filtering
+ * - Claim type filtering
+ * - Column visibility toggle
+ * - Responsive design
+ * - Dynamic filter options
+ *
+ * @param table - The table instance from TanStack Table
+ * @param onFilterChange - Callback when filters change
+ * @param currentFilters - Current filter values
+ * @param visibleFilters - Array of visible filter types
+ * @returns {JSX.Element} Data table filters component
+ *
+ * @example
+ * ```tsx
+ * <DataTableFilters
+ *   table={table}
+ *   onFilterChange={handleFilterChange}
+ *   currentFilters={filters}
+ *   visibleFilters={["status", "type", "province"]}
+ * />
+ * ```
+ */
 export function DataTableFilters<TData>({
   table,
   onFilterChange,

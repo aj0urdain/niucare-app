@@ -1,6 +1,21 @@
+/**
+ * File: components/molecules/signature-upload.tsx
+ * Description: Signature upload component for handling signature file uploads.
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides signature upload functionality with:
+ * - File upload support
+ * - Progress tracking
+ * - File preview
+ * - S3 integration
+ * - Responsive design
+ * - Accessibility features
+ */
+
 import React, { useRef, useState, useEffect } from "react";
 import SignatureCanvas from "react-signature-canvas";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Pen, RotateCcw, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,6 +41,34 @@ interface SignatureUploadProps {
   showDelete?: boolean;
 }
 
+/**
+ * SignatureUpload Component
+ *
+ * Handles signature file uploads with progress tracking and preview.
+ *
+ * Features:
+ * - File upload support
+ * - Progress tracking
+ * - File preview
+ * - S3 integration
+ * - Responsive design
+ * - Accessibility features
+ *
+ * @param {Object} props - Component props
+ * @param {function} props.onUpload - Function to handle upload completion
+ * @param {string} [props.userBucket] - Bucket name for admin access
+ * @param {boolean} [props.viewOnly] - Flag to indicate if the component is in view-only mode
+ * @returns {JSX.Element} Signature upload component
+ *
+ * @example
+ * ```tsx
+ * <SignatureUpload
+ *   onUpload={(url) => console.log("Upload complete:", url)}
+ *   userBucket="user-bucket-name"
+ *   viewOnly={false}
+ * />
+ * ```
+ */
 const SignatureUpload: React.FC<SignatureUploadProps> = ({
   onUpload,
   title = "Upload Signature",

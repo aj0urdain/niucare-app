@@ -12,6 +12,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+/**
+ * ThemeSwitcher Component
+ *
+ * Provides theme switching functionality between light and dark themes.
+ *
+ * Features:
+ * - Light/dark theme toggle
+ * - Theme persistence
+ * - Responsive design
+ * - Accessibility features
+ *
+ * @returns {JSX.Element} Theme switcher component
+ *
+ * @example
+ * ```tsx
+ * <ThemeSwitcher />
+ * ```
+ */
 export function ThemeSwitcher() {
   const { setTheme } = useTheme();
 

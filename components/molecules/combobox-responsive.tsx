@@ -1,3 +1,17 @@
+/**
+ * File: components/molecules/combobox-responsive.tsx
+ * Description: Responsive combobox component for selecting options with mobile and desktop support.
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides a responsive combobox for selecting options, supporting:
+ * - Mobile drawer and desktop popover
+ * - Searchable options
+ * - Custom icons and labels
+ * - Accessibility and keyboard navigation
+ * - Optional label and icon
+ */
+
 "use client";
 
 import * as React from "react";
@@ -23,6 +37,9 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+/**
+ * Option type for ComboBoxResponsive
+ */
 type Option = {
   id: string;
   value: string;
@@ -34,6 +51,9 @@ type Option = {
   className?: string;
 };
 
+/**
+ * Props for ComboBoxResponsive
+ */
 interface ComboBoxResponsiveProps {
   options: Option[];
   value: string;
@@ -47,6 +67,40 @@ interface ComboBoxResponsiveProps {
   id?: string;
 }
 
+/**
+ * ComboBoxResponsive Component
+ *
+ * Responsive combobox for selecting options, supporting mobile drawer and desktop popover.
+ *
+ * Features:
+ * - Mobile and desktop support
+ * - Searchable options
+ * - Custom icons and labels
+ * - Accessibility and keyboard navigation
+ * - Optional label and icon
+ *
+ * @param options - Array of selectable options
+ * @param value - Currently selected value
+ * @param onValueChange - Callback when value changes
+ * @param placeholder - Placeholder text
+ * @param searchPlaceholder - Search input placeholder
+ * @param className - Custom class for content
+ * @param triggerClassName - Custom class for trigger button
+ * @param label - Optional label
+ * @param icon - Optional icon
+ * @param id - Optional id for label
+ * @returns {JSX.Element} Responsive combobox
+ *
+ * @example
+ * ```tsx
+ * <ComboBoxResponsive
+ *   options={options}
+ *   value={value}
+ *   onValueChange={setValue}
+ *   placeholder="Select..."
+ * />
+ * ```
+ */
 export function ComboBoxResponsive({
   options,
   value,

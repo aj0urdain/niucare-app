@@ -1,20 +1,72 @@
+/**
+ * File: components/molecules/info-card.tsx
+ * Description: Information card component for displaying key-value pairs
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides an information card with the following features:
+ * - Title display
+ * - Key-value pair display
+ * - Copy to clipboard functionality
+ * - Responsive design
+ */
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { ChevronsRight, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
+/**
+ * InfoField type definition
+ * Represents a single field in the information card
+ */
 interface InfoField {
+  /** The label for the field */
   label: string;
+  /** The value of the field */
   value: string | number | null;
 }
 
+/**
+ * Props for the InfoCard component
+ */
 interface InfoCardProps {
+  /** Optional title for the card */
   title?: string | null;
+  /** Array of fields to display */
   fields: InfoField[];
+  /** Additional CSS classes */
   className?: string;
 }
 
+/**
+ * InfoCard Component
+ *
+ * An information card component that displays key-value pairs with copy functionality.
+ *
+ * Features:
+ * - Title display
+ * - Key-value pair display
+ * - Copy to clipboard functionality
+ * - Responsive design
+ * - Grid layout
+ * - Toast notifications
+ *
+ * @param props - Component props
+ * @returns {JSX.Element} Information card with key-value pairs
+ *
+ * @example
+ * ```tsx
+ * <InfoCard
+ *   title="User Information"
+ *   fields={[
+ *     { label: "Name", value: "John Doe" },
+ *     { label: "Email", value: "john@example.com" }
+ *   ]}
+ * />
+ * ```
+ */
 export function InfoCard({ title, fields, className }: InfoCardProps) {
   const handleCopy = () => {
     const content = fields

@@ -1,3 +1,17 @@
+/**
+ * File: components/molecules/form-main.tsx
+ * Description: Main form component with step navigation and progress tracking
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides a multi-step form with the following features:
+ * - Step navigation
+ * - Progress tracking
+ * - Form validation
+ * - Responsive design
+ * - Scrollable content
+ */
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -7,16 +21,56 @@ import { Form } from "@/components/ui/form";
 import { UseFormReturn } from "react-hook-form";
 import { FormStep } from "./form-nav";
 
+/**
+ * Props for the FormMain component
+ */
 interface FormMainProps {
+  /** Array of form steps */
   steps: FormStep[];
+  /** Current step index (1-based) */
   currentStep: number;
+  /** Form instance from react-hook-form */
   form: UseFormReturn<any>;
+  /** Callback function for previous step */
   onPrevStep: () => void;
+  /** Callback function for next step */
   onNextStep: () => void;
+  /** Callback function for form submission */
   onSubmit: (data: any) => void;
+  /** Function to render the current step content */
   renderStep: () => React.ReactNode;
 }
 
+/**
+ * FormMain Component
+ *
+ * A multi-step form component that handles step navigation and form submission.
+ *
+ * Features:
+ * - Step navigation (previous/next)
+ * - Progress tracking
+ * - Form validation
+ * - Responsive design
+ * - Scrollable content
+ * - Keyboard navigation
+ * - Screen reader support
+ *
+ * @param props - Component props
+ * @returns {JSX.Element} Multi-step form with navigation
+ *
+ * @example
+ * ```tsx
+ * <FormMain
+ *   steps={steps}
+ *   currentStep={1}
+ *   form={form}
+ *   onPrevStep={handlePrevStep}
+ *   onNextStep={handleNextStep}
+ *   onSubmit={handleSubmit}
+ *   renderStep={renderCurrentStep}
+ * />
+ * ```
+ */
 export function FormMain({
   steps,
   currentStep,

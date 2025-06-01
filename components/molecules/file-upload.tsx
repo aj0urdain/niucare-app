@@ -1,3 +1,20 @@
+/**
+ * File: components/molecules/file-upload.tsx
+ * Description: File upload component with drag and drop support, progress tracking, and preview.
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides a comprehensive file upload interface, including:
+ * - Drag and drop support
+ * - Progress tracking
+ * - File preview
+ * - Multiple file support
+ * - Signature upload support
+ * - S3 integration
+ * - Responsive design
+ * - Accessibility features
+ */
+
 import { useState, useEffect, useRef } from "react";
 import { uploadData, getUrl } from "aws-amplify/storage";
 import { Label } from "@/components/ui/label";
@@ -27,6 +44,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+/**
+ * FileUploadProps interface
+ *
+ * Props for the FileUpload component.
+ */
 type FileUploadProps = {
   value?: string | null;
   onChange: (url: string | null) => void;
@@ -40,6 +62,16 @@ type FileUploadProps = {
   viewOnly?: boolean;
 };
 
+/**
+ * MultipleFileDisplay Component
+ *
+ * Displays multiple uploaded files with download and delete options.
+ *
+ * @param files - Array of file names
+ * @param onDownload - Callback when file is downloaded
+ * @param onDelete - Callback when file is deleted
+ * @param viewOnly - Whether the component is in view-only mode
+ */
 function MultipleFileDisplay({
   files,
   onDownload,
@@ -92,6 +124,44 @@ function MultipleFileDisplay({
   );
 }
 
+/**
+ * FileUpload Component
+ *
+ * Provides a comprehensive file upload interface with drag and drop support.
+ *
+ * Features:
+ * - Drag and drop support
+ * - Progress tracking
+ * - File preview
+ * - Multiple file support
+ * - Signature upload support
+ * - S3 integration
+ * - Responsive design
+ * - Accessibility features
+ *
+ * @param value - Current file value
+ * @param onChange - Callback when file changes
+ * @param onUploadComplete - Callback when upload completes
+ * @param title - Upload title
+ * @param limit - Maximum number of files
+ * @param accept - Accepted file types
+ * @param isSignatureUpload - Whether this is a signature upload
+ * @param ptype - Provider type for signature uploads
+ * @param viewOnly - Whether the component is in view-only mode
+ * @param userBucket - User's S3 bucket
+ * @returns {JSX.Element} File upload component
+ *
+ * @example
+ * ```tsx
+ * <FileUpload
+ *   value={fileUrl}
+ *   onChange={handleFileChange}
+ *   title="Upload Document"
+ *   limit={1}
+ *   accept=".pdf,.doc,.docx"
+ * />
+ * ```
+ */
 export function FileUpload({
   value,
   onChange,

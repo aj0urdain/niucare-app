@@ -1,29 +1,91 @@
+/**
+ * File: components/molecules/form-nav.tsx
+ * Description: Form navigation component with progress tracking and step selection
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides form navigation with the following features:
+ * - Step selection
+ * - Progress tracking
+ * - Form validation status
+ * - Responsive design
+ */
+
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { calculateTotalProgress } from "@/utils/form";
 import { UseFormReturn } from "react-hook-form";
 
+/**
+ * FormStep type definition
+ * Represents a single step in the form navigation
+ */
 export type FormStep = {
+  /** The title of the step */
   title: string;
+  /** The icon component for the step */
   icon: React.ElementType;
+  /** The description of the step */
   description: string;
+  /** The subsections within the step */
   subsections: {
+    /** The title of the subsection */
     title: string;
+    /** The field names in the subsection */
     fields: string[];
   }[];
 };
 
+/**
+ * Props for the FormNav component
+ */
 interface FormNavProps {
+  /** Array of form steps */
   steps: FormStep[];
+  /** Current step index (1-based) */
   currentStep: number;
+  /** Form instance from react-hook-form */
   form: UseFormReturn<any>;
+  /** The title of the form */
   title: string;
+  /** The subtitle of the form */
   subtitle: string;
+  /** The icon component for the form */
   icon: React.ElementType;
+  /** Callback function when step changes */
   onStepChange: (step: number) => void;
 }
 
+/**
+ * FormNav Component
+ *
+ * A form navigation component that provides step selection and progress tracking.
+ *
+ * Features:
+ * - Step selection
+ * - Progress tracking
+ * - Form validation status
+ * - Responsive design
+ * - Keyboard navigation
+ * - Screen reader support
+ *
+ * @param props - Component props
+ * @returns {JSX.Element} Form navigation with progress tracking
+ *
+ * @example
+ * ```tsx
+ * <FormNav
+ *   steps={steps}
+ *   currentStep={1}
+ *   form={form}
+ *   title="Registration"
+ *   subtitle="Complete your registration"
+ *   icon={UserIcon}
+ *   onStepChange={handleStepChange}
+ * />
+ * ```
+ */
 export function FormNav({
   steps,
   currentStep,
