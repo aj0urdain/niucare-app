@@ -1,3 +1,10 @@
+/**
+ * File: app/page.tsx
+ * Description: Home page component with authentication-based routing
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 "use client";
 
 import { useEffect } from "react";
@@ -6,6 +13,26 @@ import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+/**
+ * Home Component
+ *
+ * Landing page that handles:
+ * - Authentication state check
+ * - Automatic routing based on auth status
+ * - Loading states with visual feedback
+ *
+ * Features:
+ * - PSNA logo display
+ * - Loading animation
+ * - Automatic redirection
+ * - Responsive design
+ *
+ * Routing Logic:
+ * - Authenticated users -> /dashboard
+ * - Unauthenticated users -> /auth
+ *
+ * @returns {JSX.Element} Home page with loading state and logo
+ */
 export default function Home() {
   const { user, isLoading } = useUserProfileStore();
   const router = useRouter();

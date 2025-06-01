@@ -1,3 +1,10 @@
+/**
+ * File: app/layout.tsx
+ * Description: Root layout component for the Niucare application
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 "use client";
 
 import "./globals.css";
@@ -32,6 +39,17 @@ configureAmplify();
 //   creator: "Aaron J. Girton",
 // };
 
+/**
+ * UserProfileInitializer Component
+ *
+ * Handles user profile state management and authentication events.
+ * Features:
+ * - Initial profile fetch on mount
+ * - Auth event listeners (sign in, sign out, token refresh)
+ * - Automatic profile updates
+ *
+ * @returns {null} This component doesn't render anything
+ */
 function UserProfileInitializer() {
   const client = useApolloClient();
   const fetchUserProfile = useUserProfileStore(
@@ -72,6 +90,21 @@ function UserProfileInitializer() {
   return null;
 }
 
+/**
+ * RootLayout Component
+ *
+ * Root layout wrapper that provides:
+ * - Theme support (light/dark mode)
+ * - Toast notifications
+ * - Apollo GraphQL client
+ * - Query provider
+ * - Tooltip provider
+ * - User profile management
+ *
+ * @param props - Component props
+ * @param props.children - Child components to be rendered
+ * @returns {JSX.Element} Root layout with providers and global UI elements
+ */
 export default function RootLayout({
   children,
 }: {
