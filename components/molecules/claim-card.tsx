@@ -1,3 +1,19 @@
+/**
+ * File: components/molecules/claim-card.tsx
+ * Description: Card component for displaying a policy holder's claim summary.
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component displays a summary of a policy holder's claim, including:
+ * - Employee number
+ * - Claim ID
+ * - Claim label and description
+ * - Number of attached documents
+ * - Claim amount (animated)
+ * - Clickable navigation to claim details
+ * - Responsive and accessible design
+ */
+
 "use client";
 
 import {
@@ -11,6 +27,11 @@ import { useRouter } from "next/navigation";
 import { IdCard, Paperclip, CircleDashed } from "lucide-react";
 import CountUp from "react-countup";
 
+/**
+ * PolicyHolderClaim type
+ *
+ * Represents a single claim record for a policy holder.
+ */
 interface PolicyHolderClaim {
   id: number;
   amount: number;
@@ -20,10 +41,32 @@ interface PolicyHolderClaim {
   description: string;
 }
 
+/**
+ * ClaimCardProps
+ * @property claim - The claim data to display
+ */
 interface ClaimCardProps {
   claim: PolicyHolderClaim;
 }
 
+/**
+ * ClaimCard Component
+ *
+ * Displays a summary card for a policy holder's claim, including employee number, claim ID, label, description, document count, and amount.
+ *
+ * Features:
+ * - Animated amount display
+ * - Clickable navigation to claim details
+ * - Responsive and accessible design
+ *
+ * @param claim - The claim data to display
+ * @returns {JSX.Element} The claim summary card
+ *
+ * @example
+ * ```tsx
+ * <ClaimCard claim={claim} />
+ * ```
+ */
 export function ClaimCard({ claim }: ClaimCardProps) {
   const router = useRouter();
   const numDocuments = Math.floor(Math.random() * 3) + 1; // Random number between 1 and 3

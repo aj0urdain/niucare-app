@@ -1,3 +1,10 @@
+/**
+ * File: components/organisms/claims-table.tsx
+ * Description: Table component for displaying claims data with actions
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -12,6 +19,10 @@ import {
 import { InfoIcon as InfoCircle } from "lucide-react";
 import { Claim } from "@/lib/graphql/types";
 
+/**
+ * Sample claims data for demonstration purposes
+ * @type {Claim[]}
+ */
 const claims: Claim[] = [
   {
     id: 80,
@@ -42,6 +53,19 @@ const claims: Claim[] = [
   },
 ];
 
+/**
+ * ClaimsTable Component
+ *
+ * Displays a table of claims with their details and associated actions.
+ * Includes functionality for viewing files and managing claim status.
+ *
+ * @returns {JSX.Element} The rendered claims table
+ *
+ * @example
+ * ```tsx
+ * <ClaimsTable />
+ * ```
+ */
 export function ClaimsTable() {
   return (
     <div className="rounded-md border">

@@ -16,6 +16,14 @@ import { NewClaimEmbeddedForm } from "@/components/molecules/new-claim-embedded-
 import { useEmployeeStore } from "@/stores/employee-store";
 import { useClaimFormStore } from "@/stores/new-claim-form-store";
 
+/**
+ * Interface for new claim form data
+ * @property employeeNumber - Employee number
+ * @property claimType - Type of claim
+ * @property amount - Claim amount
+ * @property description - Claim description
+ * @property files - Array of uploaded files
+ */
 export interface FormData {
   employeeNumber: string;
   claimType: string;
@@ -24,7 +32,9 @@ export interface FormData {
   files: Array<{ id: string; name: string; type: string; size: number }>;
 }
 
-// Define form states to track the process
+/**
+ * Type for form state in the new claim modal
+ */
 export type FormState =
   | "PENDING_EMPLOYEE_NUMBER"
   | "FETCHING_EMPLOYEE_INFORMATION"
@@ -49,6 +59,18 @@ export type FormState =
   | "ADD_CLAIM_SUCCESS"
   | "ADD_CLAIM_ERROR";
 
+/**
+ * NewClaimModal Component
+ *
+ * Modal dialog for submitting a new claim. Guides the user through employee lookup, claim details, and file upload.
+ *
+ * @returns {JSX.Element} The rendered new claim modal
+ *
+ * @example
+ * ```tsx
+ * <NewClaimModal />
+ * ```
+ */
 export function NewClaimModal() {
   const [open, setOpen] = useState(false);
   const [formState, setFormState] = useState<FormState | null>(

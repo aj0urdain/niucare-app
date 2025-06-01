@@ -1,3 +1,10 @@
+/**
+ * File: components/organisms/claims-content.tsx
+ * Description: Main content component for displaying and managing claims
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 "use client";
 
 import { useState } from "react";
@@ -8,6 +15,13 @@ import { useQuery } from "@apollo/client";
 import { GET_POLICYHOLDERCLAIMS } from "@/lib/graphql/queries";
 import { useUserProfileStore } from "@/stores/user-profile-store";
 
+/**
+ * Interface for filter values used in claims table
+ * @property status - Filter by claim status
+ * @property claimId - Filter by claim ID
+ * @property employeeNumber - Filter by employee number
+ * @property claimType - Filter by claim type
+ */
 interface FilterValues {
   status: string;
   claimId: string;
@@ -15,6 +29,19 @@ interface FilterValues {
   claimType: string;
 }
 
+/**
+ * Interface for policy holder claim data
+ * @property id - Unique identifier for the claim
+ * @property employeeNo - Employee number associated with the claim
+ * @property providerRegNumber - Provider registration number
+ * @property label - Claim type label
+ * @property amount - Claim amount
+ * @property description - Claim description
+ * @property status - Claim status
+ * @property documents - Associated documents
+ * @property reason - Optional rejection reason
+ * @property userBucket - Optional user bucket identifier
+ */
 interface PolicyHolderClaim {
   id: number;
   employeeNo: string;
@@ -28,10 +55,28 @@ interface PolicyHolderClaim {
   userBucket?: string;
 }
 
+/**
+ * Props for the ClaimsContent component
+ * @property initialClaimId - Optional initial claim ID to display
+ */
 interface ClaimsContentProps {
   initialClaimId?: string | null;
 }
 
+/**
+ * ClaimsContent Component
+ *
+ * Main component for displaying and managing claims. Handles data fetching,
+ * filtering, and display of claims in a data table format.
+ *
+ * @param {ClaimsContentProps} props - Component props
+ * @returns {JSX.Element} The rendered claims content with data table
+ *
+ * @example
+ * ```tsx
+ * <ClaimsContent initialClaimId="123" />
+ * ```
+ */
 export const ClaimsContent = ({ initialClaimId }: ClaimsContentProps) => {
   const { user } = useUserProfileStore();
   const [filters, setFilters] = useState<FilterValues>({

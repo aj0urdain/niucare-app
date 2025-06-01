@@ -1,3 +1,17 @@
+/**
+ * File: components/molecules/new-claim-bank-details.tsx
+ * Description: Bank details verification component for new claims.
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides bank details verification with:
+ * - Real-time verification status
+ * - Loading states
+ * - Error handling
+ * - Visual status indicators
+ * - Responsive design
+ */
+
 import { BadgeCheck, BadgeX, Landmark, Loader2 } from "lucide-react";
 import { CardContent, CardHeader, CardTitle } from "../ui/card";
 import { GET_HAS_BANK_DETAILS } from "@/lib/graphql/queries";
@@ -5,15 +19,52 @@ import { useLazyQuery } from "@apollo/client";
 import { useState } from "react";
 import React from "react";
 
+/**
+ * NewClaimBankDetailsProps interface
+ *
+ * Props for the NewClaimBankDetails component.
+ */
 interface NewClaimBankDetailsProps {
   employeeNumber: string;
-  employeeData: any;
+  employeeData: {
+    id: string;
+    [key: string]: any;
+  };
 }
 
+/**
+ * BankDetailsResponse interface
+ *
+ * Response type for bank details verification query.
+ */
 interface BankDetailsResponse {
   hasBankDetails: boolean;
 }
 
+/**
+ * NewClaimBankDetails Component
+ *
+ * Displays and verifies bank details for a new claim.
+ *
+ * Features:
+ * - Real-time verification status
+ * - Loading states
+ * - Error handling
+ * - Visual status indicators
+ * - Responsive design
+ *
+ * @param employeeNumber - Employee number to check
+ * @param employeeData - Employee data object
+ * @returns {JSX.Element} Bank details verification component
+ *
+ * @example
+ * ```tsx
+ * <NewClaimBankDetails
+ *   employeeNumber="EMP123"
+ *   employeeData={employeeData}
+ * />
+ * ```
+ */
 export function NewClaimBankDetails({
   employeeNumber,
   employeeData,

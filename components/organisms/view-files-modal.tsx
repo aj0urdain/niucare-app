@@ -12,11 +12,36 @@ import { Button } from "@/components/ui/button";
 import { FileDown } from "lucide-react";
 import { useFileViewer } from "@/contexts/file-viewer-context";
 
+/**
+ * File: components/organisms/view-files-modal.tsx
+ * Description: Modal component for viewing and downloading files associated with a claim
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
+/**
+ * Props for the ViewFilesModal component
+ * @property files - Array of file names/paths (optional)
+ * @property claimId - Claim ID associated with the files
+ */
 interface ViewFilesModalProps {
   files?: string[];
   claimId: string;
 }
 
+/**
+ * ViewFilesModal Component
+ *
+ * Modal dialog for viewing and downloading files associated with a claim.
+ *
+ * @param {ViewFilesModalProps} props - Component props
+ * @returns {JSX.Element} The rendered view files modal
+ *
+ * @example
+ * ```tsx
+ * <ViewFilesModal files={["file1.pdf"]} claimId="123" />
+ * ```
+ */
 export function ViewFilesModal({ files = [], claimId }: ViewFilesModalProps) {
   const { isOpen, setIsOpen, openFileViewer } = useFileViewer();
 

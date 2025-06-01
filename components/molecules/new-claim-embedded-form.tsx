@@ -1,3 +1,20 @@
+/**
+ * File: components/molecules/new-claim-embedded-form.tsx
+ * Description: Embedded form component for creating new claims with multi-step workflow.
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides a comprehensive claim creation workflow with:
+ * - Multi-step form process
+ * - Bank details management
+ * - Claim type selection
+ * - Warning system for duplicate claims
+ * - File upload support
+ * - Form validation
+ * - Real-time verification
+ * - Responsive design
+ */
+
 import { AlertTriangle, Component, File } from "lucide-react";
 import { InputWithLabel } from "../atoms/input-with-label";
 import { Button } from "../ui/button";
@@ -34,12 +51,22 @@ import { useEmployeeData } from "@/lib/hooks/useEmployeeData";
 import { Badge } from "@/components/ui/badge";
 import { FileUpload } from "./file-upload";
 
+/**
+ * NewClaimEmbeddedFormProps interface
+ *
+ * Props for the NewClaimEmbeddedForm component.
+ */
 interface NewClaimEmbeddedFormProps {
   formState: string | null;
   setFormState: (formState: string | null) => void;
   setOpen: (open: boolean) => void;
 }
 
+/**
+ * ClaimTypeVerifyResponse interface
+ *
+ * Response type for claim type verification query.
+ */
 interface ClaimTypeVerifyResponse {
   previousClaimAmount: number;
   previousClaimDateTime: string;
@@ -48,6 +75,11 @@ interface ClaimTypeVerifyResponse {
   claimLabel: string;
 }
 
+/**
+ * ClaimAddVerifyResponse interface
+ *
+ * Response type for claim addition verification query.
+ */
 interface ClaimAddVerifyResponse {
   claimId: number;
   claimDateTime: string;
@@ -57,6 +89,11 @@ interface ClaimAddVerifyResponse {
   description: string;
 }
 
+/**
+ * FormState interface
+ *
+ * Defines the structure for form state management.
+ */
 interface FormState {
   type:
     | "initial"
@@ -71,6 +108,35 @@ interface FormState {
   navigation: () => JSX.Element;
 }
 
+/**
+ * NewClaimEmbeddedForm Component
+ *
+ * Provides a multi-step form for creating new claims with comprehensive validation and verification.
+ *
+ * Features:
+ * - Multi-step form process
+ * - Bank details management
+ * - Claim type selection
+ * - Warning system for duplicate claims
+ * - File upload support
+ * - Form validation
+ * - Real-time verification
+ * - Responsive design
+ *
+ * @param formState - Current form state
+ * @param setFormState - Function to update form state
+ * @param setOpen - Function to control modal visibility
+ * @returns {JSX.Element} New claim form component
+ *
+ * @example
+ * ```tsx
+ * <NewClaimEmbeddedForm
+ *   formState={formState}
+ *   setFormState={setFormState}
+ *   setOpen={setOpen}
+ * />
+ * ```
+ */
 export function NewClaimEmbeddedForm({
   formState,
   setFormState,

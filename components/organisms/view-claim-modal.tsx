@@ -1,3 +1,10 @@
+/**
+ * File: components/organisms/view-claim-modal.tsx
+ * Description: Modal component for viewing claim details, files, and approving/rejecting claims
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -60,6 +67,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { InfoCard } from "@/components/molecules/info-card";
 import { FileUpload } from "@/components/molecules/file-upload";
 
+/**
+ * Props for the ViewClaimModal component
+ * @property claim - Claim data to display
+ * @property open - Whether the modal is open
+ * @property onOpenChange - Callback for modal open state change
+ */
 interface ViewClaimModalProps {
   claim: Claim | null;
   open: boolean;
@@ -718,6 +731,19 @@ const ViewClaimModalContent = ({
   );
 };
 
+/**
+ * ViewClaimModal Component
+ *
+ * Modal dialog for viewing claim details, files, and approving/rejecting claims.
+ *
+ * @param {ViewClaimModalProps} props - Component props
+ * @returns {JSX.Element} The rendered view claim modal
+ *
+ * @example
+ * ```tsx
+ * <ViewClaimModal claim={claim} open={open} onOpenChange={setOpen} />
+ * ```
+ */
 export function ViewClaimModal({
   claim,
   open,

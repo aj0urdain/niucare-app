@@ -1,3 +1,19 @@
+/**
+ * File: components/molecules/new-claim-employee-card.tsx
+ * Description: Employee card component for new claims with search and verification.
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides employee search and verification with:
+ * - Employee number search
+ * - Real-time verification
+ * - Bank details status
+ * - Loading states
+ * - Error handling
+ * - Responsive design
+ * - Accessibility features
+ */
+
 import {
   BadgeCheck,
   BadgeX,
@@ -22,6 +38,27 @@ import { useEmployeeData } from "@/lib/hooks/useEmployeeData";
 import { useState, useRef, useEffect } from "react";
 import { useUserProfileStore } from "@/stores/user-profile-store";
 
+/**
+ * NewClaimEmployeeCard Component
+ *
+ * Provides employee search and verification functionality for new claims.
+ *
+ * Features:
+ * - Employee number search
+ * - Real-time verification
+ * - Bank details status
+ * - Loading states
+ * - Error handling
+ * - Responsive design
+ * - Accessibility features
+ *
+ * @returns {JSX.Element} Employee card component
+ *
+ * @example
+ * ```tsx
+ * <NewClaimEmployeeCard />
+ * ```
+ */
 export function NewClaimEmployeeCard() {
   const {
     employeeNumber,
