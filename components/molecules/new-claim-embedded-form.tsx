@@ -32,6 +32,7 @@ import { useEmployeeStore } from "@/stores/employee-store";
 import { useClaimFormStore } from "@/stores/new-claim-form-store";
 import { useEmployeeData } from "@/lib/hooks/useEmployeeData";
 import { Badge } from "@/components/ui/badge";
+import { FileUpload } from "./file-upload";
 
 interface NewClaimEmbeddedFormProps {
   formState: string | null;
@@ -78,6 +79,7 @@ export function NewClaimEmbeddedForm({
   const [claimType, setClaimType] = useState<string | null>(null);
   const [hasWarning, setHasWarning] = useState(false);
   const [warningAccepted, setWarningAccepted] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
 
   const { employeeNumber, setEmployeeNumber, employeeData, setEmployeeData } =
     useEmployeeStore();
@@ -163,6 +165,7 @@ export function NewClaimEmbeddedForm({
       errorPolicy: "all",
       onCompleted: (data) => {
         if (data.verifyclaim) {
+          setVerifyError(null);
           if (
             data.verifyclaim.previousClaimAmount !== null &&
             data.verifyclaim.previousClaimId !== 0 &&
@@ -184,6 +187,18 @@ export function NewClaimEmbeddedForm({
         console.error("Verify Claim Query failed:", error);
         console.error("Error details:", error.graphQLErrors);
         console.error("Network error:", error.networkError);
+
+        // Set error message
+        const errorMessage =
+          error.graphQLErrors?.[0]?.message ||
+          error.networkError?.message ||
+          "Failed to verify claim. Please try again.";
+        setVerifyError(errorMessage);
+
+        // Reset claim type to allow retry
+        setClaimType(null);
+        setClaimTypeVerifyResponse(null);
+        setClaimAddVerifyResponse(null);
       },
     }
   );
@@ -287,6 +302,11 @@ export function NewClaimEmbeddedForm({
   function renderClaimType() {
     return (
       <>
+        {verifyError && (
+          <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md border border-red-200 mb-4">
+            {verifyError}
+          </div>
+        )}
         <ComboBoxResponsive
           placeholder="Select Claim Type"
           label="Claim Type"
@@ -296,6 +316,7 @@ export function NewClaimEmbeddedForm({
             setClaimType(value);
             setClaimTypeVerifyResponse(null);
             setClaimAddVerifyResponse(null);
+            setVerifyError(null);
             verifyClaimQuery({
               variables: {
                 input: {
@@ -421,40 +442,14 @@ export function NewClaimEmbeddedForm({
             />
           </div>
 
-          <div className="flex flex-col gap-2 w-full">
-            <Label className="text-xs font-semibold text-muted-foreground/75">
-              Upload Files
-            </Label>
-            <div className="gap-2 w-full max-w-fit grid grid-cols-5">
-              {uploadedFiles.map((file, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  className="w-full text-ellipsis"
-                >
-                  <Image
-                    src="/images/pdf_icon.png"
-                    alt={file.name}
-                    width={12}
-                    height={12}
-                  />
-                  <p className="truncate text-xs">{file.name}</p>
-                </Button>
-              ))}
-              <FileUploader
-                onFileSelect={(file) => {
-                  setUploadedFiles((prev) => [...prev, file]);
-                  setFormData((prev) => ({
-                    ...prev,
-                    supporting_documents: [
-                      ...(prev.supporting_documents || []),
-                      file,
-                    ],
-                  }));
-                }}
-                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-              />
-            </div>
+          <div className="grid grid-cols-1 gap-2 w-full">
+            <FileUpload
+              title="Upload Supporting Documents"
+              limit={5}
+              accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+              value={uploadedFiles[uploadedFiles.length - 1]}
+              onChange={(file) => setUploadedFiles([...uploadedFiles, file])}
+            />
           </div>
         </div>
       </div>
@@ -582,6 +577,7 @@ export function NewClaimEmbeddedForm({
               setClaimType(value);
               setClaimTypeVerifyResponse(null);
               setClaimAddVerifyResponse(null);
+              setVerifyError(null);
               verifyClaimQuery({
                 variables: {
                   input: {

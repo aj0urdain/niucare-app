@@ -96,13 +96,13 @@ const data = {
 
 const NavSkeleton = () => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 px-4 mt-4">
       {/* Title skeleton */}
-      <Skeleton className="h-5 w-24 mb-4" />
+      <Skeleton className="h-2 w-24" />
 
       {/* Nav items skeletons */}
-      <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
+      <div className="space-y-2">
+        {[1, 2].map((i) => (
           <div key={i} className="flex items-center gap-3">
             <Skeleton className="h-4 w-4" /> {/* Icon */}
             <Skeleton className="h-4 w-32" /> {/* Text */}
@@ -118,11 +118,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   // Filter service provider nav items based on registration status
   const getServiceProviderNav = () => {
-    // If registration is approved or acknowledged, show dashboard and claims, hide registration
-    if (
-      user?.registration.details?.status === "Acknowledged" ||
-      user?.registration.details?.status === "Approved"
-    ) {
+    // If registration is acknowledged, show dashboard and claims, hide registration
+    if (user?.registration.details?.status === "Acknowledged") {
       return data.navServiceProvider.filter(
         (item) => item.title !== "Registration"
       );

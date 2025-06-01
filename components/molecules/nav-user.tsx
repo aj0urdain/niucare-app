@@ -24,11 +24,16 @@ import { toast } from "sonner";
 import { useUserProfileStore } from "@/stores/user-profile-store";
 import { useQueryClient } from "@tanstack/react-query";
 
+import { getUrl } from "aws-amplify/storage";
+import { useState } from "react";
 export function NavUser() {
   const { user } = useUserProfileStore();
   const { isMobile } = useSidebar();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [isLoading, setIsLoading] = useState(false);
+  const [downloadUrl, setDownloadUrl] = useState<string>("");
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -47,6 +52,32 @@ export function NavUser() {
         description:
           error instanceof Error ? error.message : "An unknown error occurred",
       });
+    }
+  };
+
+  const handleDownloadCertificate = async () => {
+    if (!user?.registration?.id) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { url } = await getUrl({
+        path: ({ identityId }) =>
+          `private/${identityId}/${user.registration.id}certificate.pdf`,
+        options: {
+          expiresIn: 900, // 15 minutes
+        },
+      });
+      const downloadUrl = url.toString();
+      setDownloadUrl(downloadUrl);
+      // Open the URL in a new tab
+      window.open(downloadUrl, "_blank");
+    } catch (error) {
+      console.error("Error getting certificate URL:", error);
+      toast.error("Failed to download certificate");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -108,14 +139,14 @@ export function NavUser() {
             </DropdownMenuLabel>
 
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <FileCheck />
-                Download Provider Certificate
-              </DropdownMenuItem>
+              {user?.registration?.exists &&
+                user?.registration?.status?.toLowerCase() ===
+                  "acknowledged" && (
+                  <DropdownMenuItem onClick={handleDownloadCertificate}>
+                    <FileCheck />
+                    Download Provider Certificate
+                  </DropdownMenuItem>
+                )}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut}>

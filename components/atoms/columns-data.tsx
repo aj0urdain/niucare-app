@@ -8,10 +8,10 @@ import {
   CircleCheckBig,
   CircleDashed,
   Trash,
-  FileBadge,
   Copy,
   FileOutput,
   FileSpreadsheet,
+  Paperclip,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -252,26 +252,14 @@ const ActionsCell = ({ claim }: { claim: Claim }) => {
 };
 
 const FilesCell = ({ claim }: { claim: Claim }) => {
-  const router = useRouter();
-
-  const handleViewFiles = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const params = new URLSearchParams();
-    params.set("id", claim.id);
-    params.set("sheetTab", "files");
-    router.push(`?${params.toString()}`);
-  };
+  if (!claim.viewFiles || claim.viewFiles.trim() === "") {
+    return null;
+  }
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="h-8 w-8"
-      onClick={handleViewFiles}
-    >
-      <FileBadge className="h-4 w-4" />
-      <span className="sr-only">View files</span>
-    </Button>
+    <div className="flex items-center justify-center">
+      <Paperclip className="h-4 w-4 text-muted-foreground" />
+    </div>
   );
 };
 
