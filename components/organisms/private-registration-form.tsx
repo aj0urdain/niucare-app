@@ -332,10 +332,6 @@ function PrivateRegistrationForm({
   > | null>(null);
 
   useEffect(() => {
-    console.log(initialDraft);
-  }, [initialDraft]);
-
-  useEffect(() => {
     if (draftError) {
       toast.error("Failed to save draft: " + draftError.message);
     }
@@ -475,11 +471,9 @@ function PrivateRegistrationForm({
             },
           },
         });
-        console.log("Draft saved successfully");
         toast.success("Draft saved successfully");
         setPreviousFormValues(values);
       } catch (error) {
-        console.error("Error saving draft:", error);
         toast.error("Failed to save draft");
       }
     },
@@ -504,21 +498,10 @@ function PrivateRegistrationForm({
         const previousValue =
           previousFormValues[key as keyof typeof previousFormValues];
 
-        // Debug log for practice_suburb
-        if (key === "practice_suburb") {
-          console.log("practice_suburb changed:", {
-            current: currentValue,
-            previous: previousValue,
-            hasChange:
-              JSON.stringify(currentValue) !== JSON.stringify(previousValue),
-          });
-        }
-
         return JSON.stringify(currentValue) !== JSON.stringify(previousValue);
       });
 
       if (hasChanges) {
-        console.log("Form values before save:", values);
         debouncedSaveDraft(values as z.infer<typeof registrationSchema>);
       }
     });
@@ -779,16 +762,7 @@ function PrivateRegistrationForm({
     setStep(step - 1);
   };
 
-  const onSubmit = async (values: z.infer<typeof registrationSchema>) => {
-    console.log("Form submission started");
-    console.log("User ID:", user?.userId);
-    console.log("Raw form values:", values);
-
-    if (!user?.userId) {
-      toast.error("User not authenticated");
-      return;
-    }
-
+  const handleSubmit = async (values: z.infer<typeof registrationSchema>) => {
     try {
       setIsSubmitting(true);
 
@@ -814,34 +788,23 @@ function PrivateRegistrationForm({
         practice_Suburb: values.practice_Suburb,
       };
 
-      console.log("Formatted values being sent to mutation:", formattedValues);
-
       const { data, errors } = await addOrUpdateRegistration({
         variables: {
           reg: formattedValues,
         },
       });
 
-      console.log("Mutation response:", { data, errors });
-
       if (errors) {
-        console.error("Mutation errors:", errors);
         throw new Error(errors[0].message);
       }
 
       if (!data?.addOrUpdateRegistration?.id) {
-        console.error("Registration submission failed - no ID returned");
         throw new Error("Registration submission failed - no ID returned");
       }
 
-      console.log(
-        "Registration successful, ID:",
-        data.addOrUpdateRegistration.id
-      );
       toast.success("Registration submitted successfully");
       router.push("/registration");
     } catch (error) {
-      console.error("Error submitting registration:", error);
       const errorMessage =
         error instanceof Error
           ? error.message
@@ -2034,7 +1997,7 @@ function PrivateRegistrationForm({
               </Button>
               <Button
                 type="submit"
-                onClick={() => form.handleSubmit(onSubmit)()}
+                onClick={() => form.handleSubmit(handleSubmit)()}
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (

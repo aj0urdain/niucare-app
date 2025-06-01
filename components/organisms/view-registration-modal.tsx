@@ -155,13 +155,8 @@ const ViewRegistrationModalContent = ({
           (reg) => reg.luhnRegistrationNumber === registration?.registrationId
         );
         setMatchingRegistration(found || null);
-        console.log("matchingRegistration", found);
       } else {
         setMatchingRegistration(userRegistrationData.registrationByUserId);
-        console.log(
-          "matchingRegistration",
-          userRegistrationData.registrationByUserId
-        );
       }
     }
   }, [userRegistrationData, registration]);
@@ -200,12 +195,6 @@ const ViewRegistrationModalContent = ({
     });
 
     return () => observer.disconnect();
-  }, [matchingRegistration]);
-
-  useEffect(() => {
-    if (matchingRegistration) {
-      console.log(matchingRegistration);
-    }
   }, [matchingRegistration]);
 
   const scrollToSection = (sectionId: string) => {

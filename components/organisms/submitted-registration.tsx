@@ -228,7 +228,6 @@ export function SubmittedRegistration({
 
   const handleStartNewRegistration = () => {
     // Add your navigation logic here
-    console.log("Starting new registration");
   };
 
   const handleEditRegistration = async () => {

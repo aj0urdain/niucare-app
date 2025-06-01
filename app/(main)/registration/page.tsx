@@ -37,7 +37,7 @@ import { SubmittedRegistration } from "@/components/organisms/submitted-registra
  *
  * @returns {JSX.Element} The registration page with appropriate content based on registration status
  */
-export default function RegistrationPage() {
+const RegistrationPage = () => {
   const { user } = useUserProfileStore();
 
   const { data: draftsData, loading: draftsLoading } = useQuery(
@@ -83,13 +83,9 @@ export default function RegistrationPage() {
 
   // Get the most recent registration if available
   const mostRecentRegistration = registrationData?.registrationByUserId?.[0];
-  console.log("mostRecentRegistration:", mostRecentRegistration);
 
   // Get the most recent draft if available
   const latestDraft = draftsData?.draftByUserId?.[0];
-  console.log("latestDraft:", latestDraft);
-
-  console.log("latestDraft", latestDraft);
 
   // If there's a registration with pending or approved status, show the submitted registration
   if (
@@ -180,4 +176,6 @@ export default function RegistrationPage() {
       </div>
     </div>
   );
-}
+};
+
+export default RegistrationPage;

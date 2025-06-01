@@ -32,7 +32,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  *
  * @returns {JSX.Element} Public registration page with form and loading states
  */
-export default function RegistrationPage() {
+const PublicRegistrationPage = () => {
   const { user } = useUserProfileStore();
 
   const { data: registrationData, loading: registrationLoading } = useQuery(
@@ -45,8 +45,6 @@ export default function RegistrationPage() {
     }
   );
 
-  console.log(registrationData);
-
   const { data: draftsData, loading } = useQuery(DRAFTS_BY_USER_ID, {
     variables: {
       userId: user?.userId || "",
@@ -56,8 +54,6 @@ export default function RegistrationPage() {
 
   // Get the most recent draft if available
   const latestDraft = draftsData?.draftByUserId?.[0];
-
-  console.log("latestDraft", latestDraft);
 
   if (loading || registrationLoading) {
     return (
@@ -69,4 +65,6 @@ export default function RegistrationPage() {
   }
 
   return <PublicRegistrationForm initialDraft={latestDraft} />;
-}
+};
+
+export default PublicRegistrationPage;

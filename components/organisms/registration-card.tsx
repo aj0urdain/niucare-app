@@ -168,10 +168,6 @@ export function RegistrationCard({
     ],
   });
 
-  useEffect(() => {
-    console.log("latestDraft", latestDraft);
-  }, [latestDraft]);
-
   const isDisabled = latestDraft?.ptype !== registrationType && !!latestDraft;
   const isRejected = !!latestDraft?.reason;
 

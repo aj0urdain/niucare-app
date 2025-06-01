@@ -382,11 +382,6 @@ function PublicRegistrationForm({ initialDraft }: PublicRegistrationFormProps) {
   > | null>(null);
 
   useEffect(() => {
-    console.log("initialDraft below");
-    console.log(initialDraft);
-  }, [initialDraft]);
-
-  useEffect(() => {
     if (draftError) {
       toast.error("Failed to save draft: " + draftError.message);
     }
@@ -493,7 +488,6 @@ function PublicRegistrationForm({ initialDraft }: PublicRegistrationFormProps) {
           delete valuesToSend.signatureType;
         }
 
-        console.log("valuesToSend", valuesToSend);
         await addOrUpdateDraft({
           variables: {
             draft: {
@@ -508,11 +502,9 @@ function PublicRegistrationForm({ initialDraft }: PublicRegistrationFormProps) {
             },
           },
         });
-        console.log("Draft saved successfully");
         toast.success("Draft saved successfully");
         setPreviousFormValues(values);
       } catch (error) {
-        console.error("Error saving draft:", error);
         toast.error("Failed to save draft");
       }
     },
@@ -537,21 +529,10 @@ function PublicRegistrationForm({ initialDraft }: PublicRegistrationFormProps) {
         const previousValue =
           previousFormValues[key as keyof typeof previousFormValues];
 
-        // Debug log for postal_Suburb
-        if (key === "postal_Suburb") {
-          console.log("postal_Suburb changed:", {
-            current: currentValue,
-            previous: previousValue,
-            hasChange:
-              JSON.stringify(currentValue) !== JSON.stringify(previousValue),
-          });
-        }
-
         return JSON.stringify(currentValue) !== JSON.stringify(previousValue);
       });
 
       if (hasChanges) {
-        console.log("Form values before save:", values);
         debouncedSaveDraft(values as z.infer<typeof registrationSchema>);
       }
     });
@@ -811,22 +792,14 @@ function PublicRegistrationForm({ initialDraft }: PublicRegistrationFormProps) {
   };
 
   const onSubmit = async (values: z.infer<typeof registrationSchema>) => {
-    console.log("Starting form submission...");
-    console.log("Form values:", values);
-
     if (!user?.userId) {
-      console.error("User not authenticated - no userId found");
       toast.error("User not authenticated");
       return;
     }
 
     try {
       setIsSubmitting(true);
-      console.log("Setting isSubmitting to true");
 
-      console.log("values.registrationId:", values.registrationId);
-
-      // Format dates to ISO strings
       const formattedValues = {
         ...values,
         signatureType: undefined,
@@ -849,32 +822,24 @@ function PublicRegistrationForm({ initialDraft }: PublicRegistrationFormProps) {
         postal_Suburb: values.postal_Suburb || null,
       };
 
-      console.log("Formatted values for submission:", formattedValues);
-
       const { data, errors } = await addOrUpdateRegistration({
         variables: {
           reg: formattedValues,
         },
       });
 
-      console.log("Mutation response:", { data, errors });
-
       if (errors) {
-        console.error("GraphQL errors:", errors);
         throw new Error(errors[0].message);
       }
 
       if (!data?.addOrUpdateRegistration?.id) {
-        console.error("Registration submission failed - no ID returned");
         throw new Error("Registration submission failed - no ID returned");
       }
 
-      console.log("Registration submitted successfully");
       toast.success("Registration submitted successfully");
 
       router.push("/registration");
     } catch (error) {
-      console.error("Error submitting registration:", error);
       const errorMessage =
         error instanceof Error
           ? error.message
@@ -882,7 +847,6 @@ function PublicRegistrationForm({ initialDraft }: PublicRegistrationFormProps) {
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
-      console.log("Setting isSubmitting to false");
     }
   };
 
@@ -2007,9 +1971,6 @@ function PublicRegistrationForm({ initialDraft }: PublicRegistrationFormProps) {
               <Button
                 type="submit"
                 onClick={() => {
-                  console.log("Submit button clicked");
-                  console.log("Form validation state:", form.formState);
-                  console.log("Form errors:", form.formState.errors);
                   form.handleSubmit(onSubmit)();
                 }}
                 disabled={isSubmitting}
