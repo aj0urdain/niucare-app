@@ -89,3 +89,19 @@ mutation UpdateClaimStatus($id: Int!, $status: String!, $reason: String!) {
   }
 }
 `);
+
+export const UPDATE_REGISTRATION_STATUS = gql(`
+mutation UpdateRegistrationStatus($id:String!, $status:String!, $reason:String){
+  updateRegistrationStatus(id: $id, status:$status, reason:$reason){
+     id
+     luhnRegistrationNumber
+     public_officer_firstname
+     public_officer_lastname
+     email
+     practice_Name
+     practice_Province
+     ptype
+     status
+  }
+}
+`);

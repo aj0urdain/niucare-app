@@ -210,22 +210,6 @@ mutation AddRegistration($input: AddRegistration!) {
 }
 `);
 
-export const UPDATE_REGISTRATION_STATUS = gql(`
-mutation UpdateRegistrationStatus($id:String!, $status:String!, $reason:String){
-  updateRegistrationStatus(id: $id, status:$status, reason:$reason){
-     id
-     luhnRegistrationNumber
-     public_officer_firstname
-     public_officer_lastname
-     email
-     practice_Name
-     practice_Province
-     ptype
-     status
-  }
-}
-`);
-
 export const DELETE_CLAIM = gql(`
 mutation DeleteClaim($id:Int!){
     deleteClaim(id: $id){
@@ -585,6 +569,15 @@ key: String
 query getS3FileAdmin ($input:FileBucket!){
     signurl(input:$input) @rest(path:"/amazon/signurl", method:"POST"){
     url
+    }
+}
+`);
+
+export const GET_DASHBOARD_REGISTRATIONS = gql(`
+query GetDashboardRegistrations {
+    registrations(province: "", type: "", status: "") {
+        id
+        status
     }
 }
 `);

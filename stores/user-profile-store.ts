@@ -108,7 +108,7 @@ export const useUserProfileStore = create<UserProfileStore>((set) => ({
       const userProfile = await fetchUserProfileData();
 
       // First set the basic user profile
-      set({ user: userProfile, isLoading: false });
+      set({ user: userProfile });
 
       // If user is not an admin, fetch their registration data
       if (!userProfile.permissions.canApproveRegistration && client) {
@@ -164,6 +164,8 @@ export const useUserProfileStore = create<UserProfileStore>((set) => ({
           });
         }
       }
+      // Set loading to false after all data fetching is complete
+      set({ isLoading: false });
     } catch (error) {
       set({ error: error as Error, isLoading: false });
     }
