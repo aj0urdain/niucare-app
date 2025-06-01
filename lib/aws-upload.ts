@@ -1,3 +1,10 @@
+/**
+ * File: lib/aws-upload.ts
+ * Description: AWS S3 file upload and URL generation utilities
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 import { uploadData, getUrl } from "aws-amplify/storage";
 import { GET_S3_FILE_ADMIN } from "@/lib/graphql/queries";
 import { ApolloClient, InMemoryCache } from "@apollo/client";
@@ -8,11 +15,23 @@ const client = new ApolloClient({
 });
 
 /**
- * Uploads a file to S3 in the specified folder (e.g., 'private' or 'documents').
- * If customFileName is provided, uses that as the file name.
- * Returns the actual filename used and the public URL to the uploaded file.
+ * Type definition for S3 upload result with key
  */
 type UploadResultWithKey = { key: string };
+
+/**
+ * Uploads a file to S3 in the specified folder
+ *
+ * @param {File} file - The file to upload
+ * @param {string} folder - The folder path in S3 (e.g., 'private' or 'documents')
+ * @param {string} [customFileName] - Optional custom filename to use instead of the original
+ * @returns {Promise<{filename: string, url: string}>} Object containing the filename and public URL
+ *
+ * @example
+ * ```ts
+ * const { filename, url } = await uploadFileToS3(file, 'documents', 'custom-name.pdf');
+ * ```
+ */
 export async function uploadFileToS3(
   file: File,
   folder: string,
@@ -23,21 +42,31 @@ export async function uploadFileToS3(
     path: ({ identityId }) => `${folder}/${identityId}/${fileName}`,
     data: file,
   })) as unknown as UploadResultWithKey;
-  // result.key is the actual S3 key used
+
   let actualFilename = fileName;
-  if (result && typeof result.key === "string") {
+  if (result?.key) {
     const parts = result.key.split("/");
     actualFilename = parts[parts.length - 1];
   }
+
   const { url } = await getUrl({
     path: ({ identityId }) => `${folder}/${identityId}/${actualFilename}`,
   });
+
   return { filename: actualFilename, url: url.toString() };
 }
 
 /**
- * Gets a public URL for a file in S3 in the specified folder.
- * If customFileName is provided, uses that as the file name.
+ * Gets a public URL for a file in S3
+ *
+ * @param {string} fileName - The name of the file
+ * @param {string} folder - The folder path in S3
+ * @returns {Promise<string>} The public URL for the file
+ *
+ * @example
+ * ```ts
+ * const url = await getS3FileUrl('document.pdf', 'documents');
+ * ```
  */
 export async function getS3FileUrl(
   fileName: string,
@@ -50,8 +79,18 @@ export async function getS3FileUrl(
 }
 
 /**
- * Gets a signed URL for admin access to a file in S3.
- * This uses the backend's S3 signing functionality to generate a pre-signed URL.
+ * Gets a signed URL for admin access to a file in S3
+ * Uses the backend's S3 signing functionality to generate a pre-signed URL
+ *
+ * @param {string} userBucket - The user's bucket identifier
+ * @param {string} fileName - The name of the file
+ * @returns {Promise<string>} The signed URL for admin access
+ * @throws {Error} If the signed URL cannot be generated
+ *
+ * @example
+ * ```ts
+ * const adminUrl = await getS3FileAdmin('user123', 'document.pdf');
+ * ```
  */
 export async function getS3FileAdmin(
   userBucket: string,
@@ -59,10 +98,6 @@ export async function getS3FileAdmin(
 ): Promise<string> {
   try {
     const key = `private/${userBucket}/${fileName}`;
-
-    console.log("key", key);
-    console.log("bucket", process.env.NEXT_PUBLIC_BUCKET_NAME);
-
     const { data } = await client.query({
       query: GET_S3_FILE_ADMIN,
       variables: {
@@ -70,8 +105,6 @@ export async function getS3FileAdmin(
         key,
       },
     });
-
-    console.log("data", data);
 
     if (!data) {
       throw new Error("Failed to get signed URL");

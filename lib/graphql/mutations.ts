@@ -1,5 +1,16 @@
+/**
+ * File: lib/graphql/mutations.ts
+ * Description: GraphQL mutation definitions for data modifications
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 import { gql } from "@apollo/client";
 
+/**
+ * Mutation for adding or updating a draft registration
+ * Used to save or update draft registration data
+ */
 export const ADD_OR_UPDATE_DRAFT = gql(`
 mutation AddOrUpdateDraft($draft: DraftInput!) {
   addOrUpdateDraft(draft: $draft) {
@@ -61,6 +72,10 @@ mutation AddOrUpdateDraft($draft: DraftInput!) {
 }
 `);
 
+/**
+ * Mutation for adding or updating a registration
+ * Used to create or update a complete registration record
+ */
 export const ADD_OR_UPDATE_REGISTRATION = gql(`
 mutation AddOrUpdateRegistration($reg: RegistrationInput!) {
   addOrUpdateRegistration(registration: $reg) {
@@ -70,6 +85,10 @@ mutation AddOrUpdateRegistration($reg: RegistrationInput!) {
 }
 `);
 
+/**
+ * Mutation for updating a claim's status
+ * Used to change the status of a claim and optionally provide a reason
+ */
 export const UPDATE_CLAIM_STATUS = gql(`
 mutation UpdateClaimStatus($id: Int!, $status: String!, $reason: String!) {
   updateClaimStatus(id: $id, status: $status, reason: $reason) {
@@ -90,6 +109,10 @@ mutation UpdateClaimStatus($id: Int!, $status: String!, $reason: String!) {
 }
 `);
 
+/**
+ * Mutation for updating a registration's status
+ * Used to change the status of a registration and optionally provide a reason
+ */
 export const UPDATE_REGISTRATION_STATUS = gql(`
 mutation UpdateRegistrationStatus($id:String!, $status:String!, $reason:String){
   updateRegistrationStatus(id: $id, status:$status, reason:$reason){

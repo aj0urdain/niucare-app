@@ -1,3 +1,10 @@
+/**
+ * @file apollo-provider.tsx
+ * @description Apollo Client provider with error handling, authentication, and REST integration
+ * @author Aaron J. Girton - https://github.com/aj0urdain
+ * @created 2025
+ */
+
 "use client";
 
 import {
@@ -12,7 +19,11 @@ import { setContext } from "@apollo/client/link/context";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { RestLink } from "apollo-link-rest";
 
-// Error handling link
+/**
+ * Error handling link for Apollo Client
+ * Handles GraphQL errors, network errors, and provides retry logic
+ * @type {ApolloLink}
+ */
 const errorLink = onError(
   ({ graphQLErrors, networkError, operation, forward }) => {
     if (graphQLErrors) {
@@ -111,7 +122,11 @@ const errorLink = onError(
   }
 );
 
-// Auth link to add token to headers
+/**
+ * Authentication link for Apollo Client
+ * Adds the authentication token to request headers
+ * @type {ApolloLink}
+ */
 const authLink = setContext(async (_, { headers }) => {
   try {
     const session = await fetchAuthSession();
@@ -129,16 +144,26 @@ const authLink = setContext(async (_, { headers }) => {
   }
 });
 
-// Add REST link for OpenFGA
+/**
+ * REST link for OpenFGA integration
+ * @type {RestLink}
+ */
 const restLink = new RestLink({
   uri: process.env.NEXT_PUBLIC_API_ENDPOINT, // https://api.staging.niucare.com/api
 });
 
-// Keep existing GraphQL link
+/**
+ * HTTP link for GraphQL operations
+ * @type {HttpLink}
+ */
 const httpLink = new HttpLink({
   uri: process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT, // https://api.staging.niucare.com/graphql
 });
 
+/**
+ * Apollo Client instance with configured links and cache
+ * @type {ApolloClient}
+ */
 const client = new ApolloClient({
   link: from([errorLink, authLink, restLink, httpLink]),
   cache: new InMemoryCache(),
@@ -150,6 +175,23 @@ const client = new ApolloClient({
   connectToDevTools: true,
 });
 
+/**
+ * Apollo Provider component that wraps the application
+ * @param {Object} props - Component props
+ * @param {React.ReactNode} props.children - Child components to be wrapped
+ * @returns {JSX.Element} Apollo Provider component
+ *
+ * @example
+ * ```tsx
+ * function App() {
+ *   return (
+ *     <ApolloWrapper>
+ *       <YourApp />
+ *     </ApolloWrapper>
+ *   );
+ * }
+ * ```
+ */
 export function ApolloWrapper({ children }: { children: React.ReactNode }) {
   return <ApolloProvider client={client}>{children}</ApolloProvider>;
 }

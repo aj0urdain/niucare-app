@@ -26,6 +26,7 @@ type Mutation {
 type Draft {
   id: String
   userId: String
+  registrationId: String
   public_officer_firstname: String
   public_officer_lastname: String
   ipa_Certified_Number: String
@@ -241,6 +242,7 @@ input RegistrationInput {
 input DraftInput {
   id: String
   userId: String
+  registrationId: String
   public_officer_firstname: String
   public_officer_lastname: String
   ipa_Certified_Number: String

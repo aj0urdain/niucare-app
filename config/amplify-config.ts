@@ -1,5 +1,27 @@
+/**
+ * File: config/amplify-config.ts
+ * Description: AWS Amplify configuration for authentication and storage services
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 import { Amplify } from "aws-amplify";
 
+/**
+ * Configures AWS Amplify with authentication and storage settings
+ *
+ * This function sets up:
+ * - Cognito authentication with OAuth
+ * - S3 storage configuration
+ * - Server-side rendering support
+ *
+ * @returns {void}
+ *
+ * @example
+ * ```ts
+ * configureAmplify();
+ * ```
+ */
 export function configureAmplify() {
   Amplify.configure(
     {

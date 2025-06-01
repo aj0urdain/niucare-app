@@ -1,3 +1,10 @@
+/**
+ * File: config/aws-config.ts
+ * Description: AWS configuration object for authentication settings
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 // import { Amplify } from "aws-amplify";
 
 // Amplify.configure({
@@ -16,6 +23,29 @@
 //   },
 // });
 
+/**
+ * AWS Configuration object for authentication settings
+ *
+ * This configuration object contains:
+ * - Cognito user pool settings
+ * - OAuth configuration
+ * - Identity pool settings
+ *
+ * @type {Object}
+ * @property {Object} Auth - Authentication configuration
+ * @property {Object} Auth.Cognito - Cognito-specific settings
+ * @property {string} Auth.Cognito.userPoolId - Cognito user pool ID
+ * @property {string} Auth.Cognito.userPoolClientId - Cognito user pool client ID
+ * @property {string} Auth.Cognito.identityPoolId - Cognito identity pool ID
+ * @property {Object} Auth.Cognito.loginWith - Login configuration
+ * @property {Object} Auth.Cognito.loginWith.oauth - OAuth settings
+ *
+ * @example
+ * ```ts
+ * import { config } from './aws-config';
+ * // Use config.Auth.Cognito for authentication settings
+ * ```
+ */
 export const config = {
   Auth: {
     Cognito: {

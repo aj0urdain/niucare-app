@@ -1,3 +1,14 @@
+/**
+ * File: lib/graphql/types.ts
+ * Description: TypeScript type definitions for GraphQL operations
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
+/**
+ * Input type for draft registration data
+ * Used when creating or updating a draft registration
+ */
 export interface DraftInput {
   account_Name?: string | null;
   account_Number?: string | null;
@@ -54,12 +65,20 @@ export interface DraftInput {
   userId?: string | null;
 }
 
+/**
+ * Enum for policy application timing
+ * Defines when a policy should be applied in relation to resolver execution
+ */
 export enum ApplyPolicy {
   BEFORE_RESOLVER = "BEFORE_RESOLVER",
   AFTER_RESOLVER = "AFTER_RESOLVER",
   VALIDATION = "VALIDATION",
 }
 
+/**
+ * Interface for policyholder data
+ * Represents a policyholder's personal and employment information
+ */
 export interface Policyholder {
   id: number;
   employeeNo?: string | null;
@@ -73,6 +92,10 @@ export interface Policyholder {
   amount?: number | null;
 }
 
+/**
+ * Interface for registration data
+ * Represents a complete registration record for a service provider
+ */
 export interface Registration {
   id?: string | null;
   userId?: string | null;
@@ -129,6 +152,10 @@ export interface Registration {
   isPsnaProvider: boolean;
 }
 
+/**
+ * Interface for claim data
+ * Represents a claim record with associated metadata
+ */
 export interface Claim {
   id: number;
   policyholderId: number;
@@ -145,6 +172,10 @@ export interface Claim {
   userBucket?: string | null;
 }
 
+/**
+ * Interface for catalog data
+ * Represents a catalog item with pricing and grouping information
+ */
 export interface Catalog {
   id?: string | null;
   label?: string | null;
@@ -153,6 +184,10 @@ export interface Catalog {
   groupLimit: number;
 }
 
+/**
+ * Interface for bank data
+ * Represents banking information for a policyholder
+ */
 export interface Bank {
   id: number;
   name?: string | null;
@@ -163,6 +198,10 @@ export interface Bank {
   policyHolderId: number;
 }
 
+/**
+ * Input type for registration data
+ * Used when creating or updating a registration
+ */
 export interface RegistrationInput {
   id?: string | null;
   userId?: string | null;
@@ -219,6 +258,10 @@ export interface RegistrationInput {
   isPsnaProvider: boolean;
 }
 
+/**
+ * Input type for bank data
+ * Used when creating or updating banking information
+ */
 export interface BankInput {
   id: number;
   name?: string | null;

@@ -1,5 +1,16 @@
+/**
+ * File: lib/graphql/queries.ts
+ * Description: GraphQL query definitions for data fetching
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 import { gql } from "@apollo/client";
 
+/**
+ * Query to get a user's registration data
+ * Retrieves basic registration information for a specific user
+ */
 export const GET_USER_REGISTRATION = gql(`
 query GetUserRegistration($userId: String!) {
     registrationByUserId(userId:$userId)
@@ -14,6 +25,10 @@ query GetUserRegistration($userId: String!) {
 }
 `);
 
+/**
+ * Query to check OpenFGA permissions
+ * Verifies if a user has a specific permission
+ */
 export const CHECK_OPENFGA = gql`
   query check($userId: String!, $permission: String!) {
     check(userId: $userId, permission: $permission)
@@ -26,6 +41,10 @@ export const CHECK_OPENFGA = gql`
   }
 `;
 
+/**
+ * Query to get a signed URL for S3 access
+ * Generates a pre-signed URL for accessing S3 objects
+ */
 export const SIGNURL = gql(`
 fragment Payload on REST {
 bucket: String,
@@ -38,6 +57,10 @@ query signurl ($input:Payload!){
 }
 `);
 
+/**
+ * Query to verify a claim
+ * Validates claim details and returns claim information
+ */
 export const GET_VERIFY_CLAIM = gql(`
 fragment verifyClaim on REST {
     userId:String,
@@ -61,18 +84,11 @@ query verifyclaim ($input:verifyClaim!){
     }
 }
 `);
-/*
-export const IMPORT = gql(`
-fragment Import on REST {
-Input: String,
-}
-query import ($input:Import!){
-    import(input:$input) @rest(path:"/amazon/import", method:"POST", endpoint:"batch"){
-}
-}
-`)*/
 
-// only available to admins
+/**
+ * Query to get registrations (admin only)
+ * Retrieves registration records filtered by province, type, and status
+ */
 export const GET_REGISTRATIONS = gql(`
 query getRegistrations($province: String!, $type: String!, $status: String!){
     registrations(province:$province, type:$type, status:$status){
@@ -90,6 +106,10 @@ query getRegistrations($province: String!, $type: String!, $status: String!){
 }
 `);
 
+/**
+ * Query to get policyholder claims
+ * Retrieves claims for a specific policyholder with various filters
+ */
 export const GET_POLICYHOLDERCLAIMS = gql(`
 query getPolicyHolderClaims($userId: String!, $providerRegNumber: String!, $claimId: String!, $employeeNo: String!, $claimCode: String!, $status: String!) {
   policyHolderClaims(
@@ -115,6 +135,10 @@ query getPolicyHolderClaims($userId: String!, $providerRegNumber: String!, $clai
 }
 `);
 
+/**
+ * Query to get catalogs
+ * Retrieves all catalog items with their grouping and pricing information
+ */
 export const GET_CATALOGS = gql(`
 query getCatalogs{
     catalogs{
@@ -125,6 +149,10 @@ query getCatalogs{
 }
 `);
 
+/**
+ * Mutation to add a policyholder claim
+ * Creates a new claim record for a policyholder
+ */
 export const ADD_POLICYHOLDERCLAIM = gql(`
 fragment AddClaim on REST {
     userId,
@@ -142,6 +170,10 @@ mutation AddClaim($input:AddClaim!){
 }
 `);
 
+/**
+ * Mutation to add a bank record
+ * Creates a new bank record for a policyholder
+ */
 export const ADD_BANK = gql(`
 mutation AddBank($bank:BankInput!){
   addBank(bank: $bank){
@@ -149,6 +181,10 @@ mutation AddBank($bank:BankInput!){
   }
 }`);
 
+/**
+ * Mutation to add a registration
+ * Creates a new registration record with complete provider information
+ */
 export const ADD_REGISTRATION = gql(`
 fragment AddRegistration on REST {
     id,
@@ -210,6 +246,10 @@ mutation AddRegistration($input: AddRegistration!) {
 }
 `);
 
+/**
+ * Mutation to delete a claim
+ * Removes a claim record by ID
+ */
 export const DELETE_CLAIM = gql(`
 mutation DeleteClaim($id:Int!){
     deleteClaim(id: $id){
@@ -218,6 +258,10 @@ mutation DeleteClaim($id:Int!){
 }
 `);
 
+/**
+ * Query to get a registration
+ * Retrieves complete registration information for a specific user
+ */
 export const GET_REGISTRATION = gql(`
 query GetRegistration($userId: String!) {
     registration(userId: $userId) @rest(path: "/registration?userId={args.userId}", method: "GET") {
@@ -258,19 +302,21 @@ query GetRegistration($userId: String!) {
         medical_Practitioner_firstname
         medical_Practitioner_lastname
         medical_Practitioner_Signiture
-        medical_Certificate
-        ipa_Certificate
-        tin_Certificate
         created_Date
         updated_Date
-        luhnRegistrationNumber
         status
+        ipa_Certificate
+        tin_Certificate
+        medical_Certificate
+        luhnRegistrationNumber
+        ptype
         pbox_Name
+        pbox_Number
         pbox_Branch
         pbox_Province
-        pbox_Number
         bucket
-        userId
+        reason
+        isPsnaProvider
     }
 }
 `);
@@ -352,18 +398,6 @@ query getPolicyHolder($employeeId: Int!) {
   }
 }
 `);
-
-// export const GET_HAS_BANK_DETAILS = gql(`
-// fragment hasBankDetails on REST {
-//     userId:String,
-//     employeeNo:String,
-// }
-// query hasBankDetails ($input:hasBankDetails!){
-//     hasBankDetails(input:$input) @rest(path:"/claim/hasbankdetails", method:"POST"){
-//     hasBank
-//     }
-// }
-// `);
 
 export const GET_HAS_BANK_DETAILS = gql`
   query hasBankDetails($employeeNo: String!) {

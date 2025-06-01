@@ -1,3 +1,10 @@
+/**
+ * @file auth-listener.tsx
+ * @description Component for listening to AWS Amplify authentication events and handling navigation
+ * @author Aaron J. Girton - https://github.com/aj0urdain
+ * @created 2025
+ */
+
 "use client";
 
 import { Hub } from "aws-amplify/utils";
@@ -5,6 +12,22 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
+/**
+ * Component that listens for authentication events and handles navigation accordingly
+ * @returns {null} This component doesn't render anything
+ *
+ * @example
+ * ```tsx
+ * function App() {
+ *   return (
+ *     <>
+ *       <AuthListener />
+ *       <YourApp />
+ *     </>
+ *   );
+ * }
+ * ```
+ */
 export function AuthListener() {
   const router = useRouter();
 
