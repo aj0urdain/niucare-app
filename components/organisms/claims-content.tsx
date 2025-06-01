@@ -10,10 +10,10 @@
 import { useState } from "react";
 import { Claim, columns } from "@/components/atoms/columns-data";
 import { DataTable } from "@/components/organisms/data-table";
-import { Separator } from "@/components/ui/separator";
 import { useQuery } from "@apollo/client";
 import { GET_POLICYHOLDERCLAIMS } from "@/lib/graphql/queries";
 import { useUserProfileStore } from "@/stores/user-profile-store";
+import { useRouter, useSearchParams } from "next/navigation";
 
 /**
  * Interface for filter values used in claims table
@@ -79,12 +79,37 @@ interface ClaimsContentProps {
  */
 export const ClaimsContent = ({ initialClaimId }: ClaimsContentProps) => {
   const { user } = useUserProfileStore();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Initialize filters from URL parameters
   const [filters, setFilters] = useState<FilterValues>({
-    status: "",
-    claimId: "",
-    employeeNumber: "",
-    claimType: "",
+    status: searchParams.get("status") || "",
+    claimId: searchParams.get("claimId") || "",
+    employeeNumber: searchParams.get("employeeNumber") || "",
+    claimType: searchParams.get("claimType") || "",
   });
+
+  // Update URL when filters change
+  const handleFilterChange = (newFilters: FilterValues) => {
+    setFilters(newFilters);
+
+    // Create new URLSearchParams with only non-empty filter values
+    const params = new URLSearchParams();
+    Object.entries(newFilters).forEach(([key, value]) => {
+      if (value) {
+        params.set(key, value);
+      }
+    });
+
+    // Preserve the claim ID if it exists
+    if (initialClaimId) {
+      params.set("id", initialClaimId);
+    }
+
+    // Update URL without page reload
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
 
   const { loading, data } = useQuery(GET_POLICYHOLDERCLAIMS, {
     variables: {
@@ -121,7 +146,7 @@ export const ClaimsContent = ({ initialClaimId }: ClaimsContentProps) => {
         newClaimButton={true}
         loading={loading}
         filters={filters}
-        onFilterChange={setFilters}
+        onFilterChange={handleFilterChange}
         initialClaimId={initialClaimId}
         type="claim"
         visibleFilters={["status", "claimId", "employeeNumber", "claimType"]}

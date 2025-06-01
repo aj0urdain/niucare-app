@@ -127,11 +127,6 @@ const ViewClaimModalContent = ({
     }
   }, [claim?.viewFiles]);
 
-  // Log the raw claim data
-  useEffect(() => {
-    console.log("Raw claim data:", claim);
-  }, [claim]);
-
   const { data: policyHolderData, loading: policyHolderLoading } = useQuery(
     GET_POLICY_HOLDER_BY_EMPLOYEE_NO,
     {
