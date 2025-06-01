@@ -70,15 +70,6 @@ export const ClaimsContent = ({ initialClaimId }: ClaimsContentProps) => {
 
   return (
     <div className="flex flex-col gap-6 pt-6">
-      {!user?.permissions?.canApproveRegistration && (
-        <>
-          <div className="flex flex-col justify-start items-start gap-2">
-            <h2 className="text-3xl font-bold">Claims</h2>
-          </div>
-
-          <Separator />
-        </>
-      )}
       <DataTable
         columns={columns}
         data={transformedData}

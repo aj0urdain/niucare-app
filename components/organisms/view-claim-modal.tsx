@@ -103,12 +103,14 @@ const ViewClaimModalContent = ({
   const files = useMemo(() => {
     if (!claim?.viewFiles) return [];
     try {
+      // First try parsing as JSON
       const parsed = JSON.parse(claim.viewFiles);
-      // Ensure we have an array
       return Array.isArray(parsed) ? parsed : [parsed];
-    } catch (error) {
-      console.error("Error parsing viewFiles:", error);
-      return [];
+    } catch {
+      // If JSON parsing fails, treat the string as a single file path
+      // Split by comma if multiple files are present
+      const fileList = claim.viewFiles.split(",").map((file) => file.trim());
+      return fileList.filter((file) => file.length > 0);
     }
   }, [claim?.viewFiles]);
 
@@ -434,12 +436,18 @@ const ViewClaimModalContent = ({
                     </CardContent>
                   </Card>
 
-                  <div className="animate-slide-up-fade-in">
-                    <div className="flex justify-center gap-2 w-fit animate-pulse">
-                      <ChevronDown className="h-6 w-6 text-muted-foreground opacity-20" />
-                      <ChevronDown className="h-6 w-6 text-muted-foreground opacity-40" />
-                      <ChevronDown className="h-6 w-6 text-muted-foreground opacity-60" />
+                  <div className="animate-slide-up-fade-in w-full">
+                    <div className="flex justify-center gap-2 w-full animate-pulse">
+                      <ChevronDown className="h-6 w-6 text-muted-foreground" />
+                      <ChevronDown className="h-6 w-6 text-muted-foreground opacity-90" />
                       <ChevronDown className="h-6 w-6 text-muted-foreground opacity-80" />
+                      <ChevronDown className="h-6 w-6 text-muted-foreground opacity-70" />
+                      <ChevronDown className="h-6 w-6 text-muted-foreground opacity-60" />
+                      <ChevronDown className="h-6 w-6 text-muted-foreground opacity-50" />
+                      <ChevronDown className="h-6 w-6 text-muted-foreground opacity-60" />
+                      <ChevronDown className="h-6 w-6 text-muted-foreground opacity-70" />
+                      <ChevronDown className="h-6 w-6 text-muted-foreground opacity-80" />
+                      <ChevronDown className="h-6 w-6 text-muted-foreground opacity-90" />
                       <ChevronDown className="h-6 w-6 text-muted-foreground" />
                     </div>
                   </div>
