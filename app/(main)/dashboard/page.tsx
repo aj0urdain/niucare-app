@@ -9,19 +9,22 @@ import {
   LayoutDashboard,
   AlertCircle,
   CornerDownRight,
+  Building2,
+  ThumbsUp,
 } from "lucide-react";
 import CountUp from "react-countup";
 import { useQuery } from "@apollo/client";
 import {
   GET_DASHBOARD_CLAIMS,
   GET_POLICYHOLDERCLAIMS,
+  GET_DASHBOARD_REGISTRATIONS,
 } from "@/lib/graphql/queries";
 import { DateRangeSelector } from "@/components/atoms/date-range-selector";
 import { ClaimCard } from "@/components/molecules/claim-card";
 import { Separator } from "@/components/ui/separator";
 import { useUserProfileStore } from "@/stores/user-profile-store";
 import { format } from "date-fns";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
@@ -77,10 +80,42 @@ export default function DashboardPage() {
     }
   );
 
+  const { loading: registrationLoading, data: registrationData } = useQuery(
+    GET_DASHBOARD_REGISTRATIONS,
+    {
+      skip: !user?.permissions.canApproveRegistration,
+    }
+  );
+
   const pendingClaims: PolicyHolderClaim[] =
     data?.policyHolderClaims?.slice(0, 5) || [];
 
-  if (!isRegistrationAcknowledged) {
+  const registrationStats = useMemo(() => {
+    if (!registrationData?.registrations) return null;
+
+    const stats = {
+      total: registrationData.registrations.length,
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      acknowledged: 0,
+    };
+
+    registrationData.registrations.forEach((reg: { status: string }) => {
+      const status = reg.status.toLowerCase();
+      if (status === "pending") stats.pending++;
+      else if (status === "approved") stats.approved++;
+      else if (status === "rejected") stats.rejected++;
+      else if (status === "acknowledged") stats.acknowledged++;
+    });
+
+    return stats;
+  }, [registrationData]);
+
+  if (
+    !isRegistrationAcknowledged &&
+    !user?.permissions.canApproveRegistration
+  ) {
     return (
       <div className="flex flex-col gap-4 py-4 relative min-h-[600px]">
         <div className="flex items-center justify-between">
@@ -258,6 +293,139 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {user?.permissions.canApproveRegistration && (
+        <>
+          <Separator className="my-8" />
+
+          <div className="data-[slot=card]:*:shadow-2xs grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 data-[slot=card]:*:bg-linear-to-t data-[slot=card]:*:from-primary/5 data-[slot=card]:*:to-card dark:data-[slot=card]:*:bg-card">
+            <Card className="@container/card transition-all duration-300 hover:bg-primary/5 hover:border-primary/20 max-h-48 overflow-hidden group/total-reg">
+              <CardHeader className="relative">
+                <div className="text-muted-foreground/75">
+                  <span className="text-xs font-semibold">
+                    Total Registrations
+                  </span>
+                </div>
+                <CardTitle className="@[250px]/card:text-4xl text-3xl font-semibold tabular-nums transition-all duration-300 group-hover/total-reg:text-4xl">
+                  <CountUp
+                    end={registrationStats?.total || 0}
+                    duration={2}
+                    className="text-primary"
+                  />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-1.5">
+                  <Building2 className="h-4 w-4 text-primary" />
+                  <span className="text-xs text-muted-foreground">
+                    Total provider registrations
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="@container/card transition-all duration-300 hover:bg-yellow-500/5 hover:border-yellow-500/20 max-h-48 overflow-hidden group/pending-reg">
+              <CardHeader className="relative">
+                <div className="text-muted-foreground/75">
+                  <span className="text-xs font-semibold">
+                    Pending Registrations
+                  </span>
+                </div>
+                <CardTitle className="@[250px]/card:text-4xl text-3xl font-semibold tabular-nums transition-all duration-300 group-hover/pending-reg:text-4xl">
+                  <CountUp
+                    end={registrationStats?.pending || 0}
+                    duration={2}
+                    className="text-yellow-500"
+                  />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-1.5">
+                  <CircleDashed className="h-4 w-4 text-yellow-500" />
+                  <span className="text-xs text-muted-foreground">
+                    Awaiting review
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="@container/card transition-all duration-300 hover:bg-green-500/5 hover:border-green-500/20 max-h-48 overflow-hidden group/approved-reg">
+              <CardHeader className="relative">
+                <div className="text-muted-foreground/75">
+                  <span className="text-xs font-semibold">
+                    Approved Registrations
+                  </span>
+                </div>
+                <CardTitle className="@[250px]/card:text-4xl text-3xl font-semibold tabular-nums transition-all duration-300 group-hover/approved-reg:text-4xl">
+                  <CountUp
+                    end={registrationStats?.approved || 0}
+                    duration={2}
+                    className="text-green-500"
+                  />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-1.5">
+                  <CircleCheckBig className="h-4 w-4 text-green-500" />
+                  <span className="text-xs text-muted-foreground">
+                    Successfully approved
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="@container/card transition-all duration-300 hover:bg-red-500/5 hover:border-red-500/20 max-h-48 overflow-hidden group/rejected-reg">
+              <CardHeader className="relative">
+                <div className="text-muted-foreground/75">
+                  <span className="text-xs font-semibold">
+                    Rejected Registrations
+                  </span>
+                </div>
+                <CardTitle className="@[250px]/card:text-4xl text-3xl font-semibold tabular-nums transition-all duration-300 group-hover/rejected-reg:text-4xl">
+                  <CountUp
+                    end={registrationStats?.rejected || 0}
+                    duration={2}
+                    className="text-red-500"
+                  />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-1.5">
+                  <CircleX className="h-4 w-4 text-red-500" />
+                  <span className="text-xs text-muted-foreground">
+                    Declined applications
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="@container/card transition-all duration-300 hover:bg-blue-500/5 hover:border-blue-500/20 max-h-48 overflow-hidden group/acknowledged-reg">
+              <CardHeader className="relative">
+                <div className="text-muted-foreground/75">
+                  <span className="text-xs font-semibold">
+                    Acknowledged Registrations
+                  </span>
+                </div>
+                <CardTitle className="@[250px]/card:text-4xl text-3xl font-semibold tabular-nums transition-all duration-300 group-hover/acknowledged-reg:text-4xl">
+                  <CountUp
+                    end={registrationStats?.acknowledged || 0}
+                    duration={2}
+                    className="text-blue-500"
+                  />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-1.5">
+                  <ThumbsUp className="h-4 w-4 text-blue-500" />
+                  <span className="text-xs text-muted-foreground">
+                    Completed registrations
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
 
       <Separator className="my-8" />
 

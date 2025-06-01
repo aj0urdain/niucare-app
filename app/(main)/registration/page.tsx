@@ -105,8 +105,11 @@ export default function RegistrationPage() {
 
   console.log("latestDraft", latestDraft);
 
-  // If there's a registration with pending status, show the submitted registration
-  if (mostRecentRegistration?.status.toLowerCase() === "pending") {
+  // If there's a registration with pending or approved status, show the submitted registration
+  if (
+    mostRecentRegistration?.status.toLowerCase() === "pending" ||
+    mostRecentRegistration?.status.toLowerCase() === "approved"
+  ) {
     return <SubmittedRegistration registration={mostRecentRegistration} />;
   }
 
