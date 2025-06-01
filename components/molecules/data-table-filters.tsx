@@ -110,10 +110,6 @@ export function DataTableFilters<TData>({
 }: DataTableFiltersProps<TData>) {
   const { data: catalogsData } = useQuery(GET_CATALOGS);
 
-  useEffect(() => {
-    console.log(catalogsData);
-  }, [catalogsData]);
-
   const claimTypeOptions = React.useMemo(() => {
     const options = [{ id: "all", value: "all", label: "All" }];
 

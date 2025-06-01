@@ -158,14 +158,14 @@ const SignatureUpload: React.FC<SignatureUploadProps> = ({
       const res = await fetch(dataUrl);
       const blob = await res.blob();
       const timestamp = Date.now();
-      const filename = `${ptype}-registration-signature-${timestamp}.png`;
-      const file = new File([blob], filename, {
+      const fileName = `${userBucket}/${Date.now()}-${value.name}`;
+      const file = new File([blob], fileName, {
         type: "image/png",
       });
       // Upload file using the correct folder and filename
-      await uploadFileToS3(file, "private", filename);
+      await uploadFileToS3(file, "private", fileName);
       // Save just the filename instead of the full URL
-      onUpload(filename);
+      onUpload(fileName);
     } catch {
       setError("Failed to upload signature.");
     }

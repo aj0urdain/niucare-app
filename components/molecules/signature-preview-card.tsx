@@ -79,12 +79,7 @@ export function SignaturePreviewCard({
         let url: string;
         // If user has approval permissions and userBucket is provided, use admin function
         if (user?.permissions?.canApproveRegistration && userBucket) {
-          console.log("userBucket", userBucket);
-          console.log("filename", filename);
-
           const fileName = filename.split("@")[0];
-
-          console.log("fileName", fileName);
 
           const { data } = await getS3AdminURL({
             variables: {
@@ -98,8 +93,6 @@ export function SignaturePreviewCard({
           if (s3FileError) {
             throw new Error("Failed to get admin file URL");
           }
-
-          console.log("data", data);
 
           url = data?.signurl?.url;
         } else {
@@ -126,6 +119,15 @@ export function SignaturePreviewCard({
     s3FileError,
   ]);
 
+  const handleDelete = async () => {
+    try {
+      await deleteFileFromS3(userBucket, filename);
+      onDelete();
+    } catch (error) {
+      console.error("Error deleting signature:", error);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-2 items-start w-full">
       <Label className="text-sm font-medium pl-2 text-muted-foreground">
@@ -137,7 +139,7 @@ export function SignaturePreviewCard({
             <button
               type="button"
               className="absolute top-2 right-2 z-20 p-2 rounded hover:bg-red-200 cursor-pointer animate-slide-right-fade-in"
-              onClick={onDelete}
+              onClick={handleDelete}
             >
               <Trash2 className="w-5 h-5 text-red-500" />
             </button>

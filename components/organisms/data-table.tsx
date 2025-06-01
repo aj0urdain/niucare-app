@@ -162,7 +162,6 @@ export function DataTable<TData extends Claim | Registration, TValue>({
       setSelectedClaim(row.original as Claim);
     } else {
       setSelectedRegistration(row.original as Registration);
-      console.log("Selected Registration:", row.original);
     }
     setIsModalOpen(true);
   };
