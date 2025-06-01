@@ -1,3 +1,10 @@
+/**
+ * File: components/organisms/login-form.tsx
+ * Description: Authentication form component handling both sign-in and sign-up functionality
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 "use client";
 
 import { cn } from "@/lib/utils";
@@ -28,6 +35,16 @@ import { signIn, getCurrentUser, signUp } from "aws-amplify/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { VerifyEmailForm } from "@/components/molecules/verify-email-form";
 
+/**
+ * Type definition for sign-up form data
+ * @property email - User's email address
+ * @property password - User's password
+ * @property familyName - User's family name
+ * @property givenName - User's given name
+ * @property phoneCode - Country calling code
+ * @property phone - User's phone number
+ * @property confirmPassword - Password confirmation
+ */
 type SignUpData = {
   email: string;
   password: string;
@@ -38,11 +55,20 @@ type SignUpData = {
   confirmPassword: string;
 };
 
+/**
+ * Type definition for sign-in form data
+ * @property email - User's email address
+ * @property password - User's password
+ */
 type SignInData = {
   email: string;
   password: string;
 };
 
+/**
+ * Zod schema for sign-up form validation
+ * Enforces password requirements and field validations
+ */
 const signUpSchema = z
   .object({
     familyName: z.string().min(2, "Family name must be at least 2 characters"),
@@ -67,11 +93,28 @@ const signUpSchema = z
     path: ["confirmPassword"],
   });
 
+/**
+ * Zod schema for sign-in form validation
+ * Validates email format and password presence
+ */
 const signInSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
 });
 
+/**
+ * LoginFormContent Component
+ *
+ * Main authentication form component that handles both sign-in and sign-up functionality.
+ * Uses React Hook Form with Zod validation and AWS Amplify for authentication.
+ *
+ * @returns {JSX.Element} The rendered authentication form with dynamic content based on mode
+ *
+ * @example
+ * ```tsx
+ * <LoginForm />
+ * ```
+ */
 const LoginFormContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -116,6 +159,12 @@ const LoginFormContent = () => {
     });
   }, [isSignUp, form]);
 
+  /**
+   * Handles form submission for both sign-in and sign-up flows
+   *
+   * @param data - Form data containing either SignUpData or SignInData
+   * @throws {Error} When authentication fails or user is already signed in
+   */
   const onSubmit = async (data: SignUpData | SignInData) => {
     try {
       if (isSignUp) {
@@ -518,6 +567,14 @@ const LoginFormContent = () => {
   );
 };
 
+/**
+ * LoginForm Component
+ *
+ * Wrapper component that provides suspense boundary for the login form content.
+ * This ensures proper loading states during authentication operations.
+ *
+ * @returns {JSX.Element} The login form wrapped in a suspense boundary
+ */
 const LoginForm = () => {
   return (
     <Suspense fallback={<div>Loading...</div>}>

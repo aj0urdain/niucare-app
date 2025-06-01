@@ -27,6 +27,10 @@ import { useState, useEffect, useRef } from "react";
 import { confirmResetPassword } from "aws-amplify/auth";
 import { toast } from "sonner";
 
+/**
+ * Zod schema for reset password form validation
+ * Requires a 6-digit code and a new password with confirmation
+ */
 const resetPasswordSchema = z
   .object({
     code: z.string().length(6, "Code must be 6 digits"),
@@ -47,6 +51,18 @@ const resetPasswordSchema = z
     path: ["confirmPassword"],
   });
 
+/**
+ * ResetPasswordForm Component
+ *
+ * Renders a form for users to reset their password using a code sent to their email.
+ *
+ * @returns {JSX.Element} The rendered reset password form
+ *
+ * @example
+ * ```tsx
+ * <ResetPasswordForm />
+ * ```
+ */
 export function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();

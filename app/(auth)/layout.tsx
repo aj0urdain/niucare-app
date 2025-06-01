@@ -1,7 +1,33 @@
+/**
+ * File: app/(auth)/layout.tsx
+ * Description: Authentication layout component that provides a consistent wrapper for all auth-related pages
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 import { ThemeSwitcher } from "@/components/molecules/theme-switcher";
 import { Separator } from "@/components/ui/separator";
 import Image from "next/image";
 
+/**
+ * AuthLayout Component
+ *
+ * Provides a consistent layout wrapper for authentication-related pages including:
+ * - Login
+ * - Sign Up
+ * - Forgot Password
+ * - Password Reset
+ *
+ * Features:
+ * - Centered content with responsive padding
+ * - Niucare branding with logo
+ * - Theme switcher
+ * - Terms of service and privacy policy links
+ *
+ * @param props - Component props
+ * @param props.children - Child components to be rendered within the layout
+ * @returns {JSX.Element} The authentication layout with consistent styling and branding
+ */
 export default function AuthLayout({
   children,
 }: {

@@ -20,10 +20,26 @@ import {
 import { resetPassword } from "aws-amplify/auth";
 import { toast } from "sonner";
 
+/**
+ * Zod schema for forgot password form validation
+ * Requires a valid email address
+ */
 const forgotPasswordSchema = z.object({
   email: z.string().email("Must be a valid email"),
 });
 
+/**
+ * ForgotPasswordForm Component
+ *
+ * Renders a form for users to request a password reset email. Uses React Hook Form and Zod for validation.
+ *
+ * @returns {JSX.Element} The rendered forgot password form
+ *
+ * @example
+ * ```tsx
+ * <ForgotPasswordForm />
+ * ```
+ */
 export function ForgotPasswordForm() {
   const router = useRouter();
 

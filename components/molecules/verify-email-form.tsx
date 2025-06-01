@@ -1,8 +1,23 @@
 "use client";
 
+/**
+ * File: components/molecules/verify-email-form.tsx
+ * Description: Email verification form component for verifying user email addresses.
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides email verification functionality with:
+ * - Email verification code input
+ * - Verification status display
+ * - Error handling
+ * - Loading states
+ * - Responsive design
+ * - Accessibility features
+ */
+
 import { useState } from "react";
 import { confirmSignUp, signIn } from "aws-amplify/auth";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -12,6 +27,12 @@ import {
   InputOTPSeparator,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/use-toast";
+import { useUserProfileStore } from "@/stores/user-profile-store";
+import { useEmployeeStore } from "@/stores/employee-store";
+import { useEmployeeData } from "@/lib/hooks/useEmployeeData";
 
 interface VerifyEmailFormProps {
   email: string;
@@ -19,6 +40,30 @@ interface VerifyEmailFormProps {
   onBack: () => void;
 }
 
+/**
+ * VerifyEmailForm Component
+ *
+ * Provides email verification functionality with code input and status display.
+ *
+ * Features:
+ * - Email verification code input
+ * - Verification status display
+ * - Error handling
+ * - Loading states
+ * - Responsive design
+ * - Accessibility features
+ *
+ * @param {Object} props - Component props
+ * @param {function} props.onVerificationComplete - Function to handle verification completion
+ * @returns {JSX.Element} Email verification form component
+ *
+ * @example
+ * ```tsx
+ * <VerifyEmailForm
+ *   onVerificationComplete={() => console.log("Verification complete")}
+ * />
+ * ```
+ */
 export function VerifyEmailForm({
   email,
   password,
