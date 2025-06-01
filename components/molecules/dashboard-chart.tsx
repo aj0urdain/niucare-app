@@ -1,3 +1,17 @@
+/**
+ * File: components/molecules/dashboard-chart.tsx
+ * Description: Interactive area chart for insurance claims dashboard analytics.
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides an interactive area chart for visualizing insurance claims analytics, including:
+ * - Time range selection (7, 30, 90 days)
+ * - Animated area chart for accepted and rejected claims
+ * - Responsive and mobile-friendly design
+ * - Accessible and keyboard navigable
+ * - Customizable chart configuration
+ */
+
 "use client";
 import * as React from "react";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
@@ -116,6 +130,10 @@ const chartData = [
   { date: "2024-06-29", accepted: 103, rejected: 60 },
   { date: "2024-06-30", accepted: 446, rejected: 90 },
 ];
+
+/**
+ * Chart configuration for claims analytics.
+ */
 const chartConfig = {
   claims: {
     label: "Claims",
@@ -129,6 +147,26 @@ const chartConfig = {
     color: "hsl(0 84% 60%)",
   },
 } satisfies ChartConfig;
+
+/**
+ * ChartAreaInteractive Component
+ *
+ * Interactive area chart for insurance claims analytics, supporting time range selection and responsive design.
+ *
+ * Features:
+ * - Time range selection (7, 30, 90 days)
+ * - Animated area chart for accepted and rejected claims
+ * - Responsive and mobile-friendly design
+ * - Accessible and keyboard navigable
+ * - Customizable chart configuration
+ *
+ * @returns {JSX.Element} Interactive area chart for dashboard analytics
+ *
+ * @example
+ * ```tsx
+ * <ChartAreaInteractive />
+ * ```
+ */
 export function ChartAreaInteractive() {
   const isMobile = useIsMobile();
   const [timeRange, setTimeRange] = React.useState("30d");

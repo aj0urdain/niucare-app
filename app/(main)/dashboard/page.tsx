@@ -1,3 +1,10 @@
+/**
+ * File: app/(main)/dashboard/page.tsx
+ * Description: Main dashboard page component displaying claims statistics and registration status
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +36,16 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 
+/**
+ * Interface for policy holder claim data
+ * @property id - Unique identifier for the claim
+ * @property amount - Claim amount
+ * @property status - Current status of the claim
+ * @property label - Display label for the claim
+ * @property employeeNo - Employee number associated with the claim
+ * @property description - Detailed description of the claim
+ * @property documents - Optional documents related to the claim
+ */
 interface PolicyHolderClaim {
   id: number;
   amount: number;
@@ -39,6 +56,24 @@ interface PolicyHolderClaim {
   documents?: string;
 }
 
+/**
+ * DashboardPage Component
+ *
+ * Main dashboard component that displays:
+ * - Claims statistics and metrics
+ * - Registration status and requirements
+ * - Recent claims list
+ * - Date range filtered data
+ *
+ * Features:
+ * - Dynamic data loading with Apollo Client
+ * - Date range selection for filtered views
+ * - Registration status check and guidance
+ * - Responsive grid layout for statistics
+ * - Loading states with skeleton UI
+ *
+ * @returns {JSX.Element} The dashboard page with statistics and claims information
+ */
 export default function DashboardPage() {
   const { user } = useUserProfileStore();
   const [dateRange, setDateRange] = useState({

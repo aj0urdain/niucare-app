@@ -1,3 +1,10 @@
+/**
+ * File: app/(main)/update-policy-holders/page.tsx
+ * Description: Policy holders data update page for bulk CSV uploads and management
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 "use client";
 
 import { useState } from "react";
@@ -15,10 +22,30 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 
+/**
+ * UpdatePolicyHoldersPage Component
+ *
+ * Page component for managing policy holder data updates through CSV uploads.
+ * Features:
+ * - CSV file upload with validation
+ * - Upload progress indication
+ * - Success/error notifications
+ * - Upload history display (placeholder)
+ *
+ * File Requirements:
+ * - Must be CSV format
+ * - Contains policy holder information
+ *
+ * @returns {JSX.Element} The policy holders update page with upload interface
+ */
 export default function UpdatePolicyHoldersPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  /**
+   * Handles file selection and validates file type
+   * @param e - Change event from file input
+   */
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type === "text/csv") {
@@ -31,6 +58,11 @@ export default function UpdatePolicyHoldersPage() {
     }
   };
 
+  /**
+   * Handles file upload process
+   * Currently simulates upload with a delay
+   * TODO: Implement actual AWS S3 upload
+   */
   const handleUpload = async () => {
     if (!selectedFile) {
       toast.error("No file selected", {
@@ -60,6 +92,7 @@ export default function UpdatePolicyHoldersPage() {
       ) as HTMLInputElement;
       if (fileInput) fileInput.value = "";
     } catch (error) {
+      console.error(error);
       toast.error("Upload failed", {
         description:
           "There was an error uploading your file. Please try again.",
