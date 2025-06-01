@@ -38,7 +38,7 @@ export const isAuthenticated = async () =>
     async operation(contextSpec: any) {
       try {
         const user = await getCurrentUser(contextSpec);
-        console.log("user", user);
+
         return !!user;
       } catch (error) {
         console.error("Error verifying authentication:", error);

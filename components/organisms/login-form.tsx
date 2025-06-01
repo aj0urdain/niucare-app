@@ -209,12 +209,6 @@ const LoginFormContent = () => {
       console.error("Authentication error:", error);
 
       try {
-        const { username, userId, signInDetails } = await getCurrentUser();
-        console.log("Current user:", {
-          username,
-          userId,
-          signInDetails,
-        });
         toast.info("You are already signed in");
         queryClient.invalidateQueries({ queryKey: ["userProfile"] });
         return;
