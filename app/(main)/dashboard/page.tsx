@@ -74,7 +74,7 @@ interface PolicyHolderClaim {
  *
  * @returns {JSX.Element} The dashboard page with statistics and claims information
  */
-export default function DashboardPage() {
+const DashboardPage = () => {
   const { user } = useUserProfileStore();
   const [dateRange, setDateRange] = useState({
     from: new Date(new Date().setDate(new Date().getDate() - 7)),
@@ -84,12 +84,6 @@ export default function DashboardPage() {
 
   const isRegistrationAcknowledged =
     user?.registration?.status?.toLowerCase() === "acknowledged";
-
-  useEffect(() => {
-    if (user) {
-      console.log(user.registration);
-    }
-  }, [user]);
 
   const { loading, data } = useQuery(GET_POLICYHOLDERCLAIMS, {
     variables: {
@@ -496,4 +490,6 @@ export default function DashboardPage() {
       </div>
     </div>
   );
-}
+};
+
+export default DashboardPage;

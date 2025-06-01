@@ -19,6 +19,7 @@ import { useUserProfileStore } from "@/stores/user-profile-store";
 import { useEffect } from "react";
 import { useApolloClient } from "@apollo/client";
 import { Hub } from "aws-amplify/utils";
+import { getCurrentUser } from "@aws-amplify/auth";
 
 // Configure Amplify for client-side
 configureAmplify();
@@ -60,31 +61,38 @@ function UserProfileInitializer() {
   );
 
   useEffect(() => {
-    // Initial fetch
-    fetchUserProfile(client);
+    const setupAuth = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        if (currentUser) {
+          await fetchUserProfile(client as any);
+        }
+      } catch (error) {
+        // Handle error silently
+        console.error("Error fetching user profile:", error);
+      }
+    };
 
-    // Set up auth listener
-    const hubListener = Hub.listen("auth", ({ payload }) => {
-      switch (payload.event) {
+    const handleAuthStateChange = async (event: string) => {
+      switch (event) {
         case "signedIn":
-          console.log("Auth: User signed in - fetching profile");
-          fetchUserProfile(client);
+          await fetchUserProfile(client as any);
           break;
         case "signedOut":
-          console.log("Auth: User signed out - clearing profile");
           clearUserProfile();
           break;
         case "tokenRefresh":
-          console.log("Auth: Tokens refreshed - fetching profile");
-          fetchUserProfile(client);
+          await fetchUserProfile(client as any);
           break;
       }
+    };
+
+    setupAuth();
+    const unsubscribe = Hub.listen("auth", ({ payload: { event } }) => {
+      handleAuthStateChange(event);
     });
 
-    // Cleanup listener on unmount
-    return () => {
-      hubListener();
-    };
+    return () => unsubscribe();
   }, [client, fetchUserProfile, clearUserProfile]);
 
   return null;
