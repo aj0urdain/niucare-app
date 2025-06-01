@@ -39,10 +39,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useMutation } from "@apollo/client";
-import { ADD_OR_UPDATE_DRAFT } from "@/lib/graphql/mutations";
+import {
+  ADD_OR_UPDATE_DRAFT,
+  UPDATE_REGISTRATION_STATUS,
+} from "@/lib/graphql/mutations";
 import { useUserProfileStore } from "@/stores/user-profile-store";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { GET_USER_FULL_REGISTRATION } from "@/lib/graphql/queries";
 
 interface SubmittedRegistrationProps {
   registration: {
@@ -97,6 +101,17 @@ export function SubmittedRegistration({
   const router = useRouter();
   const [addOrUpdateDraft, { loading: isUpdatingDraft, error: updateError }] =
     useMutation(ADD_OR_UPDATE_DRAFT);
+  const [updateRegistrationStatus, { loading: isUpdatingStatus }] = useMutation(
+    UPDATE_REGISTRATION_STATUS,
+    {
+      refetchQueries: [
+        {
+          query: GET_USER_FULL_REGISTRATION,
+          variables: { userId: user?.userId },
+        },
+      ],
+    }
+  );
   const [activeSection, setActiveSection] = useState<string>("");
   const [isNewRegistrationDialogOpen, setIsNewRegistrationDialogOpen] =
     useState(false);
@@ -238,6 +253,24 @@ export function SubmittedRegistration({
     } catch (error) {
       console.error("Error creating draft:", error);
       toast.error("Failed to create draft");
+    }
+  };
+
+  const handleAcknowledgeRegistration = async () => {
+    try {
+      await updateRegistrationStatus({
+        variables: {
+          id: registration.id,
+          status: "Acknowledged",
+          reason: "Registration acknowledged by the user.",
+        },
+      });
+
+      toast.success("Registration acknowledged successfully");
+      router.push("/dashboard"); // or wherever you want to redirect after acknowledgment
+    } catch (error) {
+      console.error("Error acknowledging registration:", error);
+      toast.error("Failed to acknowledge registration");
     }
   };
 
@@ -519,6 +552,58 @@ export function SubmittedRegistration({
                       and resubmit if appropriate.
                     </p>
                   )}
+                </CardContent>
+              </Card>
+            )}
+
+            {registration.status.toLowerCase() === "approved" && (
+              <Card
+                className={cn(
+                  "bg-green-50 border-green-200 transition-all duration-300 overflow-hidden",
+                  isHeaderSticky
+                    ? "opacity-0 pointer-events-none max-h-0 m-0"
+                    : "opacity-100 pointer-events-auto max-h-[800px] mt-4 mx-6"
+                )}
+              >
+                <CardContent className="flex flex-col items-start gap-4">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <h2 className="text-lg font-semibold text-green-800">
+                      Registration Approved
+                    </h2>
+                  </div>
+                  <div className="flex flex-col gap-4 w-full">
+                    <p className="text-green-800 text-sm">
+                      Congratulations! Your registration has been approved.
+                      Please review the agreement below and acknowledge to gain
+                      access to your provider dashboard and services.
+                    </p>
+
+                    {/* PDF Agreement Viewer */}
+                    <div className="w-full h-[500px] rounded-lg border border-green-200 overflow-hidden">
+                      <iframe
+                        src="https://psna-public.s3.ap-southeast-2.amazonaws.com/agreement.pdf"
+                        className="w-full h-full"
+                        title="Registration Agreement"
+                      />
+                    </div>
+
+                    <div className="flex gap-2 w-full justify-end">
+                      <Button
+                        variant="default"
+                        onClick={handleAcknowledgeRegistration}
+                        disabled={isUpdatingStatus}
+                        className="group/acknowledge-registration transition-all duration-300 hover:bg-green-600 cursor-pointer"
+                      >
+                        <div className="group-hover/acknowledge-registration:animate-slide-down-fade-in">
+                          <ThumbsUp className="h-4 w-4 hidden group-hover/acknowledge-registration:block animate-pulse" />
+                        </div>
+                        {isUpdatingStatus
+                          ? "Acknowledging..."
+                          : "I Agree & Access Dashboard"}
+                      </Button>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}

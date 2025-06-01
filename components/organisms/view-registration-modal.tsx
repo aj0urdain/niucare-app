@@ -24,8 +24,8 @@ import { useQuery, useMutation } from "@apollo/client";
 import {
   GET_REGISTRATIONS,
   GET_USER_FULL_REGISTRATION,
-  UPDATE_REGISTRATION_STATUS,
 } from "@/lib/graphql/queries";
+import { UPDATE_REGISTRATION_STATUS } from "@/lib/graphql/mutations";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {

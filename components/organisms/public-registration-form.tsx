@@ -803,7 +803,7 @@ function PublicRegistrationForm({ initialDraft }: PublicRegistrationFormProps) {
         ...values,
         signatureType: undefined,
         id: values.registrationId,
-        userId: null,
+        userId: user?.userId,
         applicantsTermsInPractice:
           values.applicantsTermsInPractice?.toString() || "0",
         practice_Section: values.practice_Section || null,

@@ -770,7 +770,7 @@ function PrivateRegistrationForm({
         signatureType: undefined,
         registrationId: undefined,
         id: values.registrationId,
-        userId: null,
+        userId: user?.userId,
         applicantsTermsInPractice: values.applicantsTermsInPractice.toString(),
         postal_Section: null,
         postal_Lot: null,
