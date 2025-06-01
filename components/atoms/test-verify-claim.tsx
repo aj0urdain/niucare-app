@@ -1,3 +1,14 @@
+/**
+ * File: components/atoms/test-verify-claim.tsx
+ * Description: Test component for verifying claim submissions
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides a test interface for verifying claim submissions
+ * using Apollo GraphQL. It includes error handling, loading states, and
+ * response display.
+ */
+
 "use client";
 
 import { useState } from "react";
@@ -6,11 +17,73 @@ import { GET_VERIFY_CLAIM } from "@/lib/graphql/queries";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+/**
+ * ClaimPayload type definition
+ * Represents the payload for verifying a claim
+ *
+ * @property {string} employeeNo - Employee number
+ * @property {string} claimCode - Code identifying the type of claim
+ * @property {string} amount - Claim amount
+ * @property {string} description - Optional description of the claim
+ * @property {string} userId - ID of the user submitting the claim
+ * @property {string} status - Current status of the claim
+ * @property {number} claimGroup - Group identifier for the claim
+ * @property {string} documents - Associated documents
+ */
+interface ClaimPayload {
+  employeeNo: string;
+  claimCode: string;
+  amount: string;
+  description: string;
+  userId: string;
+  status: string;
+  claimGroup: number;
+  documents: string;
+}
+
+/**
+ * VerifyClaimResponse type definition
+ * Represents the response from verifying a claim
+ *
+ * @property {boolean} success - Whether the verification was successful
+ * @property {string} message - Response message
+ * @property {object} data - Additional response data
+ */
+interface VerifyClaimResponse {
+  success: boolean;
+  message: string;
+  data: Record<string, unknown>;
+}
+
+/**
+ * TestVerifyClaimQuery Component
+ *
+ * A test component for verifying claim submissions using Apollo GraphQL.
+ * Features:
+ * - Fixed test payload
+ * - GraphQL query execution
+ * - Loading states
+ * - Error handling
+ * - Response display
+ *
+ * @returns {JSX.Element} Test interface for verifying claims
+ *
+ * @example
+ * ```tsx
+ * // Basic usage
+ * <TestVerifyClaimQuery />
+ *
+ * // With custom styling
+ * <div className="custom-container">
+ *   <TestVerifyClaimQuery />
+ * </div>
+ * ```
+ */
 export function TestVerifyClaimQuery() {
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<VerifyClaimResponse | null>(null);
 
   // Fixed payload based on your example
-  const payload = {
+  const payload: ClaimPayload = {
     employeeNo: "10022495",
     claimCode: "1301",
     amount: "122",
@@ -38,6 +111,10 @@ export function TestVerifyClaimQuery() {
     }
   );
 
+  /**
+   * Handles the verification of a claim
+   * Executes the GraphQL query with the fixed payload
+   */
   const handleVerifyClaim = () => {
     console.log("Sending verify claim with input:", payload);
 

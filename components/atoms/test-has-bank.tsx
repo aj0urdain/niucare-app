@@ -1,3 +1,14 @@
+/**
+ * File: components/atoms/test-has-bank.tsx
+ * Description: Test component for querying bank details status
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides a test interface for checking if a user has bank details
+ * using three different methods: Apollo GraphQL, Direct Fetch, and Tanstack Query.
+ * It demonstrates different approaches to data fetching and state management.
+ */
+
 "use client";
 
 import { useState } from "react";
@@ -8,12 +19,33 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fetchAuthSession } from "aws-amplify/auth";
 
-// Define types for our response data
+/**
+ * BankDetailsResponse type definition
+ * Represents the response from checking bank details status
+ *
+ * @property {boolean} hasBankDetails - Indicates whether the user has bank details
+ */
 type BankDetailsResponse = {
   hasBankDetails: boolean;
 };
 
-// Helper function for direct fetch
+/**
+ * Helper function to fetch bank details directly from the API
+ *
+ * @param {string} employeeNo - The employee number to check
+ * @returns {Promise<boolean>} Promise resolving to whether the user has bank details
+ * @throws {Error} If no auth token is available or if the API request fails
+ *
+ * @example
+ * ```typescript
+ * try {
+ *   const hasBankDetails = await directFetchBankDetails("00726281");
+ *   console.log("Has bank details:", hasBankDetails);
+ * } catch (error) {
+ *   console.error("Error fetching bank details:", error);
+ * }
+ * ```
+ */
 const directFetchBankDetails = async (employeeNo: string): Promise<boolean> => {
   const session = await fetchAuthSession();
   const token = session.tokens?.accessToken?.toString() || "";
@@ -32,7 +64,6 @@ const directFetchBankDetails = async (employeeNo: string): Promise<boolean> => {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    // body: JSON.stringify({}),
   });
 
   if (!response.ok) {
@@ -43,6 +74,34 @@ const directFetchBankDetails = async (employeeNo: string): Promise<boolean> => {
   return response.json();
 };
 
+/**
+ * TestBankDetailsQuery Component
+ *
+ * A test component that demonstrates three different methods of checking bank details:
+ * 1. Apollo GraphQL Query
+ * 2. Direct Fetch API Call
+ * 3. Tanstack Query Mutation
+ *
+ * Features:
+ * - Multiple data fetching methods
+ * - Loading states
+ * - Error handling
+ * - Response display
+ * - Disabled states during loading
+ *
+ * @returns {JSX.Element} Test interface for checking bank details
+ *
+ * @example
+ * ```tsx
+ * // Basic usage
+ * <TestBankDetailsQuery />
+ *
+ * // With custom styling
+ * <div className="custom-container">
+ *   <TestBankDetailsQuery />
+ * </div>
+ * ```
+ */
 export function TestBankDetailsQuery() {
   const [response, setResponse] = useState<BankDetailsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);

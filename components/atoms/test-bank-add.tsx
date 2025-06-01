@@ -1,8 +1,29 @@
+/**
+ * File: components/atoms/test-bank-add.tsx
+ * Description: Test component for adding bank details to the system
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides a test interface for adding bank details to the system.
+ * It includes form validation, error handling, and success feedback.
+ */
+
 import { useState } from "react";
 import { useMutation } from "@apollo/client";
 import { ADD_BANK } from "@/lib/graphql/queries";
 
-// Define the Bank type based on the backend model
+/**
+ * Bank type definition
+ * Represents a bank account record in the system
+ *
+ * @property {number} [id] - Optional unique identifier for the bank record
+ * @property {number} policyHolderId - ID of the associated policyholder
+ * @property {string} name - Name of the bank
+ * @property {string} branch_Number - Branch number of the bank
+ * @property {string} branch_Name - Name of the bank branch
+ * @property {string} account_Number - Bank account number
+ * @property {string} account_Name - Name on the bank account
+ */
 interface Bank {
   id?: number;
   policyHolderId: number;
@@ -13,6 +34,38 @@ interface Bank {
   account_Name: string;
 }
 
+/**
+ * BankTest Component
+ *
+ * A test component for adding bank details to the system.
+ * Features:
+ * - Form validation
+ * - Error handling
+ * - Success feedback
+ * - Loading states
+ * - GraphQL mutation integration
+ *
+ * Form Fields:
+ * - Policyholder ID
+ * - Bank Name
+ * - Branch Number
+ * - Branch Name
+ * - Account Number
+ * - Account Name
+ *
+ * @returns {JSX.Element} Test form for adding bank details
+ *
+ * @example
+ * ```tsx
+ * // Basic usage
+ * <BankTest />
+ *
+ * // With custom styling
+ * <div className="custom-container">
+ *   <BankTest />
+ * </div>
+ * ```
+ */
 export default function BankTest() {
   const [formData, setFormData] = useState({
     policyHolderId: "",
@@ -28,7 +81,10 @@ export default function BankTest() {
   // Set up the mutation
   const [addBank, { loading }] = useMutation(ADD_BANK);
 
-  // Handle input changes
+  /**
+   * Handles input field changes
+   * @param e - Change event from input field
+   */
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -37,7 +93,10 @@ export default function BankTest() {
     }));
   };
 
-  // Handle form submission
+  /**
+   * Handles form submission
+   * @param e - Form submission event
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
