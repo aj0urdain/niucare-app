@@ -1,3 +1,10 @@
+/**
+ * File: components/organisms/private-registration-form.tsx
+ * Description: Multi-step registration form for private service providers, including draft saving and document upload
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 import { Card, CardTitle, CardHeader, CardContent } from "@/components/ui/card";
 import {
   Building2,
@@ -51,6 +58,10 @@ import SignatureUpload from "@/components/molecules/signature-upload";
 import { SignaturePreviewCard } from "@/components/molecules/signature-preview-card";
 import { useRouter } from "next/navigation";
 
+/**
+ * Zod schema for private registration form validation
+ * Defines all required and optional fields for private service provider registration
+ */
 const registrationSchema = z.object({
   // Public Officer Details
   id: z.string().optional(),
@@ -270,10 +281,27 @@ type Draft = {
   isPsnaProvider: boolean;
 };
 
+/**
+ * Props for the PrivateRegistrationForm component
+ * @property initialDraft - Optional initial draft data for the form
+ */
 interface PrivateRegistrationFormProps {
   initialDraft?: Draft;
 }
 
+/**
+ * PrivateRegistrationForm Component
+ *
+ * Multi-step registration form for private service providers. Handles draft saving, validation, document upload, and signature capture.
+ *
+ * @param {PrivateRegistrationFormProps} props - Component props
+ * @returns {JSX.Element} The rendered private registration form
+ *
+ * @example
+ * ```tsx
+ * <PrivateRegistrationForm />
+ * ```
+ */
 function PrivateRegistrationForm({
   initialDraft,
 }: PrivateRegistrationFormProps) {

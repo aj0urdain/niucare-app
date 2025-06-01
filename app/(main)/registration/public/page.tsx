@@ -1,3 +1,10 @@
+/**
+ * File: app/(main)/registration/public/page.tsx
+ * Description: Public registration page for service provider registration
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 "use client";
 
 import { useQuery } from "@apollo/client";
@@ -9,6 +16,22 @@ import { useUserProfileStore } from "@/stores/user-profile-store";
 import PublicRegistrationForm from "@/components/organisms/public-registration-form";
 import { Skeleton } from "@/components/ui/skeleton";
 
+/**
+ * RegistrationPage Component
+ *
+ * Public registration page that handles:
+ * - Loading user registration data
+ * - Loading and managing registration drafts
+ * - Displaying the public registration form
+ *
+ * Features:
+ * - Draft persistence and retrieval
+ * - Loading states with skeleton UI
+ * - User registration status tracking
+ * - Responsive layout
+ *
+ * @returns {JSX.Element} Public registration page with form and loading states
+ */
 export default function RegistrationPage() {
   const { user } = useUserProfileStore();
 
@@ -36,7 +59,7 @@ export default function RegistrationPage() {
 
   console.log("latestDraft", latestDraft);
 
-  if (loading) {
+  if (loading || registrationLoading) {
     return (
       <div className="flex w-full gap-4 h-[calc(98vh-(--spacing(24)))]">
         <Skeleton className="w-1/4 h-3/4" />

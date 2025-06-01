@@ -1,3 +1,10 @@
+/**
+ * File: components/organisms/registration-card.tsx
+ * Description: Card component for displaying registration options, requirements, and draft state for private/public registration
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 import Link from "next/link";
 import {
   Card,
@@ -46,6 +53,15 @@ interface DraftStateProps {
   ptype: "private" | "public";
 }
 
+/**
+ * Props for the RegistrationCard component
+ * @property title - Card title
+ * @property description - Card description
+ * @property icon - Icon to display
+ * @property href - Link to registration form
+ * @property registrationType - Registration type ("private" or "public")
+ * @property latestDraft - Latest draft information (optional)
+ */
 interface RegistrationCardProps {
   title: string;
   description: string;
@@ -116,6 +132,19 @@ const publicRequirements = [
   },
 ];
 
+/**
+ * RegistrationCard Component
+ *
+ * Displays a card for registration options, showing requirements and draft state for private or public registration.
+ *
+ * @param {RegistrationCardProps} props - Component props
+ * @returns {JSX.Element} The rendered registration card
+ *
+ * @example
+ * ```tsx
+ * <RegistrationCard title="Private Registration" description="Register as a private provider" icon={Icon} href="/registration/private" registrationType="private" />
+ * ```
+ */
 export function RegistrationCard({
   title,
   description,

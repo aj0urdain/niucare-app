@@ -1,3 +1,10 @@
+/**
+ * File: components/organisms/public-registration-form.tsx
+ * Description: Multi-step registration form for public (provincial health authority) service providers, including draft saving and document upload
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 import { Card, CardTitle, CardHeader, CardContent } from "@/components/ui/card";
 import {
   Building2,
@@ -51,6 +58,10 @@ import SignatureUpload from "@/components/molecules/signature-upload";
 import { SignaturePreviewCard } from "@/components/molecules/signature-preview-card";
 import { useRouter } from "next/navigation";
 
+/**
+ * Zod schema for public registration form validation
+ * Defines all required and optional fields for public service provider registration
+ */
 const registrationSchema = z.object({
   // Public Officer Details
   id: z.string().optional(),
@@ -321,10 +332,27 @@ type Draft = {
   registrationId: string;
 };
 
+/**
+ * Props for the PublicRegistrationForm component
+ * @property initialDraft - Optional initial draft data for the form
+ */
 interface PublicRegistrationFormProps {
   initialDraft?: Draft;
 }
 
+/**
+ * PublicRegistrationForm Component
+ *
+ * Multi-step registration form for public (provincial health authority) service providers. Handles draft saving, validation, document upload, and signature capture.
+ *
+ * @param {PublicRegistrationFormProps} props - Component props
+ * @returns {JSX.Element} The rendered public registration form
+ *
+ * @example
+ * ```tsx
+ * <PublicRegistrationForm />
+ * ```
+ */
 function PublicRegistrationForm({ initialDraft }: PublicRegistrationFormProps) {
   const { user } = useUserProfileStore();
   const [addOrUpdateDraft, { loading: draftLoading, error: draftError }] =

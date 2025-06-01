@@ -1,3 +1,10 @@
+/**
+ * File: components/organisms/view-registration-modal.tsx
+ * Description: Modal component for viewing registration details, documents, and approving/rejecting registrations
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 import { Registration } from "@/components/atoms/admin-registration-columns";
 import {
   Sheet,
@@ -53,6 +60,12 @@ import { FileUpload } from "@/components/molecules/file-upload";
 
 import { SignaturePreviewCard } from "../molecules/signature-preview-card";
 
+/**
+ * Props for the ViewRegistrationModal component
+ * @property registration - Registration data to display
+ * @property open - Whether the modal is open
+ * @property onOpenChange - Callback for modal open state change
+ */
 interface ViewRegistrationModalProps {
   registration: Registration | null;
   open: boolean;
@@ -881,6 +894,19 @@ const ViewRegistrationModalContent = ({
   );
 };
 
+/**
+ * ViewRegistrationModal Component
+ *
+ * Modal dialog for viewing registration details, documents, and approving/rejecting registrations.
+ *
+ * @param {ViewRegistrationModalProps} props - Component props
+ * @returns {JSX.Element} The rendered view registration modal
+ *
+ * @example
+ * ```tsx
+ * <ViewRegistrationModal registration={registration} open={open} onOpenChange={setOpen} />
+ * ```
+ */
 export function ViewRegistrationModal({
   registration,
   open,

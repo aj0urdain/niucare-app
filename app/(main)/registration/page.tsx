@@ -1,31 +1,44 @@
+/**
+ * File: app/(main)/registration/page.tsx
+ * Description: Registration page component for service provider registration and management
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 "use client";
 
 import { Building2, Hospital } from "lucide-react";
-import { useQuery, useMutation } from "@apollo/client";
+import { useQuery } from "@apollo/client";
 import {
   DRAFTS_BY_USER_ID,
   GET_USER_FULL_REGISTRATION,
 } from "@/lib/graphql/queries";
-import { ADD_OR_UPDATE_DRAFT } from "@/lib/graphql/mutations";
+
 import { useUserProfileStore } from "@/stores/user-profile-store";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RegistrationCard } from "@/components/organisms/registration-card";
 import { SubmittedRegistration } from "@/components/organisms/submitted-registration";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 
+/**
+ * RegistrationPage Component
+ *
+ * Main registration page that handles service provider registration flow.
+ * Features:
+ * - Registration status management
+ * - Draft handling and updates
+ * - Private and public service provider registration options
+ * - Loading states with skeleton UI
+ *
+ * Registration States:
+ * - Pending: Shows submitted registration
+ * - Approved: Shows submitted registration
+ * - Rejected: Shows either registration cards (if newer draft exists) or rejected registration
+ * - No Registration: Shows registration cards
+ *
+ * @returns {JSX.Element} The registration page with appropriate content based on registration status
+ */
 export default function RegistrationPage() {
   const { user } = useUserProfileStore();
-  const [addOrUpdateDraft] = useMutation(ADD_OR_UPDATE_DRAFT, {
-    refetchQueries: [
-      {
-        query: DRAFTS_BY_USER_ID,
-        variables: {
-          userId: user?.userId || "",
-        },
-      },
-    ],
-  });
 
   const { data: draftsData, loading: draftsLoading } = useQuery(
     DRAFTS_BY_USER_ID,
@@ -46,33 +59,6 @@ export default function RegistrationPage() {
       skip: !user?.userId,
     }
   );
-
-  const handleTestUpdate = async () => {
-    if (!user?.userId || !latestDraft) {
-      toast.error("No user or draft found");
-      return;
-    }
-
-    try {
-      await addOrUpdateDraft({
-        variables: {
-          draft: {
-            ...latestDraft,
-            userId: user.userId,
-            reason: "testing",
-            updated_Date: new Date().toISOString(),
-            __typename: undefined,
-            account_Name: "testing 5",
-            id: undefined,
-          },
-        },
-      });
-      toast.success("Test reason added successfully");
-    } catch (error) {
-      console.error("Error updating draft:", error);
-      toast.error("Failed to update draft");
-    }
-  };
 
   if (draftsLoading || registrationLoading) {
     return (
@@ -130,19 +116,6 @@ export default function RegistrationPage() {
               <p className="text-muted-foreground">
                 Select your service provider category
               </p>
-              {/* <div className="flex gap-2">
-                <Button variant="outline" size="sm">
-                  Add Reason
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleTestUpdate}
-                  className="bg-yellow-100 hover:bg-yellow-200"
-                >
-                  Test Add Reason
-                </Button>
-              </div> */}
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
@@ -182,16 +155,6 @@ export default function RegistrationPage() {
         <p className="text-muted-foreground">
           Select your service provider category
         </p>
-        {/* {latestDraft && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleTestUpdate}
-            className="bg-yellow-100 hover:bg-yellow-200"
-          >
-            Test Add Reason
-          </Button>
-        )} */}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

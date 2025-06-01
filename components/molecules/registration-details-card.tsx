@@ -1,5 +1,27 @@
+/**
+ * File: components/molecules/registration-details-card.tsx
+ * Description: Registration details card component for displaying user registration information.
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides registration details display with:
+ * - User information display
+ * - Registration status
+ * - Email verification status
+ * - Bank details status
+ * - Responsive design
+ * - Accessibility features
+ */
+
 import { Building2, UserCheck, MapPin, Landmark, FileText } from "lucide-react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Dot } from "@/components/atoms/dot";
+import { Separator } from "@/components/ui/separator";
+import { useUserProfileStore } from "@/stores/user-profile-store";
+import { useEmployeeStore } from "@/stores/employee-store";
+import { useEmployeeData } from "@/lib/hooks/useEmployeeData";
+import { BadgeCheck, BadgeX, Loader2 } from "lucide-react";
 
 interface RegistrationDetailsCardProps {
   registration: {
@@ -33,6 +55,26 @@ interface RegistrationDetailsCardProps {
   };
 }
 
+/**
+ * RegistrationDetailsCard Component
+ *
+ * Displays user registration information and status.
+ *
+ * Features:
+ * - User information display
+ * - Registration status
+ * - Email verification status
+ * - Bank details status
+ * - Responsive design
+ * - Accessibility features
+ *
+ * @returns {JSX.Element} Registration details card component
+ *
+ * @example
+ * ```tsx
+ * <RegistrationDetailsCard />
+ * ```
+ */
 export function RegistrationDetailsCard({
   registration,
 }: RegistrationDetailsCardProps) {

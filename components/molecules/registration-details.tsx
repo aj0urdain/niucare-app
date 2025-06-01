@@ -11,11 +11,31 @@ import {
 import { Building2, Hospital } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-interface RegistrationDetailsProps {
+/**
+ * RegistrationDetails Component
+ *
+ * Displays user registration information and status.
+ *
+ * Features:
+ * - User information display
+ * - Registration status
+ * - Email verification status
+ * - Bank details status
+ * - Responsive design
+ * - Accessibility features
+ *
+ * @returns {JSX.Element} Registration details component
+ *
+ * @example
+ * ```tsx
+ * <RegistrationDetails />
+ * ```
+ */
+export function RegistrationDetails({
+  provider,
+}: {
   provider: Provider | null;
-}
-
-export function RegistrationDetails({ provider }: RegistrationDetailsProps) {
+}) {
   if (!provider) {
     return (
       <Card className="h-full">

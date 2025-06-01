@@ -1,3 +1,10 @@
+/**
+ * File: app/(main)/registrations/page.tsx
+ * Description: Admin registrations management page for viewing and filtering service provider registrations
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 "use client";
 
 import { columns } from "@/components/atoms/admin-registration-columns";
@@ -7,15 +14,33 @@ import { GET_REGISTRATIONS } from "@/lib/graphql/queries";
 import { useState, useEffect } from "react";
 import { ProtectedRouteProvider } from "@/providers/protected-route-provider";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Separator } from "@/components/ui/separator";
 import { FilePen } from "lucide-react";
 
+/**
+ * Interface for filter values used in the registrations table
+ * @property status - Filter by registration status
+ * @property province - Filter by practice province
+ * @property type - Filter by provider type
+ */
 interface FilterValues {
   status: string;
   province: string;
   type: string;
 }
 
+/**
+ * Interface for registration data from the API
+ * @property id - Unique identifier for the registration
+ * @property userId - User ID of the registrant
+ * @property luhnRegistrationNumber - Registration number using Luhn algorithm
+ * @property public_officer_firstname - First name of the public officer
+ * @property public_officer_lastname - Last name of the public officer
+ * @property email - Contact email address
+ * @property practice_Name - Name of the practice
+ * @property practice_Province - Province where the practice is located
+ * @property ptype - Type of provider
+ * @property status - Current status of the registration
+ */
 interface Registration {
   id: string;
   userId: string;
@@ -29,6 +54,21 @@ interface Registration {
   status: string;
 }
 
+/**
+ * AdminRegistrationsPage Component
+ *
+ * Admin interface for managing service provider registrations.
+ * Features:
+ * - Data table with filtering capabilities
+ * - URL-based filter state management
+ * - Protected route access
+ * - Real-time data updates
+ *
+ * Required Permissions:
+ * - canApproveRegistration: true
+ *
+ * @returns {JSX.Element} The admin registrations management page
+ */
 export default function AdminRegistrationsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -82,7 +122,7 @@ export default function AdminRegistrationsPage() {
           Registrations
         </h1>
       </div>
-      {/* <Separator className="my-8" /> */}
+
       <div className="flex flex-col gap-6 animate-slide-up-fade-in">
         <DataTable
           columns={columns}

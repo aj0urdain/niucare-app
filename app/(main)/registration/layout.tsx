@@ -1,3 +1,10 @@
+/**
+ * File: app/(main)/registration/layout.tsx
+ * Description: Layout component for registration flow with loading states and access control
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 "use client";
 
 import { useQuery } from "@apollo/client";
@@ -6,6 +13,24 @@ import { GET_USER_FULL_REGISTRATION } from "@/lib/graphql/queries";
 import { useUserProfileStore } from "@/stores/user-profile-store";
 import { Skeleton } from "@/components/ui/skeleton";
 
+/**
+ * RegistrationLayout Component
+ *
+ * Layout wrapper for registration flow that handles:
+ * - Loading states with skeleton UI
+ * - Registration status checks
+ * - Access control and redirects
+ *
+ * Features:
+ * - Skeleton loading UI for better UX
+ * - Automatic redirect to dashboard for acknowledged registrations
+ * - User registration status verification
+ * - Responsive grid layout for content
+ *
+ * @param props - Component props
+ * @param props.children - Child components to be rendered within the layout
+ * @returns {JSX.Element} Layout component with loading states and access control
+ */
 export default function RegistrationLayout({
   children,
 }: {

@@ -1,3 +1,10 @@
+/**
+ * File: components/organisms/submitted-registration.tsx
+ * Description: Displays a submitted registration with details, status, and actions for editing or acknowledging
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Building2,
@@ -48,6 +55,10 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { GET_USER_FULL_REGISTRATION } from "@/lib/graphql/queries";
 
+/**
+ * Props for the SubmittedRegistration component
+ * @property registration - Registration data to display
+ */
 interface SubmittedRegistrationProps {
   registration: {
     status: string;
@@ -94,6 +105,19 @@ interface SubmittedRegistrationProps {
   };
 }
 
+/**
+ * SubmittedRegistration Component
+ *
+ * Displays a submitted registration with all details, status, and actions for editing, acknowledging, or starting a new registration.
+ *
+ * @param {SubmittedRegistrationProps} props - Component props
+ * @returns {JSX.Element} The rendered submitted registration view
+ *
+ * @example
+ * ```tsx
+ * <SubmittedRegistration registration={registrationData} />
+ * ```
+ */
 export function SubmittedRegistration({
   registration,
 }: SubmittedRegistrationProps) {

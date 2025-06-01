@@ -1,3 +1,17 @@
+/**
+ * File: components/molecules/registration-status-card.tsx
+ * Description: Registration status card component for displaying user registration status.
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides registration status display with:
+ * - Registration status
+ * - Email verification status
+ * - Bank details status
+ * - Responsive design
+ * - Accessibility features
+ */
+
 import { BadgeCheck } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
@@ -7,6 +21,25 @@ interface RegistrationStatusCardProps {
   reason?: string;
 }
 
+/**
+ * RegistrationStatusCard Component
+ *
+ * Displays user registration status information.
+ *
+ * Features:
+ * - Registration status
+ * - Email verification status
+ * - Bank details status
+ * - Responsive design
+ * - Accessibility features
+ *
+ * @returns {JSX.Element} Registration status card component
+ *
+ * @example
+ * ```tsx
+ * <RegistrationStatusCard />
+ * ```
+ */
 export function RegistrationStatusCard({
   status,
   luhnRegistrationNumber,
