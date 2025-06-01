@@ -118,14 +118,12 @@ export default function BankTest() {
       });
 
       setResult(response.data.addBank);
-      console.log("Bank added successfully:", response.data.addBank);
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error
           ? err.message
           : "An error occurred while adding bank details";
       setError(errorMessage);
-      console.error("Error adding bank:", err);
     }
   };
 

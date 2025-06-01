@@ -100,7 +100,6 @@ export function TestVerifyClaimQuery() {
       fetchPolicy: "network-only",
       errorPolicy: "all",
       onCompleted: (data) => {
-        console.log("Verify Claim Query successful:", data);
         setResult(data);
       },
       onError: (error) => {
@@ -116,8 +115,6 @@ export function TestVerifyClaimQuery() {
    * Executes the GraphQL query with the fixed payload
    */
   const handleVerifyClaim = () => {
-    console.log("Sending verify claim with input:", payload);
-
     verifyClaimQuery({
       variables: {
         input: payload,
