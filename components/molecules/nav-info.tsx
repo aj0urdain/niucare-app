@@ -1,3 +1,18 @@
+/**
+ * File: components/molecules/nav-info.tsx
+ * Description: Navigation information component for displaying user and system status
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides navigation information with the following features:
+ * - User avatar display
+ * - User information display
+ * - System status indicator
+ * - Theme toggle
+ * - Sign out functionality
+ * - Responsive design
+ */
+
 "use client";
 
 import {
@@ -25,15 +40,51 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-export function NavInfo({
-  items,
-}: {
+/**
+ * Props for the NavInfo component
+ */
+interface NavInfoProps {
+  /** Array of navigation items */
   items: {
+    /** The name of the navigation item */
     name: string;
+    /** The URL to navigate to */
     url: string;
+    /** The icon component for the navigation item */
     icon: LucideIcon;
   }[];
-}) {
+}
+
+/**
+ * NavInfo Component
+ *
+ * A navigation information component that displays user and system status.
+ *
+ * Features:
+ * - User avatar display
+ * - User information display
+ * - System status indicator
+ * - Theme toggle
+ * - Sign out functionality
+ * - Responsive design
+ * - Dropdown menu
+ * - Keyboard navigation
+ * - Screen reader support
+ *
+ * @param props - Component props
+ * @returns {JSX.Element} Navigation information with user and system status
+ *
+ * @example
+ * ```tsx
+ * <NavInfo
+ *   items={[
+ *     { name: "Profile", url: "/profile", icon: UserIcon },
+ *     { name: "Settings", url: "/settings", icon: SettingsIcon }
+ *   ]}
+ * />
+ * ```
+ */
+export function NavInfo({ items }: NavInfoProps) {
   const { isMobile } = useSidebar();
 
   return (

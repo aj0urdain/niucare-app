@@ -1,3 +1,16 @@
+/**
+ * File: components/molecules/nav-user.tsx
+ * Description: User navigation component with profile and authentication features
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides user navigation with the following features:
+ * - User profile display
+ * - Sign out functionality
+ * - Certificate download
+ * - Responsive design
+ */
+
 "use client";
 
 import { BadgeCheck, ChevronsUpDown, FileCheck, LogOut } from "lucide-react";
@@ -26,6 +39,29 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { getUrl } from "aws-amplify/storage";
 import { useState } from "react";
+
+/**
+ * NavUser Component
+ *
+ * A user navigation component that provides profile and authentication features.
+ *
+ * Features:
+ * - User profile display
+ * - Sign out functionality
+ * - Certificate download
+ * - Responsive design
+ * - Dropdown menu
+ * - Avatar display
+ * - Toast notifications
+ * - Query client integration
+ *
+ * @returns {JSX.Element} User navigation with profile and authentication features
+ *
+ * @example
+ * ```tsx
+ * <NavUser />
+ * ```
+ */
 export function NavUser() {
   const { user } = useUserProfileStore();
   const { isMobile } = useSidebar();

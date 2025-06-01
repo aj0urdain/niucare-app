@@ -1,3 +1,10 @@
+/**
+ * File: components/organisms/app-sidebar.tsx
+ * Description: Main application sidebar component that provides navigation and user interface
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ */
+
 "use client";
 
 import * as React from "react";
@@ -27,6 +34,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { useUserProfileStore } from "@/stores/user-profile-store";
 
+/**
+ * Navigation data structure containing teams and navigation items
+ * @property teams - Array of team objects with name, logo, and plan
+ * @property navAdmin - Array of admin navigation items
+ * @property navServiceProvider - Array of service provider navigation items
+ * @property navInfo - Array of informational navigation items
+ */
 const data = {
   teams: [
     {
@@ -94,6 +108,10 @@ const data = {
   ],
 };
 
+/**
+ * Loading skeleton component for navigation items
+ * @returns {JSX.Element} Skeleton UI for navigation loading state
+ */
 const NavSkeleton = () => {
   return (
     <div className="space-y-4 px-4 mt-4">
@@ -113,10 +131,27 @@ const NavSkeleton = () => {
   );
 };
 
+/**
+ * AppSidebar Component
+ *
+ * Main sidebar component that provides navigation based on user role and registration status.
+ * Displays different navigation items for admin and service provider users.
+ *
+ * @param {React.ComponentProps<typeof Sidebar>} props - Props passed to the Sidebar component
+ * @returns {JSX.Element} The rendered sidebar with appropriate navigation items
+ *
+ * @example
+ * ```tsx
+ * <AppSidebar />
+ * ```
+ */
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, isLoading } = useUserProfileStore();
 
-  // Filter service provider nav items based on registration status
+  /**
+   * Filters service provider navigation items based on registration status
+   * @returns {Array} Filtered navigation items for service provider
+   */
   const getServiceProviderNav = () => {
     // If registration is acknowledged, show dashboard and claims, hide registration
     if (user?.registration.details?.status === "Acknowledged") {

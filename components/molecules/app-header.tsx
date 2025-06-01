@@ -1,3 +1,17 @@
+/**
+ * File: components/molecules/app-header.tsx
+ * Description: Application header with breadcrumbs, theme switcher, and sidebar trigger.
+ * Author: Aaron J. Girton - https://github.com/aj0urdain
+ * Created: 2025
+ *
+ * This component provides the main application header, including:
+ * - Breadcrumb navigation
+ * - Theme switcher
+ * - Sidebar trigger
+ * - Sticky and responsive design
+ * - Accessibility and keyboard navigation
+ */
+
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -20,6 +34,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+/**
+ * Generates breadcrumb data from the current pathname.
+ *
+ * @param pathname - The current URL pathname
+ * @returns Array of breadcrumb objects with label and url
+ */
 function generateBreadcrumbs(pathname: string) {
   // Remove trailing slash and split into segments
   const segments = pathname.replace(/\/$/, "").split("/").filter(Boolean);
@@ -38,6 +58,25 @@ function generateBreadcrumbs(pathname: string) {
   });
 }
 
+/**
+ * AppHeader Component
+ *
+ * The main application header, providing breadcrumbs, theme switcher, and sidebar trigger.
+ *
+ * Features:
+ * - Breadcrumb navigation
+ * - Theme switcher
+ * - Sidebar trigger
+ * - Sticky and responsive design
+ * - Accessibility and keyboard navigation
+ *
+ * @returns {JSX.Element} The application header
+ *
+ * @example
+ * ```tsx
+ * <AppHeader />
+ * ```
+ */
 export function AppHeader() {
   const pathname = usePathname();
   const breadcrumbs = generateBreadcrumbs(pathname);
