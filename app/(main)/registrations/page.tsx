@@ -11,7 +11,7 @@ import { columns } from "@/components/atoms/admin-registration-columns";
 import { DataTable } from "@/components/organisms/data-table";
 import { useQuery } from "@apollo/client";
 import { GET_REGISTRATIONS } from "@/lib/graphql/queries";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { ProtectedRouteProvider } from "@/providers/protected-route-provider";
 import { useSearchParams, useRouter } from "next/navigation";
 import { FilePen } from "lucide-react";
@@ -70,6 +70,18 @@ interface Registration {
  * @returns {JSX.Element} The admin registrations management page
  */
 export default function AdminRegistrationsPage() {
+  return (
+    <ProtectedRouteProvider
+      requiredPermissions={{ canApproveRegistration: true }}
+    >
+      <Suspense fallback={<></>}>
+        <RegistrationsContent />
+      </Suspense>
+    </ProtectedRouteProvider>
+  );
+}
+
+function RegistrationsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -113,9 +125,7 @@ export default function AdminRegistrationsPage() {
     })) || [];
 
   return (
-    <ProtectedRouteProvider
-      requiredPermissions={{ canApproveRegistration: true }}
-    >
+    <>
       <div className="flex items-center gap-2 mt-4">
         <FilePen className="h-8 w-8 animate-slide-down-fade-in" />
         <h1 className="text-4xl font-bold animate-slide-up-fade-in">
@@ -135,6 +145,6 @@ export default function AdminRegistrationsPage() {
           visibleFilters={["status", "type", "province"]}
         />
       </div>
-    </ProtectedRouteProvider>
+    </>
   );
 }
