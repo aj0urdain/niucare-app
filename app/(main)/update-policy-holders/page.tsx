@@ -81,7 +81,7 @@ export default function UpdatePolicyHoldersPage() {
         description: `${selectedFile.name} has been uploaded successfully`,
         action: {
           label: "View History",
-          onClick: () => console.log("View history clicked"),
+          onClick: () => console.log(""),
         },
       });
 
